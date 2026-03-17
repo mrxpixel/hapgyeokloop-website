@@ -407,33 +407,6 @@
     .orbit-2 { width: 570px; height: 570px; top:50%;left:50%; transform:translate(-50%,-50%); border: 1px dashed rgba(255,107,44,0.07); animation: spin 35s linear infinite reverse; }
     @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 
-    /* ─── STATS STRIP ─── */
-    .stats-strip {
-      background: var(--navy);
-      padding: 32px 0;
-      position: relative; overflow: hidden;
-    }
-    .stats-strip::before {
-      content: '';
-      position: absolute; top:-60%; left:30%; right:30%;
-      height: 200%;
-      background: radial-gradient(ellipse, rgba(24,64,212,0.3) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .stats-row {
-      display: flex; align-items: center; justify-content: center;
-      gap: 48px; flex-wrap: wrap;
-      position: relative; z-index: 1;
-    }
-    .stat { text-align: center; }
-    .stat .sv {
-      font-size: 34px; font-weight: 900; letter-spacing: -0.04em;
-      line-height: 1; color: #fff;
-    }
-    .stat .sv em { font-style: normal; color: var(--accent); }
-    .stat .sl { font-size: 12.5px; color: rgba(255,255,255,0.45); margin-top: 4px; }
-    .sdiv { width: 1px; height: 44px; background: rgba(255,255,255,0.1); }
-
     /* ─── SUPPORTED EXAMS ─── */
     .exams { background: var(--bg); padding: 72px 0; }
     .exams-inner { text-align: center; margin-bottom: 44px; }
@@ -590,58 +563,6 @@
     /* ─── TESTIMONIALS ─── */
     .testimonials { background: var(--bg); }
     .t-header { margin-bottom: 60px; }
-    .t-grid {
-      display: grid;
-      grid-template-columns: 1.4fr 1fr 1fr;
-      gap: 20px;
-    }
-    .t-card {
-      background: var(--surface); border-radius: var(--r-lg);
-      border: 1px solid var(--border);
-      padding: 28px 28px 24px;
-      transition: all var(--t) var(--ease);
-    }
-    .t-card:hover { box-shadow: var(--sh-md); transform: translateY(-3px); }
-    .t-stars { margin-bottom: 14px; font-size: 15px; letter-spacing: 1px; }
-    .t-quote {
-      font-size: 15px; color: var(--text); line-height: 1.75;
-      margin-bottom: 22px; font-weight: 400;
-    }
-    .t-quote::before {
-      content: '"';
-      display: block; font-size: 48px; line-height: 0.8;
-      font-family: Georgia, serif;
-      color: var(--primary); opacity: 0.12;
-      margin-bottom: 8px;
-    }
-    .t-author { display: flex; align-items: center; gap: 12px; }
-    .t-ava {
-      width: 40px; height: 40px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 800; color: #fff; flex-shrink: 0;
-    }
-    .t-name { font-size: 14px; font-weight: 700; color: var(--text); }
-    .t-meta { font-size: 12px; color: var(--text-light); }
-
-    /* Featured tall card */
-    .t-card.t-featured {
-      background: var(--primary);
-      border-color: var(--primary);
-      grid-row: span 2;
-      display: flex; flex-direction: column; justify-content: space-between;
-    }
-    .t-card.t-featured .t-quote { color: rgba(255,255,255,0.88); font-size: 16px; }
-    .t-card.t-featured .t-quote::before { color: rgba(255,255,255,0.45); }
-    .t-card.t-featured .t-name { color: #fff; }
-    .t-card.t-featured .t-meta { color: rgba(255,255,255,0.5); }
-    .t-card.t-featured .t-ava { background: rgba(255,255,255,0.15); }
-    .t-score-block { margin-top: 24px; padding: 20px; background: rgba(255,255,255,0.08); border-radius: 12px; text-align: center; }
-    .t-score-block .sc-label { font-size: 11px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
-    .t-score-block .sc-before { font-size: 28px; font-weight: 900; color: rgba(255,255,255,0.28); letter-spacing: -0.03em; }
-    .t-score-block .sc-arrow { color: rgba(255,255,255,0.25); font-size: 18px; margin: 4px 0; }
-    .t-score-block .sc-after { font-size: 52px; font-weight: 900; color: var(--amber); letter-spacing: -0.04em; line-height: 1; }
-    .t-score-block .sc-note { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 6px; }
-    .t-grid-right { display: grid; grid-template-rows: 1fr 1fr; gap: 20px; }
 
     /* ─── PRICING ─── */
     .pricing { background: var(--surface); }
@@ -770,9 +691,6 @@
       .features-grid { grid-template-columns: 1fr; }
       .loop-steps { grid-template-columns: repeat(2, 1fr); }
       .loop-steps::before { display: none; }
-      .t-grid { grid-template-columns: 1fr 1fr; }
-      .t-card.t-featured { grid-row: span 1; }
-      .t-grid-right { grid-template-rows: auto; gap: 20px; }
       .p-grid { grid-template-columns: 1fr 1fr; }
       .p-card.p-feat { transform: none; }
     }
@@ -783,11 +701,8 @@
       .hero { padding: 100px 0 60px; }
       .features-grid { grid-template-columns: 1fr; }
       .loop-steps { grid-template-columns: 1fr 1fr; }
-      .t-grid { grid-template-columns: 1fr; }
       .p-grid { grid-template-columns: 1fr; }
       .p-card.p-feat { transform: none; }
-      .stats-row { gap: 20px; }
-      .sdiv { display: none; }
       .foot-inner { grid-template-columns: 1fr; }
       .orbit-1, .orbit-2 { display: none; }
       .fc1, .fc2 { display: none; }
@@ -813,7 +728,7 @@
           <ul class="nav-links">
             <li><a href="#features">핵심 기능</a></li>
             <li><a href="#how">학습 방법</a></li>
-            <li><a href="#testimonials">합격 후기</a></li>
+            <li><a href="#testimonials">다음 시험</a></li>
             <li><a href="#pricing">요금제</a></li>
           </ul>
           <div class="nav-actions">
@@ -828,7 +743,7 @@
       <div class="mobile-nav" id="mobNav">
         <a href="#features" onclick="toggleNav()">핵심 기능</a>
         <a href="#how" onclick="toggleNav()">학습 방법</a>
-        <a href="#testimonials" onclick="toggleNav()">합격 후기</a>
+        <a href="#testimonials" onclick="toggleNav()">다음 시험</a>
         <a href="#pricing" onclick="toggleNav()">요금제</a>
         <a href="#download" onclick="toggleNav()" style="color:var(--accent);font-weight:800;">무료로 시작하기 →</a>
       </div>
@@ -871,15 +786,7 @@
               </div>
             </a>
           </div>
-          <div class="hero-proof">
-            <div class="proof-faces">
-              <span>김</span><span>이</span><span>박</span><span>최</span>
-            </div>
-            <div class="proof-text">
-              <strong>누적 합격자 12,400명+</strong><br>
-              평균 합격까지 <strong>2.8개월</strong>
-            </div>
-          </div>
+
         </div>
 
         <!-- Right: phone mockup -->
@@ -936,33 +843,6 @@
     </div>
   </section>
 
-  <!-- ─── STATS STRIP ─── -->
-  <div class="stats-strip">
-    <div class="container">
-      <div class="stats-row">
-        <div class="stat">
-          <div class="sv">12,400<em>+</em></div>
-          <div class="sl">누적 합격자</div>
-        </div>
-        <div class="sdiv"></div>
-        <div class="stat">
-          <div class="sv">2.8<em>개월</em></div>
-          <div class="sl">평균 합격 기간</div>
-        </div>
-        <div class="sdiv"></div>
-        <div class="stat">
-          <div class="sv">89<em>%</em></div>
-          <div class="sl">이용자 합격률</div>
-        </div>
-        <div class="sdiv"></div>
-        <div class="stat">
-          <div class="sv">850,000<em>+</em></div>
-          <div class="sl">누적 문제 풀이 수</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- ─── SUPPORTED EXAMS ─── -->
   <section class="exams" id="exams">
     <div class="container">
@@ -980,24 +860,24 @@
           </div>
         </div>
         <div class="exam-card coming">
-          <div class="exam-icon">⚖️</div>
+          <div class="exam-icon">📖</div>
           <div class="exam-info">
-            <div class="exam-name">행정사</div>
-            <div class="exam-status">준비 중</div>
+            <div class="exam-name">한국사능력검정시험</div>
+            <div class="exam-status">출시 예정</div>
           </div>
         </div>
         <div class="exam-card coming">
-          <div class="exam-icon">📋</div>
+          <div class="exam-icon">📝</div>
           <div class="exam-info">
-            <div class="exam-name">주택관리사</div>
-            <div class="exam-status">준비 중</div>
+            <div class="exam-name">공원 9급</div>
+            <div class="exam-status">출시 예정</div>
           </div>
         </div>
         <div class="exam-card coming">
-          <div class="exam-icon">🔒</div>
+          <div class="exam-icon">✨</div>
           <div class="exam-info">
-            <div class="exam-name">더 많은 시험</div>
-            <div class="exam-status">순차 추가 예정</div>
+            <div class="exam-name">더 많은 시험 준비 중</div>
+            <div class="exam-status">계속 추가 예정</div>
           </div>
         </div>
       </div>
@@ -1088,89 +968,36 @@
     </div>
   </section>
 
-  <!-- ─── TESTIMONIALS ─── -->
+  <!-- ─── WAITLIST ─── -->
   <section class="section testimonials" id="testimonials">
     <div class="container">
       <div class="t-header tc">
-        <div class="eyebrow"><span class="dot"></span> 합격 후기</div>
-        <h2 class="h2" style="margin-bottom:14px;">실제 합격자들의 이야기</h2>
-        <p class="lead">합격루프와 함께 공인중개사 자격증을 취득한 실제 이용자 후기입니다.</p>
+        <div class="eyebrow"><span class="dot"></span> 다음 시험 준비</div>
+        <h2 class="h2" style="margin-bottom:14px;">원하는 시험을 알려주세요</h2>
+        <p class="lead">곧 출시될 시험들을 미리 알려주세요. 준비가 완료되면 가장 먼저 알려드립니다.</p>
       </div>
 
-      <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:20px;">
-        <!-- Featured tall card -->
-        <div class="t-card t-featured fade-in">
-          <div>
-            <div class="t-stars">⭐⭐⭐⭐⭐</div>
-            <p class="t-quote">3번 낙방하고 포기하려던 찰나에 합격루프를 만났어요. 해설이 너무 명확해서 그동안 왜 틀렸는지 비로소 이해됐습니다. 복습 알림 덕분에 바쁜 직장 생활에서도 하루 30분씩 꾸준히 할 수 있었고, 4번째 시험에서 드디어 합격했습니다!</p>
-            <div class="t-author">
-              <div class="t-ava">김</div>
-              <div>
-                <div class="t-name">김○○님 · 40대 직장인</div>
-                <div class="t-meta">4번째 도전 끝에 합격 · 학습 기간 3개월</div>
-              </div>
-            </div>
-          </div>
-          <div class="t-score-block">
-            <div class="sc-label">점수 변화</div>
-            <div class="sc-before">38점</div>
-            <div class="sc-arrow">↓</div>
-            <div class="sc-after">74점</div>
-            <div class="sc-note">3개월 만에 36점 상승</div>
-          </div>
+      <div style="max-width:600px;margin:0 auto;padding:40px;background:var(--surface);border-radius:var(--r-lg);border:2px solid var(--border);">
+        <div style="margin-bottom:28px;">
+          <input 
+            type="text" 
+            id="examInput" 
+            placeholder="준비하고 싶은 시험 이름을 입력하세요"
+            style="width:100%;padding:14px 18px;border:2px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:15px;transition:all var(--t) var(--ease);outline:none;"
+            onkeyup="this.style.borderColor = this.value.length > 0 ? 'var(--primary)' : 'var(--border)'"
+          />
         </div>
 
-        <!-- Right: two stacked cards -->
-        <div style="display:flex;flex-direction:column;gap:20px;">
-          <div class="t-card fade-in">
-            <div class="t-stars">⭐⭐⭐⭐⭐</div>
-            <p class="t-quote">주부라 공부 시간이 불규칙한데, 알림이 오면 아이 낮잠 시간에 틈틈이 복습했어요. 개정사항까지 반영된 해설이 정말 믿음직했습니다.</p>
-            <div class="t-author">
-              <div class="t-ava" style="background:linear-gradient(135deg,#e55a2b,#ff8f6a);">이</div>
-              <div>
-                <div class="t-name">이○○님 · 30대 전업주부</div>
-                <div class="t-meta">2개월 학습 후 합격</div>
-              </div>
-            </div>
-          </div>
-          <div class="t-card fade-in">
-            <div class="t-stars">⭐⭐⭐⭐⭐</div>
-            <p class="t-quote">출퇴근 지하철 30분씩, 딱 그것만으로 합격했습니다. 매일 오는 복습 알림이 없었다면 중간에 포기했을 거예요. 비슷한 문제 매칭이 특히 효과적이었습니다.</p>
-            <div class="t-author">
-              <div class="t-ava" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);">최</div>
-              <div>
-                <div class="t-name">최○○님 · 30대 회사원</div>
-                <div class="t-meta">통근 학습으로 2.5개월 합격</div>
-              </div>
-            </div>
-          </div>
+        <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;margin-bottom:28px;">
+          <button onclick="setExam('공인중개사')" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t) var(--ease);" onmouseover="this.style.borderColor='var(--primary)';this.style.backgroundColor='var(--primary-pale)'" onmouseout="this.style.borderColor='var(--border)';this.style.backgroundColor='var(--bg)'">공인중개사</button>
+          <button onclick="setExam('한국사능력검정')" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t) var(--ease);" onmouseover="this.style.borderColor='var(--primary)';this.style.backgroundColor='var(--primary-pale)'" onmouseout="this.style.borderColor='var(--border)';this.style.backgroundColor='var(--bg)'">한국사능력검정</button>
+          <button onclick="setExam('공무원 9급')" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t) var(--ease);" onmouseover="this.style.borderColor='var(--primary)';this.style.backgroundColor='var(--primary-pale)'" onmouseout="this.style.borderColor='var(--border)';this.style.backgroundColor='var(--bg)'">공무원 9급</button>
+          <button onclick="setExam('세무사')" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t) var(--ease);" onmouseover="this.style.borderColor='var(--primary)';this.style.backgroundColor='var(--primary-pale)'" onmouseout="this.style.borderColor='var(--border)';this.style.backgroundColor='var(--bg)'">세무사</button>
         </div>
-      </div>
 
-      <!-- Third row: two more cards -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;">
-        <div class="t-card fade-in">
-          <div class="t-stars">⭐⭐⭐⭐⭐</div>
-          <p class="t-quote">50대라 암기력이 걱정됐는데, AI가 딱 맞는 타이밍에 복습을 보내주니 자연스럽게 기억됩니다. 마법 같아요.</p>
-          <div class="t-author">
-            <div class="t-ava" style="background:linear-gradient(135deg,#1e7a50,#34c98a);">박</div>
-            <div>
-              <div class="t-name">박○○님 · 50대 자영업</div>
-              <div class="t-meta">4개월 학습 후 1회 합격</div>
-            </div>
-          </div>
-        </div>
-        <div class="t-card fade-in">
-          <div class="t-stars">⭐⭐⭐⭐⭐</div>
-          <p class="t-quote">무료로 시작해봤다가 너무 좋아서 연간 결제했습니다. 취약점 집중 훈련이 실전에서 정말 빛을 발했어요.</p>
-          <div class="t-author">
-            <div class="t-ava" style="background:linear-gradient(135deg,#0891b2,#38bdf8);">정</div>
-            <div>
-              <div class="t-name">정○○님 · 20대 대학원생</div>
-              <div class="t-meta">1.5개월 단기 합격</div>
-            </div>
-          </div>
-        </div>
+        <button onclick="submitWaitlist()" style="width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:var(--r-md);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:all var(--t) var(--ease);" onmouseover="this.style.background='var(--primary-lt)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='var(--primary)';this.style.transform='translateY(0)'">대기자 등록하기</button>
+
+        <p style="margin-top:16px;text-align:center;font-size:12px;color:var(--text-light);">신용카드나 개인정보가 필요하지 않습니다.</p>
       </div>
     </div>
   </section>
@@ -1192,12 +1019,12 @@
           <div class="p-savings" style="color:var(--text-light);">영구 무료</div>
           <div class="p-divider"></div>
           <div class="p-feats">
-            <div class="p-feat-item"><span class="ck">✓</span><span>매일 10문제 무료 제공</span></div>
+            <div class="p-feat-item"><span class="ck">✓</span><span>최근 3개년 기출문제 (34,35,36회)</span></div>
+            <div class="p-feat-item"><span class="ck">✓</span><span>매일 비슷한 문제 3개</span></div>
             <div class="p-feat-item"><span class="ck">✓</span><span>기본 복습 알림</span></div>
-            <div class="p-feat-item"><span class="ck">✓</span><span>오답 확인</span></div>
+            <div class="p-feat-item"><span class="ck">✓</span><span>광고 포함</span></div>
             <div class="p-feat-item dim"><span class="cx">✕</span><span>최신 개정사항 반영 해설</span></div>
-            <div class="p-feat-item dim"><span class="cx">✕</span><span>비슷한 문제 매칭</span></div>
-            <div class="p-feat-item dim"><span class="cx">✕</span><span>전체 문제 무제한</span></div>
+            <div class="p-feat-item dim"><span class="cx">✕</span><span>무제한 비슷한 문제</span></div>
           </div>
           <a href="#" class="btn btn-outline p-cta">무료로 시작하기</a>
         </div>
@@ -1205,16 +1032,16 @@
         <!-- Monthly - Featured -->
         <div class="p-card p-feat fade-in">
           <div class="p-badge">가장 인기</div>
-          <div class="p-tier">월간 이용권</div>
+          <div class="p-tier">월간 합격패스</div>
           <div class="p-price"><sup>₩</sup>4,900<span class="per"> / 월</span></div>
           <div class="p-savings">언제든 해지 가능</div>
           <div class="p-divider"></div>
           <div class="p-feats">
-            <div class="p-feat-item"><span class="ck">✓</span><span>기출문제 무제한</span></div>
-            <div class="p-feat-item"><span class="ck">✓</span><span>AI 맞춤 복습 추천 (고급)</span></div>
+            <div class="p-feat-item"><span class="ck">✓</span><span>전체 10개년 기출문제</span></div>
             <div class="p-feat-item"><span class="ck">✓</span><span>최신 개정사항 반영 해설 (무제한)</span></div>
-            <div class="p-feat-item"><span class="ck">✓</span><span>비슷한 문제 자동 매칭</span></div>
-            <div class="p-feat-item"><span class="ck">✓</span><span>취약점 분석 리포트</span></div>
+            <div class="p-feat-item"><span class="ck">✓</span><span>무제한 비슷한 문제 매칭</span></div>
+            <div class="p-feat-item"><span class="ck">✓</span><span>AI 맞춤 복습 추천 (고급)</span></div>
+            <div class="p-feat-item"><span class="ck">✓</span><span>광고 제거</span></div>
             <div class="p-feat-item"><span class="ck">✓</span><span>실전 모의고사 무제한</span></div>
           </div>
           <a href="#" class="btn btn-primary p-cta">월간 시작하기</a>
@@ -1222,12 +1049,12 @@
 
         <!-- Annual -->
         <div class="p-card fade-in">
-          <div class="p-tier">연간 이용권</div>
+          <div class="p-tier">연간 합격패스</div>
           <div class="p-price"><sup>₩</sup>39,000<span class="per"> / 년</span></div>
-          <div class="p-savings">월 ₩3,250 — 월간 대비 34% 절약</div>
+          <div class="p-savings">월 ₩3,250 — 4개월 무료</div>
           <div class="p-divider"></div>
           <div class="p-feats">
-            <div class="p-feat-item"><span class="ck">✓</span><span>월간 이용권 모든 기능 포함</span></div>
+            <div class="p-feat-item"><span class="ck">✓</span><span>월간 합격패스 모든 기능 포함</span></div>
             <div class="p-feat-item"><span class="ck">✓</span><span>1년 전체 학습 분석 리포트</span></div>
             <div class="p-feat-item"><span class="ck">✓</span><span>합격 예측 스코어</span></div>
             <div class="p-feat-item"><span class="ck">✓</span><span>과목별 심화 오답노트</span></div>
@@ -1316,6 +1143,23 @@
       entries.forEach(en => { if (en.isIntersecting) en.target.classList.add('in'); });
     }, { threshold: 0.12, rootMargin: '0px 0px -36px 0px' });
     document.querySelectorAll('.fade-in').forEach(el => reveal.observe(el));
+
+    // Waitlist functions
+    function setExam(examName) {
+      document.getElementById('examInput').value = examName;
+      document.getElementById('examInput').style.borderColor = 'var(--primary)';
+    }
+
+    function submitWaitlist() {
+      const examName = document.getElementById('examInput').value;
+      if (examName.trim()) {
+        console.log('Waitlist submission:', examName);
+        alert(`"${examName}" 시험 대기자 등록이 완료되었습니다. 준비가 완료되면 알려드리겠습니다.`);
+        document.getElementById('examInput').value = '';
+      } else {
+        alert('시험 이름을 입력해주세요.');
+      }
+    }
   </script>
 </body>
 </html>
