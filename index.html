@@ -1015,38 +1015,583 @@
   </section>
 
   <!-- ─── WAITLIST ─── -->
+  <style>
+    /* ── Waitlist searchable dropdown ── */
+    .waitlist-card {
+      max-width: 600px; margin: 0 auto;
+      padding: 40px; background: var(--surface);
+      border-radius: var(--r-lg); border: 2px solid var(--border);
+      box-shadow: var(--sh-sm);
+    }
+
+    /* Popular chips */
+    .exam-chips {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 22px;
+    }
+    .exam-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 14px; border-radius: 100px;
+      font-size: 13px; font-weight: 600;
+      background: var(--bg); color: var(--text-mid);
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      transition: background var(--t) var(--ease),
+                  color var(--t) var(--ease),
+                  border-color var(--t) var(--ease),
+                  transform var(--t) var(--ease);
+      user-select: none;
+    }
+    .exam-chip:hover {
+      background: var(--primary-pale);
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-1px);
+    }
+    .exam-chip.selected {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .exam-chip .chip-icon { font-size: 14px; line-height: 1; }
+
+    /* Search wrapper */
+    .exam-search-wrap {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .exam-search-input {
+      width: 100%;
+      padding: 14px 48px 14px 18px;
+      border: 2px solid var(--border);
+      border-radius: var(--r-md);
+      font-family: inherit; font-size: 15px;
+      color: var(--text); background: var(--bg);
+      outline: none;
+      transition: border-color var(--t) var(--ease),
+                  box-shadow var(--t) var(--ease),
+                  background var(--t) var(--ease);
+    }
+    .exam-search-input:focus,
+    .exam-search-input.has-value {
+      border-color: var(--primary);
+      background: var(--surface);
+      box-shadow: 0 0 0 4px rgba(24,64,212,0.08);
+    }
+    .exam-search-icon {
+      position: absolute; right: 16px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-light); pointer-events: none;
+      font-size: 16px; transition: color var(--t);
+    }
+    .exam-search-input:focus ~ .exam-search-icon { color: var(--primary); }
+    .exam-clear-btn {
+      position: absolute; right: 14px; top: 50%;
+      transform: translateY(-50%);
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--border); border: none;
+      display: none; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 13px; color: var(--text-muted);
+      transition: background var(--t), color var(--t);
+    }
+    .exam-clear-btn:hover { background: var(--primary); color: #fff; }
+    .exam-clear-btn.visible { display: flex; }
+
+    /* Dropdown */
+    .exam-dropdown {
+      position: absolute; top: calc(100% + 6px);
+      left: 0; right: 0; z-index: 100;
+      background: var(--surface);
+      border: 2px solid var(--primary);
+      border-radius: var(--r-md);
+      box-shadow: var(--sh-md);
+      max-height: 280px; overflow-y: auto;
+      /* Animation */
+      opacity: 0; transform: translateY(-6px);
+      pointer-events: none;
+      transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+    }
+    .exam-dropdown.open {
+      opacity: 1; transform: translateY(0);
+      pointer-events: auto;
+    }
+    .exam-dropdown::-webkit-scrollbar { width: 4px; }
+    .exam-dropdown::-webkit-scrollbar-track { background: transparent; }
+    .exam-dropdown::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .dropdown-group-label {
+      padding: 8px 16px 4px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      color: var(--text-light); text-transform: uppercase;
+      border-top: 1px solid var(--border); margin-top: 4px;
+    }
+    .dropdown-group-label:first-child { border-top: none; margin-top: 0; }
+
+    .dropdown-item {
+      padding: 10px 16px;
+      font-size: 14px; font-weight: 500; color: var(--text-mid);
+      cursor: pointer;
+      transition: background var(--t) var(--ease), color var(--t) var(--ease);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .dropdown-item:hover,
+    .dropdown-item.focused {
+      background: var(--primary-pale); color: var(--primary);
+    }
+    .dropdown-item .di-icon { font-size: 15px; flex-shrink: 0; }
+    .dropdown-item.custom-entry { color: var(--accent); font-weight: 600; }
+    .dropdown-item.custom-entry:hover { background: rgba(255,107,44,0.06); }
+    .dropdown-empty {
+      padding: 16px; text-align: center;
+      font-size: 13px; color: var(--text-light);
+    }
+
+    /* Selected exam display */
+    .selected-exam-tag {
+      display: none; align-items: center; gap: 8px;
+      padding: 8px 14px;
+      background: rgba(24,64,212,0.07);
+      border: 1.5px solid rgba(24,64,212,0.2);
+      border-radius: var(--r-sm);
+      font-size: 13px; font-weight: 700; color: var(--primary);
+      margin-bottom: 16px;
+      animation: tag-pop 0.2s var(--ease);
+    }
+    .selected-exam-tag.visible { display: flex; }
+    @keyframes tag-pop {
+      from { opacity: 0; transform: scale(0.95); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .selected-exam-tag button {
+      margin-left: auto; background: none; border: none;
+      cursor: pointer; color: var(--primary); font-size: 15px;
+      line-height: 1; padding: 0 2px; opacity: 0.6;
+      transition: opacity var(--t);
+    }
+    .selected-exam-tag button:hover { opacity: 1; }
+
+    /* Submit button */
+    .waitlist-submit-btn {
+      width: 100%; padding: 15px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: var(--r-md);
+      font-family: inherit; font-size: 15px; font-weight: 700;
+      cursor: pointer; letter-spacing: -0.01em;
+      box-shadow: 0 4px 20px rgba(255,107,44,0.32);
+      transition: background var(--t) var(--ease),
+                  box-shadow var(--t) var(--ease),
+                  transform var(--t) var(--ease);
+    }
+    .waitlist-submit-btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: 0 6px 28px rgba(255,107,44,0.44);
+      transform: translateY(-2px);
+    }
+    .waitlist-submit-btn:disabled {
+      background: var(--border); color: var(--text-light);
+      box-shadow: none; cursor: not-allowed; transform: none;
+    }
+
+    /* Success state */
+    .waitlist-success {
+      display: none;
+      text-align: center; padding: 28px 20px;
+      animation: success-in 0.35s var(--ease);
+    }
+    .waitlist-success.visible { display: block; }
+    @keyframes success-in {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .success-icon {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: rgba(0,196,140,0.12);
+      border: 2px solid rgba(0,196,140,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; margin: 0 auto 16px;
+    }
+    .success-title {
+      font-size: 18px; font-weight: 800; color: var(--text);
+      letter-spacing: -0.02em; margin-bottom: 8px;
+    }
+    .success-desc { font-size: 14px; color: var(--text-muted); line-height: 1.65; }
+    .success-exam-pill {
+      display: inline-block; margin-top: 12px;
+      background: var(--primary-pale); color: var(--primary);
+      border: 1.5px solid rgba(24,64,212,0.2);
+      padding: 5px 16px; border-radius: 100px;
+      font-size: 13px; font-weight: 700;
+    }
+
+    @media (max-width: 480px) {
+      .waitlist-card { padding: 28px 20px; }
+      .exam-chips { gap: 6px; }
+      .exam-chip { font-size: 12px; padding: 6px 11px; }
+    }
+  </style>
+
   <section class="section testimonials" id="testimonials">
     <div class="container">
       <div class="t-header tc">
         <div class="eyebrow"><span class="dot"></span> 다음 시험 준비</div>
         <h2 class="h2" style="margin-bottom:14px;">원하는 시험을 알려주세요</h2>
-        <p class="lead">곧 출시될 시험들을 미리 알려주세요. 준비가 완료되면 가장 먼저 알려드립니다.</p>
+        <p class="lead">준비 중인 시험을 선택하시면, 출시 즉시 가장 먼저 알려드립니다.</p>
       </div>
 
-      <div style="max-width:600px;margin:0 auto;padding:40px;background:var(--surface);border-radius:var(--r-lg);border:2px solid var(--border);">
-        <div style="margin-bottom:28px;">
-          <input 
-            type="text" 
-            id="examInput" 
-            placeholder="준비하고 싶은 시험 이름을 입력하세요"
-            style="width:100%;padding:14px 18px;border:2px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:15px;transition:all var(--t) var(--ease);outline:none;"
-            onkeyup="this.style.borderColor = this.value.length > 0 ? 'var(--primary)' : 'var(--border)'"
-          />
+      <div class="waitlist-card">
+
+        <!-- Form state -->
+        <div id="waitlistForm">
+
+          <!-- Popular chips -->
+          <div style="margin-bottom:6px;">
+            <p style="font-size:12px;font-weight:700;color:var(--text-light);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:10px;">인기 시험</p>
+            <div class="exam-chips" id="examChips">
+              <button class="exam-chip" onclick="selectChip(this, '공인중개사')">
+                <span class="chip-icon">🏠</span> 공인중개사
+              </button>
+              <button class="exam-chip" onclick="selectChip(this, '한국사능력검정시험')">
+                <span class="chip-icon">📖</span> 한국사능력검정
+              </button>
+              <button class="exam-chip" onclick="selectChip(this, '9급 공무원')">
+                <span class="chip-icon">🏛️</span> 공무원 9급
+              </button>
+              <button class="exam-chip" onclick="selectChip(this, '세무사')">
+                <span class="chip-icon">📊</span> 세무사
+              </button>
+              <button class="exam-chip" onclick="selectChip(this, '정보처리기사')">
+                <span class="chip-icon">💻</span> 정보처리기사
+              </button>
+              <button class="exam-chip" onclick="selectChip(this, '토익 (TOEIC)')">
+                <span class="chip-icon">🌍</span> 토익
+              </button>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+            <span style="font-size:12px;color:var(--text-light);font-weight:600;">또는 직접 검색</span>
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+          </div>
+
+          <!-- Search field + dropdown -->
+          <div class="exam-search-wrap" id="searchWrap">
+            <input
+              type="text"
+              id="examSearchInput"
+              class="exam-search-input"
+              placeholder="시험 이름을 검색하세요"
+              autocomplete="off"
+              oninput="onExamInput(this)"
+              onfocus="onExamFocus()"
+              onkeydown="onExamKeydown(event)"
+            />
+            <span class="exam-search-icon" id="searchIcon">🔍</span>
+            <button class="exam-clear-btn" id="clearBtn" onclick="clearSearch()" title="지우기">✕</button>
+
+            <div class="exam-dropdown" id="examDropdown" role="listbox"></div>
+          </div>
+
+          <!-- Selected exam tag -->
+          <div class="selected-exam-tag" id="selectedTag">
+            <span>✓</span>
+            <span id="selectedTagText"></span>
+            <button onclick="clearSelection()" title="선택 해제">✕</button>
+          </div>
+
+          <!-- Submit -->
+          <button class="waitlist-submit-btn" id="submitBtn" onclick="submitWaitlist()" disabled>
+            알림 신청하기
+          </button>
+          <p style="margin-top:14px;text-align:center;font-size:12px;color:var(--text-light);">신용카드나 개인정보가 필요하지 않습니다.</p>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;margin-bottom:28px;">
-          <button onclick="setExam('공인중개사')" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t) var(--ease);" onmouseover="this.style.borderColor='var(--primary)';this.style.backgroundColor='var(--primary-pale)'" onmouseout="this.style.borderColor='var(--border)';this.style.backgroundColor='var(--bg)'">공인중개사</button>
-          <button onclick="setExam('한국사능력검정')" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t) var(--ease);" onmouseover="this.style.borderColor='var(--primary)';this.style.backgroundColor='var(--primary-pale)'" onmouseout="this.style.borderColor='var(--border)';this.style.backgroundColor='var(--bg)'">한국사능력검정</button>
-          <button onclick="setExam('공무원 9급')" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t) var(--ease);" onmouseover="this.style.borderColor='var(--primary)';this.style.backgroundColor='var(--primary-pale)'" onmouseout="this.style.borderColor='var(--border)';this.style.backgroundColor='var(--bg)'">공무원 9급</button>
-          <button onclick="setExam('세무사')" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--bg);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t) var(--ease);" onmouseover="this.style.borderColor='var(--primary)';this.style.backgroundColor='var(--primary-pale)'" onmouseout="this.style.borderColor='var(--border)';this.style.backgroundColor='var(--bg)'">세무사</button>
+        <!-- Success state -->
+        <div class="waitlist-success" id="waitlistSuccess">
+          <div class="success-icon">✅</div>
+          <div class="success-title">신청이 완료되었습니다!</div>
+          <div class="success-desc">출시되면 알려드릴게요.<br>조금만 기다려 주세요.</div>
+          <div class="success-exam-pill" id="successExamPill"></div>
         </div>
 
-        <button onclick="submitWaitlist()" style="width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:var(--r-md);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:all var(--t) var(--ease);" onmouseover="this.style.background='var(--primary-lt)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='var(--primary)';this.style.transform='translateY(0)'">대기자 등록하기</button>
-
-        <p style="margin-top:16px;text-align:center;font-size:12px;color:var(--text-light);">신용카드나 개인정보가 필요하지 않습니다.</p>
       </div>
     </div>
   </section>
+
+  <script>
+    /* ── Exam data ── */
+    const EXAM_GROUPS = [
+      {
+        label: '자격증 시험',
+        exams: [
+          { name: '공인중개사', icon: '🏠' },
+          { name: '주택관리사', icon: '🏢' },
+          { name: '경비지도사', icon: '🛡️' },
+          { name: '손해평가사', icon: '📋' },
+          { name: '관세사', icon: '🚢' },
+          { name: '세무사', icon: '📊' },
+          { name: '공인회계사 (CPA)', icon: '💼' },
+          { name: '감정평가사', icon: '🏦' },
+          { name: '법무사', icon: '⚖️' },
+          { name: '행정사', icon: '📝' },
+          { name: '사회복지사 1급', icon: '🤝' },
+          { name: '요양보호사', icon: '❤️' },
+          { name: '위험물산업기사', icon: '⚗️' },
+          { name: '전기기사', icon: '⚡' },
+          { name: '소방설비기사', icon: '🚒' },
+          { name: '정보처리기사', icon: '💻' },
+          { name: '컴퓨터활용능력', icon: '🖥️' },
+          { name: '한식조리기능사', icon: '🍳' },
+          { name: '운전면허 필기', icon: '🚗' },
+        ]
+      },
+      {
+        label: '공무원 시험',
+        exams: [
+          { name: '9급 공무원', icon: '🏛️' },
+          { name: '7급 공무원', icon: '🏛️' },
+          { name: '소방공무원', icon: '🔥' },
+          { name: '경찰공무원', icon: '👮' },
+          { name: '군무원', icon: '🎖️' },
+        ]
+      },
+      {
+        label: '검정시험',
+        exams: [
+          { name: '한국사능력검정시험', icon: '📖' },
+          { name: '한자능력검정시험', icon: '✍️' },
+          { name: '토익 (TOEIC)', icon: '🌍' },
+          { name: '토플 (TOEFL)', icon: '🌐' },
+          { name: 'JLPT (일본어능력시험)', icon: '🗾' },
+          { name: 'HSK (중국어)', icon: '🀄' },
+        ]
+      }
+    ];
+
+    const ALL_EXAMS = EXAM_GROUPS.flatMap(g => g.exams);
+
+    let selectedExam = '';
+    let focusedIndex = -1;
+    let dropdownItems = [];
+
+    const searchInput = document.getElementById('examSearchInput');
+    const dropdown    = document.getElementById('examDropdown');
+    const clearBtn    = document.getElementById('clearBtn');
+    const searchIcon  = document.getElementById('searchIcon');
+    const selectedTag = document.getElementById('selectedTag');
+    const selectedTagText = document.getElementById('selectedTagText');
+    const submitBtn   = document.getElementById('submitBtn');
+
+    function getFilteredGroups(query) {
+      if (!query) return EXAM_GROUPS;
+      const q = query.toLowerCase().replace(/\s/g, '');
+      return EXAM_GROUPS
+        .map(g => ({
+          ...g,
+          exams: g.exams.filter(e =>
+            e.name.toLowerCase().replace(/\s/g, '').includes(q)
+          )
+        }))
+        .filter(g => g.exams.length > 0);
+    }
+
+    function renderDropdown(query) {
+      dropdown.innerHTML = '';
+      focusedIndex = -1;
+      dropdownItems = [];
+
+      const groups = getFilteredGroups(query);
+      const totalMatches = groups.reduce((s, g) => s + g.exams.length, 0);
+
+      if (totalMatches === 0 && !query) {
+        // No query yet — show all
+        EXAM_GROUPS.forEach(g => renderGroup(g));
+      } else if (totalMatches === 0) {
+        // No match — show custom entry
+        const empty = document.createElement('div');
+        empty.className = 'dropdown-empty';
+        empty.textContent = `"${query}"에 해당하는 시험이 없습니다.`;
+        dropdown.appendChild(empty);
+
+        const custom = document.createElement('div');
+        custom.className = 'dropdown-item custom-entry';
+        custom.innerHTML = `<span class="di-icon">✏️</span> <span>"${query}" 직접 입력</span>`;
+        custom.onclick = () => selectExam(query);
+        dropdown.appendChild(custom);
+        dropdownItems.push(custom);
+      } else {
+        groups.forEach(g => renderGroup(g));
+
+        // Always show "직접 입력" at the bottom when there's a query
+        if (query) {
+          const divider = document.createElement('div');
+          divider.style.cssText = 'height:1px;background:var(--border);margin:4px 0;';
+          dropdown.appendChild(divider);
+
+          const custom = document.createElement('div');
+          custom.className = 'dropdown-item custom-entry';
+          custom.innerHTML = `<span class="di-icon">✏️</span> <span>"${query}" 직접 입력</span>`;
+          custom.onclick = () => selectExam(query);
+          dropdown.appendChild(custom);
+          dropdownItems.push(custom);
+        }
+      }
+    }
+
+    function renderGroup(group) {
+      const label = document.createElement('div');
+      label.className = 'dropdown-group-label';
+      label.textContent = group.label;
+      dropdown.appendChild(label);
+
+      group.exams.forEach(exam => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.setAttribute('role', 'option');
+        item.innerHTML = `<span class="di-icon">${exam.icon}</span><span>${exam.name}</span>`;
+        item.onclick = () => selectExam(exam.name);
+        dropdown.appendChild(item);
+        dropdownItems.push(item);
+      });
+    }
+
+    function openDropdown() {
+      renderDropdown(searchInput.value.trim());
+      dropdown.classList.add('open');
+    }
+
+    function closeDropdown() {
+      dropdown.classList.remove('open');
+      focusedIndex = -1;
+    }
+
+    function onExamFocus() {
+      if (!selectedExam) openDropdown();
+    }
+
+    function onExamInput(input) {
+      const val = input.value;
+      // Toggle clear button
+      clearBtn.classList.toggle('visible', val.length > 0);
+      searchIcon.style.display = val.length > 0 ? 'none' : '';
+      input.classList.toggle('has-value', val.length > 0);
+
+      // If user edits after a chip was selected, deselect chip
+      if (selectedExam && val !== selectedExam) {
+        clearSelectedChip();
+        selectedExam = '';
+        selectedTag.classList.remove('visible');
+        submitBtn.disabled = true;
+      }
+
+      renderDropdown(val.trim());
+      dropdown.classList.add('open');
+    }
+
+    function onExamKeydown(e) {
+      if (!dropdown.classList.contains('open')) {
+        if (e.key === 'ArrowDown' || e.key === 'Enter') openDropdown();
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        focusedIndex = Math.min(focusedIndex + 1, dropdownItems.length - 1);
+        updateFocus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        focusedIndex = Math.max(focusedIndex - 1, 0);
+        updateFocus();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (focusedIndex >= 0 && dropdownItems[focusedIndex]) {
+          dropdownItems[focusedIndex].click();
+        } else if (searchInput.value.trim()) {
+          selectExam(searchInput.value.trim());
+        }
+      } else if (e.key === 'Escape') {
+        closeDropdown();
+      }
+    }
+
+    function updateFocus() {
+      dropdownItems.forEach((item, i) => {
+        item.classList.toggle('focused', i === focusedIndex);
+      });
+      if (focusedIndex >= 0 && dropdownItems[focusedIndex]) {
+        dropdownItems[focusedIndex].scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    function selectExam(name) {
+      selectedExam = name;
+      searchInput.value = name;
+      searchInput.classList.add('has-value');
+      clearBtn.classList.add('visible');
+      searchIcon.style.display = 'none';
+
+      selectedTagText.textContent = name;
+      selectedTag.classList.add('visible');
+      submitBtn.disabled = false;
+
+      closeDropdown();
+
+      // Sync chips
+      clearSelectedChip();
+      document.querySelectorAll('.exam-chip').forEach(chip => {
+        if (chip.dataset.exam === name || chip.textContent.trim().includes(name.replace(/ \(.*\)/, ''))) {
+          chip.classList.add('selected');
+        }
+      });
+    }
+
+    function clearSearch() {
+      searchInput.value = '';
+      searchInput.classList.remove('has-value');
+      clearBtn.classList.remove('visible');
+      searchIcon.style.display = '';
+      clearSelectedChip();
+      selectedExam = '';
+      selectedTag.classList.remove('visible');
+      submitBtn.disabled = true;
+      closeDropdown();
+      searchInput.focus();
+    }
+
+    function clearSelection() {
+      clearSearch();
+    }
+
+    function clearSelectedChip() {
+      document.querySelectorAll('.exam-chip.selected').forEach(c => c.classList.remove('selected'));
+    }
+
+    function selectChip(btn, examName) {
+      clearSelectedChip();
+      btn.classList.add('selected');
+      selectExam(examName);
+      // Smooth scroll into view if needed
+      document.getElementById('searchWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', e => {
+      if (!document.getElementById('searchWrap').contains(e.target)) {
+        closeDropdown();
+      }
+    });
+
+    // Waitlist submit
+    function submitWaitlist() {
+      if (!selectedExam) return;
+      console.log('Waitlist submission:', selectedExam);
+
+      // Show success
+      document.getElementById('waitlistForm').style.display = 'none';
+      document.getElementById('successExamPill').textContent = selectedExam;
+      document.getElementById('waitlistSuccess').classList.add('visible');
+    }
+  </script>
 
   <!-- ─── PRICING ─── -->
   <section class="section pricing" id="pricing">
@@ -1190,22 +1735,7 @@
     }, { threshold: 0.12, rootMargin: '0px 0px -36px 0px' });
     document.querySelectorAll('.fade-in').forEach(el => reveal.observe(el));
 
-    // Waitlist functions
-    function setExam(examName) {
-      document.getElementById('examInput').value = examName;
-      document.getElementById('examInput').style.borderColor = 'var(--primary)';
-    }
-
-    function submitWaitlist() {
-      const examName = document.getElementById('examInput').value;
-      if (examName.trim()) {
-        console.log('Waitlist submission:', examName);
-        alert(`"${examName}" 시험 대기자 등록이 완료되었습니다. 준비가 완료되면 알려드리겠습니다.`);
-        document.getElementById('examInput').value = '';
-      } else {
-        alert('시험 이름을 입력해주세요.');
-      }
-    }
+    // Waitlist functions are defined inline near the waitlist section
   </script>
 </body>
 </html>
