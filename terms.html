@@ -3,387 +3,135 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>이용약관 — 합격루프</title>
-  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <title>이용약관 - 합격루프</title>
   <style>
-    :root {
-      --primary:      #1A3A8F;
-      --primary-dark: #0F2460;
-      --accent:       #FF5B2E;
-      --bg:           #F5F7FC;
-      --surface:      #FFFFFF;
-      --border:       #DDE1EF;
-      --text:         #0D1333;
-      --text-muted:   #5A6080;
-      --text-light:   #8891AA;
-      --radius:       14px;
-      --shadow-sm:    0 2px 8px rgba(26,58,143,0.08);
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-    body {
-      font-family: 'Pretendard Variable', 'Noto Sans KR', sans-serif;
-      font-size: 16px; line-height: 1.7;
-      color: var(--text); background: var(--bg);
-    }
-    a { color: var(--primary); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-
-    .header {
-      background: var(--primary-dark); padding: 0;
-      position: sticky; top: 0; z-index: 100;
-      box-shadow: 0 2px 20px rgba(15,36,96,0.3);
-    }
-    .nav {
-      max-width: 900px; margin: 0 auto; padding: 0 24px;
-      display: flex; align-items: center; height: 60px;
-      justify-content: space-between;
-    }
-    .nav-logo {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 16px; font-weight: 800; color: #fff;
-      text-decoration: none; letter-spacing: -0.02em;
-    }
-    .logo-icon {
-      width: 28px; height: 28px; background: rgba(255,255,255,0.15);
-      border-radius: 8px; display: flex; align-items: center; justify-content: center;
-      position: relative;
-    }
-    .logo-icon::before, .logo-icon::after {
-      content: ''; position: absolute; border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.7);
-    }
-    .logo-icon::before { width: 16px; height: 16px; }
-    .logo-icon::after { width: 8px; height: 8px; border-color: #FF5B2E; }
-    .nav-back {
-      font-size: 13px; color: rgba(255,255,255,0.6);
-      display: flex; align-items: center; gap: 6px;
-      transition: color 0.2s;
-    }
-    .nav-back:hover { color: rgba(255,255,255,0.95); text-decoration: none; }
-
-    .doc-hero {
-      background: linear-gradient(135deg, var(--primary-dark), #1e3ba6);
-      color: #fff; padding: 56px 0 48px; text-align: center;
-    }
-    .doc-hero h1 {
-      font-size: clamp(24px, 4vw, 36px); font-weight: 900;
-      letter-spacing: -0.02em; margin-bottom: 12px;
-    }
-    .doc-hero .meta {
-      font-size: 14px; color: rgba(255,255,255,0.55);
-    }
-
-    .doc-wrap {
-      max-width: 860px; margin: 0 auto; padding: 0 24px;
-    }
-    .doc-toc {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 28px 32px;
-      margin: 40px 0 0; box-shadow: var(--shadow-sm);
-    }
-    .doc-toc h2 {
-      font-size: 15px; font-weight: 700; color: var(--text-muted);
-      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px;
-    }
-    .doc-toc ol {
-      list-style: decimal; padding-left: 20px;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .doc-toc li { font-size: 14px; color: var(--primary); }
-    .doc-toc li a { color: var(--primary); }
-    .doc-toc li a:hover { text-decoration: underline; }
-
-    .doc-section {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 36px 40px;
-      margin: 20px 0; box-shadow: var(--shadow-sm);
-      scroll-margin-top: 80px;
-    }
-    .doc-section h2 {
-      font-size: 20px; font-weight: 800; color: var(--primary);
-      letter-spacing: -0.01em; margin-bottom: 16px;
-      padding-bottom: 12px; border-bottom: 2px solid var(--border);
-    }
-    .doc-section h3 {
-      font-size: 16px; font-weight: 700; color: var(--text);
-      margin: 20px 0 10px;
-    }
-    .doc-section p {
-      font-size: 15px; color: var(--text-muted); line-height: 1.8; margin-bottom: 14px;
-    }
-    .doc-section p:last-child { margin-bottom: 0; }
-    .doc-section ul, .doc-section ol {
-      padding-left: 20px; margin: 12px 0 14px;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .doc-section li { font-size: 15px; color: var(--text-muted); line-height: 1.7; }
-    .doc-section table {
-      width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;
-    }
-    .doc-section th {
-      background: var(--bg); color: var(--text); font-weight: 700;
-      padding: 10px 14px; text-align: left; border: 1px solid var(--border);
-    }
-    .doc-section td {
-      padding: 10px 14px; border: 1px solid var(--border); color: var(--text-muted);
-      line-height: 1.6;
-    }
-    .doc-section tr:nth-child(even) td { background: rgba(245,247,252,0.5); }
-    .info-box {
-      background: rgba(26,58,143,0.05); border-left: 3px solid var(--primary);
-      border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 16px 0;
-      font-size: 14px; color: var(--text-muted); line-height: 1.7;
-    }
-    .warn-box {
-      background: rgba(255,91,46,0.05); border-left: 3px solid var(--accent);
-      border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 16px 0;
-      font-size: 14px; color: var(--text-muted); line-height: 1.7;
-    }
-
-    .doc-footer {
-      background: #0A1230; color: rgba(255,255,255,0.4);
-      padding: 32px 0; text-align: center; margin-top: 60px;
-      font-size: 13px;
-    }
-    .doc-footer a { color: rgba(255,255,255,0.6); }
-    .doc-footer a:hover { color: #fff; }
-    .doc-footer .f-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; }
-
-    @media (max-width: 600px) {
-      .doc-section { padding: 24px 20px; }
-      .doc-toc { padding: 20px; }
-      .doc-section table { font-size: 12px; }
-      .doc-section th, .doc-section td { padding: 8px 10px; }
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1d1d1f; line-height: 1.7; }
+    .container { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
+    h1 { font-size: 28px; margin-bottom: 4px; }
+    .date { color: #6e6e73; font-size: 14px; margin-bottom: 24px; }
+    h2 { font-size: 18px; margin-top: 32px; margin-bottom: 12px; border-bottom: 1px solid #e5e5e7; padding-bottom: 6px; }
+    p { margin-bottom: 12px; }
+    ul, ol { margin: 8px 0 12px 20px; }
+    li { margin-bottom: 4px; }
+    a { color: #0071e3; text-decoration: none; }
+    .back { display: inline-block; margin-bottom: 24px; font-size: 14px; }
   </style>
 </head>
 <body>
-
-  <header class="header">
-    <div class="nav">
-      <a href="index.html" class="nav-logo">
-        <div class="logo-icon"></div>
-        합격루프
-      </a>
-      <a href="index.html" class="nav-back">← 홈으로 돌아가기</a>
-    </div>
-  </header>
-
-  <div class="doc-hero">
+  <div class="container">
+    <a href="index.html" class="back">&larr; 돌아가기</a>
     <h1>이용약관</h1>
-    <p class="meta">최종 업데이트: 2025년 1월 1일 · 시행일: 2025년 1월 1일</p>
+    <p class="date">시행일: 2026년 3월 15일</p>
+
+    <h2>제1조 (목적)</h2>
+    <p>이 약관은 합격루프(이하 "회사")가 제공하는 모바일 애플리케이션 "합격루프" 서비스(이하 "서비스")의 이용 조건 및 절차, 회사와 회원의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.</p>
+
+    <h2>제2조 (용어의 정의)</h2>
+    <ol>
+      <li>"서비스"란 회사가 제공하는 국가 자격증 및 검정시험 대비 학습 서비스를 말합니다.</li>
+      <li>"회원"이란 본 약관에 동의하고 서비스에 가입한 자를 말합니다.</li>
+      <li>"유료서비스"란 합격패스 구독 등 별도의 결제가 필요한 서비스를 말합니다.</li>
+      <li>"콘텐츠"란 서비스 내에서 제공되는 기출문제, 해설, 통계 등을 말합니다.</li>
+    </ol>
+
+    <h2>제3조 (약관의 효력 및 변경)</h2>
+    <ol>
+      <li>본 약관은 서비스 화면에 게시하거나 기타의 방법으로 회원에게 공지함으로써 효력이 발생합니다.</li>
+      <li>회사는 합리적인 사유가 있을 경우 약관을 변경할 수 있으며, 변경된 약관은 적용일자 7일 전부터 공지합니다.</li>
+      <li>회원에게 불리한 약관 변경의 경우 적용일자 30일 전부터 공지합니다.</li>
+      <li>회원이 변경된 약관에 동의하지 않는 경우 서비스 이용을 중단하고 탈퇴할 수 있습니다.</li>
+    </ol>
+
+    <h2>제4조 (회원가입 및 탈퇴)</h2>
+    <ol>
+      <li>회원가입은 이용자가 약관에 동의한 후 Google 또는 Apple 계정을 통해 소셜 로그인으로 가입합니다.</li>
+      <li>회사는 다음에 해당하는 경우 가입을 거절할 수 있습니다.
+        <ul>
+          <li>타인의 명의를 이용한 경우</li>
+          <li>허위 정보를 기재한 경우</li>
+          <li>14세 미만인 경우</li>
+        </ul>
+      </li>
+      <li>회원은 앱 내 설정에서 언제든지 탈퇴할 수 있으며, 탈퇴 시 모든 학습 데이터가 영구적으로 삭제됩니다.</li>
+    </ol>
+
+    <h2>제5조 (서비스의 제공)</h2>
+    <ol>
+      <li>회사가 제공하는 서비스는 다음과 같습니다.
+        <ul>
+          <li>국가 자격증 및 검정시험 기출문제 풀이 및 해설</li>
+          <li>기억루프(간격반복학습) 기반 복습 시스템</li>
+          <li>학습 통계 및 진도 관리</li>
+          <li>학습 알림 서비스</li>
+        </ul>
+      </li>
+      <li>회사는 서비스의 내용을 변경할 수 있으며, 이 경우 변경 내용을 사전에 공지합니다.</li>
+      <li>회사는 정기점검, 시스템 장애 등의 사유로 서비스 제공을 일시적으로 중단할 수 있습니다.</li>
+    </ol>
+
+    <h2>제6조 (유료 서비스 및 결제)</h2>
+    <ol>
+      <li>유료 서비스(합격패스)는 Apple App Store 또는 Google Play Store의 인앱결제를 통해 구매할 수 있습니다.</li>
+      <li>구독형 유료 서비스의 경우 구독 기간 종료 전 24시간 이내에 자동으로 갱신됩니다.</li>
+      <li>자동 갱신을 원하지 않는 경우 구독 기간 종료 24시간 전까지 기기의 설정 또는 각 스토어에서 구독을 해지해야 합니다.</li>
+      <li>결제 금액, 구독 기간 등 세부 사항은 서비스 내 결제 화면에 표시됩니다.</li>
+    </ol>
+
+    <h2>제7조 (청약 철회 및 환불)</h2>
+    <ol>
+      <li>회원은 유료 서비스 구매일로부터 7일 이내에 청약을 철회할 수 있습니다. 단, 이미 이용한 콘텐츠에 대해서는 환불이 제한될 수 있습니다.</li>
+      <li>환불은 각 앱 스토어(Apple/Google)의 환불 정책에 따라 처리됩니다.</li>
+      <li>다음의 경우 청약 철회가 제한됩니다.
+        <ul>
+          <li>구매 후 서비스를 이용한 경우</li>
+          <li>기타 관계 법령이 정하는 경우</li>
+        </ul>
+      </li>
+    </ol>
+
+    <h2>제8조 (회원의 의무)</h2>
+    <p>회원은 다음 행위를 해서는 안 됩니다.</p>
+    <ol>
+      <li>타인의 개인정보를 도용하는 행위</li>
+      <li>서비스에서 제공하는 콘텐츠를 무단으로 복제, 배포, 전송하는 행위</li>
+      <li>서비스의 운영을 방해하는 행위</li>
+      <li>부정한 방법으로 유료 서비스를 이용하는 행위</li>
+      <li>기타 관계 법령에 위반되는 행위</li>
+    </ol>
+
+    <h2>제9조 (지식재산권)</h2>
+    <ol>
+      <li>서비스 내 콘텐츠(문제, 해설, 디자인, 소프트웨어 등)에 대한 저작권 및 지식재산권은 회사에 귀속됩니다.</li>
+      <li>회원은 서비스를 이용하여 얻은 정보를 회사의 사전 승낙 없이 복제, 배포, 방송 등의 방법으로 상업적으로 이용하거나 제3자에게 제공할 수 없습니다.</li>
+    </ol>
+
+    <h2>제10조 (이용 제한)</h2>
+    <ol>
+      <li>회사는 회원이 본 약관의 의무를 위반한 경우 서비스 이용을 제한하거나 회원 자격을 정지할 수 있습니다.</li>
+      <li>회사는 이용 제한 조치 시 그 사유를 회원에게 통지합니다.</li>
+      <li>회원은 이용 제한 조치에 대해 이의를 제기할 수 있습니다.</li>
+    </ol>
+
+    <h2>제11조 (회사의 면책)</h2>
+    <ol>
+      <li>회사는 천재지변, 전쟁, 기간통신사업자의 서비스 중지 등 불가항력적 사유로 서비스를 제공할 수 없는 경우 책임이 면제됩니다.</li>
+      <li>회사는 회원의 귀책 사유로 인한 서비스 이용 장애에 대해 책임을 지지 않습니다.</li>
+      <li>회사는 서비스를 통해 제공되는 학습 콘텐츠의 시험 합격을 보장하지 않습니다.</li>
+    </ol>
+
+    <h2>제12조 (손해배상)</h2>
+    <p>회사 또는 회원이 본 약관을 위반하여 상대방에게 손해를 끼친 경우, 귀책 사유가 있는 당사자는 상대방의 손해를 배상할 책임이 있습니다.</p>
+
+    <h2>제13조 (분쟁 해결)</h2>
+    <ol>
+      <li>본 약관은 대한민국 법률에 따라 규율되고 해석됩니다.</li>
+      <li>서비스 이용과 관련하여 분쟁이 발생한 경우, 회사와 회원은 원만한 해결을 위해 성실히 협의합니다.</li>
+      <li>협의가 이루어지지 않을 경우 한국소비자원에 조정을 신청하거나, 민사소송법에 따른 관할 법원에 소를 제기할 수 있습니다.</li>
+    </ol>
+
+    <h2>부칙</h2>
+    <p>이 약관은 2026년 3월 15일부터 시행합니다.</p>
   </div>
-
-  <div class="doc-wrap">
-    <div class="doc-toc">
-      <h2>목차</h2>
-      <ol>
-        <li><a href="#t1">목적 및 정의</a></li>
-        <li><a href="#t2">약관의 효력 및 변경</a></li>
-        <li><a href="#t3">회원가입 및 계정 관리</a></li>
-        <li><a href="#t4">서비스 이용</a></li>
-        <li><a href="#t5">유료 서비스 및 결제</a></li>
-        <li><a href="#t6">환불 정책</a></li>
-        <li><a href="#t7">이용자의 의무</a></li>
-        <li><a href="#t8">회사의 의무</a></li>
-        <li><a href="#t9">지식재산권</a></li>
-        <li><a href="#t10">서비스 중단 및 변경</a></li>
-        <li><a href="#t11">책임 제한</a></li>
-        <li><a href="#t12">분쟁 해결</a></li>
-        <li><a href="#t13">기타</a></li>
-      </ol>
-    </div>
-
-    <div class="doc-section" id="t1">
-      <h2>제1조 목적 및 정의</h2>
-      <p>본 약관은 합격루프(이하 "회사")가 제공하는 공인중개사 시험 준비 애플리케이션 "합격루프" (이하 "서비스")의 이용 조건 및 절차, 회사와 이용자 간의 권리·의무 및 책임 사항을 규정함을 목적으로 합니다.</p>
-      <h3>정의</h3>
-      <ul>
-        <li><strong>"서비스"</strong>: 회사가 제공하는 공인중개사 시험 준비 모바일 애플리케이션 및 관련 웹 서비스 일체</li>
-        <li><strong>"이용자"</strong>: 본 약관에 동의하고 서비스를 이용하는 모든 자</li>
-        <li><strong>"회원"</strong>: 서비스에 회원가입을 완료하고 이용자 ID를 부여받은 자</li>
-        <li><strong>"유료 회원"</strong>: 월간 또는 연간 이용권을 결제한 회원</li>
-        <li><strong>"콘텐츠"</strong>: 서비스 내에서 제공되는 문제, 해설, AI 분석 결과, 학습 자료 등 일체</li>
-      </ul>
-    </div>
-
-    <div class="doc-section" id="t2">
-      <h2>제2조 약관의 효력 및 변경</h2>
-      <p>본 약관은 서비스 화면에 게시하거나 이메일로 통지하는 방식으로 이용자에게 공지함으로써 효력이 발생합니다.</p>
-      <p>회사는 필요한 경우 관련 법령을 위배하지 않는 범위에서 약관을 개정할 수 있습니다. 약관을 개정할 경우, 시행일 7일 전부터 (중요 변경은 30일 전부터) 앱 내 공지사항 및 이메일을 통해 공지합니다.</p>
-      <div class="info-box">
-        이용자가 개정 약관 시행일 이후에도 서비스를 계속 이용하면 개정 약관에 동의한 것으로 간주합니다. 동의하지 않을 경우 회원 탈퇴를 통해 서비스 이용을 중단할 수 있습니다.
-      </div>
-    </div>
-
-    <div class="doc-section" id="t3">
-      <h2>제3조 회원가입 및 계정 관리</h2>
-      <h3>회원가입</h3>
-      <p>서비스를 이용하려면 이메일 또는 소셜 계정(Apple, Google)을 통해 회원가입을 완료해야 합니다. 만 14세 미만의 아동은 법정대리인의 동의 없이 회원가입을 할 수 없습니다.</p>
-      <h3>계정 관리 의무</h3>
-      <ul>
-        <li>이용자는 자신의 계정 정보(이메일, 비밀번호)를 안전하게 관리할 책임이 있습니다.</li>
-        <li>계정 정보를 타인에게 양도하거나 공유하는 행위는 금지됩니다.</li>
-        <li>계정이 무단으로 사용된 경우 즉시 회사에 신고하여야 합니다.</li>
-      </ul>
-      <h3>계정 정지 및 삭제</h3>
-      <p>회사는 이용자가 본 약관을 위반하는 경우 사전 통지 없이 계정을 정지하거나 삭제할 수 있습니다. 계정 삭제 시 이용 내역 및 데이터는 개인정보처리방침에 따라 처리됩니다.</p>
-    </div>
-
-    <div class="doc-section" id="t4">
-      <h2>제4조 서비스 이용</h2>
-      <h3>무료 서비스</h3>
-      <p>무료 회원은 매일 10문제의 학습, 기본 간격반복 기능, 오답 확인을 이용할 수 있습니다. 무료 서비스의 범위 및 제한은 회사의 정책에 따라 변경될 수 있으며, 변경 시 사전 공지합니다.</p>
-      <h3>유료 서비스</h3>
-      <p>유료 이용권 결제 시 무제한 문제 풀기, AI 맞춤 해설, 비슷한 문제 매칭, 취약점 분석 리포트 등 프리미엄 기능을 이용할 수 있습니다.</p>
-      <h3>서비스 이용 제한</h3>
-      <p>다음 경우에 해당하면 서비스 이용이 제한될 수 있습니다.</p>
-      <ul>
-        <li>본 약관 및 관련 법령 위반</li>
-        <li>서비스 부정 이용 또는 타인의 이용 방해</li>
-        <li>악성 콘텐츠 배포 또는 해킹 시도</li>
-        <li>결제 사기 또는 부정 결제</li>
-      </ul>
-    </div>
-
-    <div class="doc-section" id="t5">
-      <h2>제5조 유료 서비스 및 결제</h2>
-      <h3>요금제 안내</h3>
-      <table>
-        <tr><th>요금제</th><th>이용 요금</th><th>결제 주기</th></tr>
-        <tr><td>무료</td><td>₩0</td><td>—</td></tr>
-        <tr><td>월간 이용권</td><td>₩4,900</td><td>매월 자동 갱신</td></tr>
-        <tr><td>연간 이용권</td><td>₩39,000</td><td>매년 자동 갱신</td></tr>
-      </table>
-      <h3>결제 방법</h3>
-      <ul>
-        <li>iOS: Apple App Store 인앱 결제</li>
-        <li>Android: Google Play 인앱 결제</li>
-      </ul>
-      <h3>자동 갱신 안내</h3>
-      <div class="info-box">
-        구독은 자동으로 갱신됩니다. 갱신을 원하지 않으시면 현재 구독 기간 만료 24시간 전까지 해지하셔야 합니다. 해지는 앱스토어/구글플레이의 구독 관리 메뉴에서 가능합니다.
-      </div>
-    </div>
-
-    <div class="doc-section" id="t6">
-      <h2>제6조 환불 정책</h2>
-      <h3>인앱 결제 환불</h3>
-      <p>iOS 및 Android 인앱 결제를 통한 구독의 환불은 각 플랫폼 정책에 따릅니다.</p>
-      <ul>
-        <li><strong>Apple App Store:</strong> 앱스토어 환불 요청 페이지(reportaproblem.apple.com)에서 신청</li>
-        <li><strong>Google Play:</strong> 구글 플레이 고객센터에서 신청 (결제 후 48시간 이내)</li>
-      </ul>
-      <h3>예외적 환불</h3>
-      <p>다음 경우에는 회사에 직접 환불을 요청하실 수 있습니다.</p>
-      <ul>
-        <li>결제 후 서비스를 전혀 이용하지 않은 경우 (7일 이내 요청 시)</li>
-        <li>기술적 문제로 서비스를 이용할 수 없는 경우</li>
-        <li>중복 결제가 발생한 경우</li>
-      </ul>
-      <div class="warn-box">
-        이용 기간 중에 결제를 해지해도 남은 기간에 대한 부분 환불은 제공되지 않습니다. 단, 관련 법령에서 달리 정하는 경우는 예외입니다.
-      </div>
-    </div>
-
-    <div class="doc-section" id="t7">
-      <h2>제7조 이용자의 의무</h2>
-      <p>이용자는 다음 행위를 하여서는 안 됩니다.</p>
-      <ul>
-        <li>타인의 개인정보 무단 수집, 저장, 공개 또는 이용</li>
-        <li>회사 또는 제3자의 지식재산권 침해</li>
-        <li>서비스 내 콘텐츠의 무단 복제, 배포, 상업적 이용</li>
-        <li>서비스 시스템에 대한 역공학, 해킹, 크래킹 시도</li>
-        <li>자동화 프로그램(봇, 크롤러 등)을 통한 서비스 이용</li>
-        <li>허위 정보 등록 또는 타인 명의를 이용한 가입</li>
-        <li>청소년에게 유해한 콘텐츠 업로드 또는 공유</li>
-        <li>서비스를 이용한 광고, 스팸, 불법 정보 유통</li>
-        <li>기타 관련 법령 또는 본 약관을 위반하는 행위</li>
-      </ul>
-    </div>
-
-    <div class="doc-section" id="t8">
-      <h2>제8조 회사의 의무</h2>
-      <p>회사는 다음과 같은 의무를 이행합니다.</p>
-      <ul>
-        <li>서비스의 안정적이고 지속적인 제공을 위해 최선을 다합니다.</li>
-        <li>이용자의 개인정보를 개인정보처리방침에 따라 안전하게 관리합니다.</li>
-        <li>이용자의 불만 및 문의에 성실하게 응대합니다.</li>
-        <li>결제 관련 보안을 위해 안전한 결제 환경을 구축하고 유지합니다.</li>
-        <li>서비스 변경, 중단, 종료 시 사전에 이용자에게 공지합니다.</li>
-      </ul>
-    </div>
-
-    <div class="doc-section" id="t9">
-      <h2>제9조 지식재산권</h2>
-      <p>서비스 내 콘텐츠(문제, 해설, AI 분석 결과, 디자인, 로고, 상표 등)에 대한 지식재산권은 회사에 귀속됩니다.</p>
-      <p>이용자는 회사의 사전 서면 동의 없이 서비스 콘텐츠를 복제, 배포, 출판, 방송, 전시하거나 상업적으로 이용할 수 없습니다.</p>
-      <p>이용자가 서비스 이용 과정에서 생성된 학습 데이터(풀이 기록, 오답 노트 등)는 이용자 본인이 소유하며, 회사는 이를 서비스 개선 목적으로 익명화하여 활용할 수 있습니다.</p>
-    </div>
-
-    <div class="doc-section" id="t10">
-      <h2>제10조 서비스 중단 및 변경</h2>
-      <p>회사는 다음 사유가 발생한 경우 서비스의 전부 또는 일부를 제한하거나 중단할 수 있습니다.</p>
-      <ul>
-        <li>서비스 시스템의 정기 점검, 교체 및 고장 수리</li>
-        <li>전기통신사업법에 규정된 기간통신사업자의 서비스 중지</li>
-        <li>국가비상사태, 정전, 천재지변, 해킹 등 불가항력적 사유</li>
-        <li>사업 운영상의 합리적 이유가 있는 경우</li>
-      </ul>
-      <p>서비스 중단이 예상되는 경우 최소 7일 전에 앱 내 공지를 통해 안내드립니다. 다만, 긴급하거나 불가항력적인 사유로 인한 중단은 사후에 공지할 수 있습니다.</p>
-    </div>
-
-    <div class="doc-section" id="t11">
-      <h2>제11조 책임 제한</h2>
-      <p>회사는 다음 사항에 대하여 책임을 부담하지 않습니다.</p>
-      <ul>
-        <li>이용자의 귀책 사유로 인한 서비스 이용 장애</li>
-        <li>이용자가 서비스를 통해 기대하는 특정 결과(합격 등)를 보장하지 않음</li>
-        <li>이용자 간 또는 이용자와 제3자 사이에 발생한 분쟁</li>
-        <li>무료로 제공되는 서비스의 이용과 관련하여 발생한 손해</li>
-        <li>천재지변, 해킹 등 회사의 통제 범위를 벗어난 사유로 인한 손해</li>
-      </ul>
-      <div class="warn-box">
-        합격루프는 수험 정보 제공 서비스로, 특정 시험 합격을 보장하지 않습니다. 서비스 내 문제 및 해설은 시험 정보 제공 목적이며, 정확성을 위해 노력하나 법적 효력을 갖는 자문으로 해석되지 않습니다.
-      </div>
-    </div>
-
-    <div class="doc-section" id="t12">
-      <h2>제12조 분쟁 해결</h2>
-      <p>회사와 이용자 간에 발생한 분쟁은 먼저 양 당사자 간의 협의를 통해 해결하도록 노력합니다.</p>
-      <p>협의가 이루어지지 않는 경우, 관련 법령에 따라 소비자분쟁조정위원회 등의 조정 절차를 이용할 수 있습니다.</p>
-      <p>본 약관과 관련된 소송은 서울중앙지방법원을 전속 관할 법원으로 합니다.</p>
-      <p>본 약관은 대한민국 법률에 따라 해석됩니다.</p>
-    </div>
-
-    <div class="doc-section" id="t13">
-      <h2>제13조 기타</h2>
-      <h3>준거법</h3>
-      <p>본 약관은 대한민국 법령에 따라 해석되고 적용됩니다.</p>
-      <h3>약관의 일부 무효</h3>
-      <p>본 약관의 일부 조항이 관련 법령에 따라 무효 또는 집행 불가능하게 된 경우에도 나머지 조항은 유효하게 존속합니다.</p>
-      <h3>문의</h3>
-      <p>본 약관에 관한 문의는 아래 연락처로 보내주세요.</p>
-      <ul>
-        <li>이메일: support@hapgyeokloop.app</li>
-        <li>처리 기간: 영업일 기준 3일 이내</li>
-      </ul>
-      <div class="info-box">
-        부칙: 본 약관은 2025년 1월 1일부터 시행됩니다.
-      </div>
-    </div>
-  </div>
-
-  <footer class="doc-footer">
-    <div class="f-links">
-      <a href="index.html">홈</a>
-      <a href="privacy.html">개인정보처리방침</a>
-      <a href="terms.html">이용약관</a>
-      <a href="mailto:support@hapgyeokloop.app">고객지원</a>
-    </div>
-    <p>© 2025 합격루프. All rights reserved.</p>
-  </footer>
-
 </body>
 </html>

@@ -3,363 +3,121 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>개인정보처리방침 — 합격루프</title>
-  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <title>개인정보 처리방침 - 합격루프</title>
   <style>
-    :root {
-      --primary:      #1A3A8F;
-      --primary-dark: #0F2460;
-      --accent:       #FF5B2E;
-      --bg:           #F5F7FC;
-      --surface:      #FFFFFF;
-      --border:       #DDE1EF;
-      --text:         #0D1333;
-      --text-muted:   #5A6080;
-      --text-light:   #8891AA;
-      --radius:       14px;
-      --shadow-sm:    0 2px 8px rgba(26,58,143,0.08);
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-    body {
-      font-family: 'Pretendard Variable', 'Noto Sans KR', sans-serif;
-      font-size: 16px; line-height: 1.7;
-      color: var(--text); background: var(--bg);
-    }
-    a { color: var(--primary); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-
-    /* Header */
-    .header {
-      background: var(--primary-dark); padding: 0;
-      position: sticky; top: 0; z-index: 100;
-      box-shadow: 0 2px 20px rgba(15,36,96,0.3);
-    }
-    .nav {
-      max-width: 900px; margin: 0 auto; padding: 0 24px;
-      display: flex; align-items: center; height: 60px;
-      justify-content: space-between;
-    }
-    .nav-logo {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 16px; font-weight: 800; color: #fff;
-      text-decoration: none; letter-spacing: -0.02em;
-    }
-    .logo-icon {
-      width: 28px; height: 28px; background: rgba(255,255,255,0.15);
-      border-radius: 8px; display: flex; align-items: center; justify-content: center;
-      position: relative;
-    }
-    .logo-icon::before, .logo-icon::after {
-      content: ''; position: absolute; border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.7);
-    }
-    .logo-icon::before { width: 16px; height: 16px; }
-    .logo-icon::after { width: 8px; height: 8px; border-color: #FF5B2E; }
-    .nav-back {
-      font-size: 13px; color: rgba(255,255,255,0.6);
-      display: flex; align-items: center; gap: 6px;
-      transition: color 0.2s;
-    }
-    .nav-back:hover { color: rgba(255,255,255,0.95); text-decoration: none; }
-
-    /* Hero */
-    .doc-hero {
-      background: linear-gradient(135deg, var(--primary-dark), #1e3ba6);
-      color: #fff; padding: 56px 0 48px; text-align: center;
-    }
-    .doc-hero h1 {
-      font-size: clamp(24px, 4vw, 36px); font-weight: 900;
-      letter-spacing: -0.02em; margin-bottom: 12px;
-    }
-    .doc-hero .meta {
-      font-size: 14px; color: rgba(255,255,255,0.55);
-    }
-
-    /* Content */
-    .doc-wrap {
-      max-width: 860px; margin: 0 auto; padding: 0 24px;
-    }
-    .doc-toc {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 28px 32px;
-      margin: 40px 0 0;
-      box-shadow: var(--shadow-sm);
-    }
-    .doc-toc h2 {
-      font-size: 15px; font-weight: 700; color: var(--text-muted);
-      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px;
-    }
-    .doc-toc ol {
-      list-style: decimal; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;
-    }
-    .doc-toc li { font-size: 14px; color: var(--primary); }
-    .doc-toc li a { color: var(--primary); }
-    .doc-toc li a:hover { text-decoration: underline; }
-
-    .doc-section {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 36px 40px;
-      margin: 20px 0; box-shadow: var(--shadow-sm);
-      scroll-margin-top: 80px;
-    }
-    .doc-section h2 {
-      font-size: 20px; font-weight: 800; color: var(--primary);
-      letter-spacing: -0.01em; margin-bottom: 16px;
-      padding-bottom: 12px; border-bottom: 2px solid var(--border);
-    }
-    .doc-section h3 {
-      font-size: 16px; font-weight: 700; color: var(--text);
-      margin: 20px 0 10px;
-    }
-    .doc-section p {
-      font-size: 15px; color: var(--text-muted); line-height: 1.8; margin-bottom: 14px;
-    }
-    .doc-section p:last-child { margin-bottom: 0; }
-    .doc-section ul, .doc-section ol {
-      padding-left: 20px; margin: 12px 0 14px;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .doc-section li { font-size: 15px; color: var(--text-muted); line-height: 1.7; }
-    .doc-section table {
-      width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;
-    }
-    .doc-section th {
-      background: var(--bg); color: var(--text); font-weight: 700;
-      padding: 10px 14px; text-align: left; border: 1px solid var(--border);
-    }
-    .doc-section td {
-      padding: 10px 14px; border: 1px solid var(--border); color: var(--text-muted);
-      line-height: 1.6;
-    }
-    .doc-section tr:nth-child(even) td { background: rgba(245,247,252,0.5); }
-    .info-box {
-      background: rgba(26,58,143,0.05); border-left: 3px solid var(--primary);
-      border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 16px 0;
-      font-size: 14px; color: var(--text-muted); line-height: 1.7;
-    }
-
-    /* Footer */
-    .doc-footer {
-      background: #0A1230; color: rgba(255,255,255,0.4);
-      padding: 32px 0; text-align: center; margin-top: 60px;
-      font-size: 13px;
-    }
-    .doc-footer a { color: rgba(255,255,255,0.6); }
-    .doc-footer a:hover { color: #fff; }
-    .doc-footer .f-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; }
-
-    @media (max-width: 600px) {
-      .doc-section { padding: 24px 20px; }
-      .doc-toc { padding: 20px; }
-      .doc-section table { font-size: 12px; }
-      .doc-section th, .doc-section td { padding: 8px 10px; }
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1d1d1f; line-height: 1.7; }
+    .container { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
+    h1 { font-size: 28px; margin-bottom: 4px; }
+    .date { color: #6e6e73; font-size: 14px; margin-bottom: 24px; }
+    .intro { margin-bottom: 24px; }
+    h2 { font-size: 18px; margin-top: 32px; margin-bottom: 12px; border-bottom: 1px solid #e5e5e7; padding-bottom: 6px; }
+    p { margin-bottom: 12px; }
+    ul { margin: 8px 0 12px 20px; }
+    li { margin-bottom: 4px; }
+    a { color: #0071e3; text-decoration: none; }
+    .back { display: inline-block; margin-bottom: 24px; font-size: 14px; }
   </style>
 </head>
 <body>
+  <div class="container">
+    <a href="index.html" class="back">&larr; 돌아가기</a>
+    <h1>개인정보 처리방침</h1>
+    <p class="date">시행일: 2026년 3월 15일</p>
 
-  <header class="header">
-    <div class="nav">
-      <a href="index.html" class="nav-logo">
-        <div class="logo-icon"></div>
-        합격루프
-      </a>
-      <a href="index.html" class="nav-back">← 홈으로 돌아가기</a>
-    </div>
-  </header>
+    <p class="intro">합격루프(이하 "회사")는 개인정보 보호법 제30조에 따라 이용자의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 다음과 같이 개인정보 처리방침을 수립·공개합니다.</p>
 
-  <div class="doc-hero">
-    <h1>개인정보처리방침</h1>
-    <p class="meta">최종 업데이트: 2025년 1월 1일 · 시행일: 2025년 1월 1일</p>
+    <h2>제1조 (개인정보의 처리 목적)</h2>
+    <p>회사는 다음의 목적을 위하여 개인정보를 처리합니다. 처리하는 개인정보는 다음의 목적 이외의 용도로는 이용되지 않으며, 이용 목적이 변경되는 경우에는 별도의 동의를 받는 등 필요한 조치를 이행할 예정입니다.</p>
+    <ul>
+      <li><strong>회원가입 및 관리:</strong> 회원 가입 의사 확인, 본인 식별·인증, 회원 자격 유지·관리</li>
+      <li><strong>서비스 제공:</strong> 국가 자격증 및 검정시험 대비 기출문제 학습, 학습 진도 관리, 성적 통계, 반복학습(기억루프) 제공</li>
+      <li><strong>알림 서비스:</strong> 학습 리마인더 등 푸시 알림 발송</li>
+      <li><strong>유료 서비스:</strong> 합격패스 구독 결제 처리 및 이용 내역 관리</li>
+      <li><strong>서비스 개선:</strong> 오류 분석 및 서비스 안정성 향상</li>
+    </ul>
+
+    <h2>제2조 (처리하는 개인정보의 항목)</h2>
+    <p><strong>[필수 항목]</strong></p>
+    <ul>
+      <li>이메일 주소 (Google/Apple 소셜 로그인 시 제공)</li>
+      <li>소셜 로그인 식별자</li>
+    </ul>
+    <p><strong>[자동 생성 항목]</strong></p>
+    <ul>
+      <li>학습 기록 (문제 풀이 기록, 정답률, 연속 학습일수)</li>
+      <li>인앱결제 내역 (구독 상태, 결제일)</li>
+      <li>기기 정보 (기기 식별자, OS 버전, 앱 버전)</li>
+      <li>푸시 알림 토큰 (FCM 토큰)</li>
+      <li>오류 로그 (앱 충돌 정보)</li>
+    </ul>
+    <p><strong>[선택 항목]</strong></p>
+    <ul>
+      <li>푸시 알림 수신 동의</li>
+    </ul>
+
+    <h2>제3조 (개인정보의 처리 및 보유 기간)</h2>
+    <p>회사는 법령에 따른 개인정보 보유·이용 기간 또는 이용자로부터 개인정보 수집 시 동의받은 기간 내에서 개인정보를 처리·보유합니다.</p>
+    <ul>
+      <li>회원 정보: 회원 탈퇴 시까지 (탈퇴 시 지체 없이 파기)</li>
+      <li>결제 및 거래 기록: 전자상거래법에 따라 5년 보존</li>
+      <li>소비자 불만 및 분쟁 처리 기록: 3년 보존</li>
+      <li>서비스 이용 기록: 3개월 보존</li>
+    </ul>
+
+    <h2>제4조 (개인정보의 제3자 제공)</h2>
+    <p>회사는 이용자의 개인정보를 제1조에서 명시한 범위 내에서만 처리하며, 이용자의 동의 없이 제3자에게 개인정보를 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다.</p>
+    <ul>
+      <li>이용자가 사전에 동의한 경우</li>
+      <li>법령의 규정에 의하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
+    </ul>
+
+    <h2>제5조 (개인정보 처리의 위탁)</h2>
+    <p>회사는 원활한 서비스 제공을 위해 다음과 같이 개인정보 처리를 위탁하고 있습니다.</p>
+    <ul>
+      <li><strong>Supabase Inc.:</strong> 회원 인증 및 데이터 저장</li>
+      <li><strong>Google LLC (Firebase):</strong> 푸시 알림 발송, 오류 분석</li>
+      <li><strong>Sentry:</strong> 오류 모니터링 및 분석</li>
+      <li><strong>Apple Inc. / Google LLC:</strong> 인앱결제 처리</li>
+    </ul>
+
+    <h2>제6조 (개인정보의 파기절차 및 파기방법)</h2>
+    <p>회사는 개인정보 보유 기간의 경과, 처리 목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체 없이 해당 개인정보를 파기합니다.</p>
+    <ul>
+      <li><strong>파기절차:</strong> 불필요한 개인정보는 개인정보보호 책임자의 승인을 받아 파기합니다.</li>
+      <li><strong>파기방법:</strong> 전자적 파일 형태의 정보는 복구 및 재생할 수 없는 기술적 방법을 사용하여 삭제합니다.</li>
+    </ul>
+
+    <h2>제7조 (이용자의 권리·의무 및 행사방법)</h2>
+    <p>이용자는 회사에 대해 언제든지 다음의 권리를 행사할 수 있습니다.</p>
+    <ul>
+      <li>개인정보 열람 요구</li>
+      <li>오류 등이 있을 경우 정정 요구</li>
+      <li>삭제 요구</li>
+      <li>처리 정지 요구</li>
+    </ul>
+    <p>권리 행사는 앱 내 설정 메뉴의 "계정 삭제" 기능 또는 아래 연락처로 가능합니다. 회사는 이에 대해 지체 없이 조치하겠습니다.</p>
+
+    <h2>제8조 (개인정보의 안전성 확보조치)</h2>
+    <p>회사는 개인정보의 안전성 확보를 위해 다음과 같은 조치를 취하고 있습니다.</p>
+    <ul>
+      <li>관리적 조치: 내부 관리계획 수립·시행</li>
+      <li>기술적 조치: 개인정보의 암호화, 접근권한 관리, 보안 프로그램 설치</li>
+      <li>데이터 전송 암호화: SSL/TLS를 통한 데이터 전송 암호화</li>
+    </ul>
+
+    <h2>제9조 (14세 미만 아동의 개인정보)</h2>
+    <p>회사는 14세 미만 아동의 회원가입을 제한하고 있습니다. 본 서비스는 국가 자격증 및 검정시험 대비 학습 목적으로 운영되며, 14세 미만 아동의 개인정보를 수집하지 않습니다.</p>
+
+    <h2>제10조 (개인정보 보호책임자)</h2>
+    <p>회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 이용자의 불만 처리 및 피해 구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.</p>
+    <ul>
+      <li>개인정보 보호책임자: 김강산</li>
+      <li>연락처: support@hapgyeokloop.com</li>
+    </ul>
+
+    <h2>제11조 (개인정보 처리방침의 변경)</h2>
+    <p>이 개인정보 처리방침은 2026년 3월 15일부터 적용됩니다. 변경 사항이 있을 경우 앱 내 공지사항을 통해 고지할 예정입니다.</p>
   </div>
-
-  <div class="doc-wrap">
-    <div class="doc-toc">
-      <h2>목차</h2>
-      <ol>
-        <li><a href="#s1">개인정보처리방침의 목적 및 원칙</a></li>
-        <li><a href="#s2">수집하는 개인정보 항목</a></li>
-        <li><a href="#s3">개인정보의 수집 및 이용 목적</a></li>
-        <li><a href="#s4">개인정보의 보유 및 이용 기간</a></li>
-        <li><a href="#s5">개인정보의 제3자 제공</a></li>
-        <li><a href="#s6">개인정보 처리 위탁</a></li>
-        <li><a href="#s7">이용자의 권리 및 행사 방법</a></li>
-        <li><a href="#s8">개인정보의 파기</a></li>
-        <li><a href="#s9">개인정보 보호를 위한 기술적·관리적 조치</a></li>
-        <li><a href="#s10">쿠키 및 유사 기술</a></li>
-        <li><a href="#s11">개인정보 보호책임자</a></li>
-        <li><a href="#s12">방침 변경 안내</a></li>
-      </ol>
-    </div>
-
-    <div class="doc-section" id="s1">
-      <h2>1. 개인정보처리방침의 목적 및 원칙</h2>
-      <p>합격루프(이하 "회사")는 공인중개사 시험 준비 애플리케이션 "합격루프" (이하 "서비스") 운영과 관련하여 이용자의 개인정보를 보호하고, 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 개인정보보호법, 정보통신망 이용촉진 및 정보보호에 관한 법률 등 관련 법령에 따라 다음과 같이 개인정보처리방침을 수립·공개합니다.</p>
-      <p>회사는 이용자의 개인정보를 중요시하며, 개인정보 처리에 관한 법령을 준수하고 이용자의 권익을 보호하기 위해 최선을 다하고 있습니다.</p>
-      <div class="info-box">
-        본 방침은 앱 내 별도 고지 없이 변경될 수 있으며, 변경 시 앱 내 공지 또는 이메일로 안내드립니다. 변경된 방침은 공지된 날로부터 효력이 발생합니다.
-      </div>
-    </div>
-
-    <div class="doc-section" id="s2">
-      <h2>2. 수집하는 개인정보 항목</h2>
-      <h3>2.1 회원가입 및 서비스 이용 시 수집</h3>
-      <table>
-        <tr><th>구분</th><th>수집 항목</th><th>수집 방법</th></tr>
-        <tr><td>필수</td><td>이메일 주소, 비밀번호(암호화), 닉네임</td><td>회원가입 시 이용자 직접 입력</td></tr>
-        <tr><td>선택</td><td>프로필 사진, 목표 시험 회차, 학습 목표</td><td>이용자 직접 입력</td></tr>
-        <tr><td>소셜 로그인</td><td>이메일, 이름, 프로필 사진 (제공 동의 시)</td><td>Apple/Google 계정 연동</td></tr>
-      </table>
-      <h3>2.2 서비스 이용 과정에서 자동 수집</h3>
-      <ul>
-        <li>기기 정보: 기기 모델, OS 버전, 앱 버전, 기기 고유 식별자(UUID)</li>
-        <li>이용 기록: 앱 접속 일시, 학습한 문제 및 답변 기록, 학습 시간</li>
-        <li>오류 로그: 앱 오류 발생 시 자동 수집되는 기술적 정보</li>
-        <li>결제 정보: 결제 수단 종류 (구체적 결제 정보는 결제 대행사에서 처리)</li>
-      </ul>
-    </div>
-
-    <div class="doc-section" id="s3">
-      <h2>3. 개인정보의 수집 및 이용 목적</h2>
-      <table>
-        <tr><th>이용 목적</th><th>수집 항목</th></tr>
-        <tr><td>회원 식별 및 서비스 제공</td><td>이메일, 닉네임, 기기 정보</td></tr>
-        <tr><td>AI 학습 분석 및 맞춤 해설 제공</td><td>문제 풀이 기록, 오답 데이터</td></tr>
-        <tr><td>FSRS 간격반복 알고리즘 최적화</td><td>학습 이력, 정답률, 복습 시간</td></tr>
-        <tr><td>결제 처리 및 이용권 관리</td><td>이메일, 결제 정보</td></tr>
-        <tr><td>고객 지원 및 민원 처리</td><td>이메일, 문의 내용</td></tr>
-        <tr><td>서비스 개선 및 통계 분석</td><td>익명화된 이용 통계</td></tr>
-        <tr><td>마케팅 및 이벤트 안내 (동의 시)</td><td>이메일, 기기 식별자</td></tr>
-      </table>
-    </div>
-
-    <div class="doc-section" id="s4">
-      <h2>4. 개인정보의 보유 및 이용 기간</h2>
-      <p>회사는 이용자의 개인정보를 수집 및 이용 목적이 달성된 후에는 해당 정보를 지체 없이 파기합니다. 단, 관련 법령에 따라 일정 기간 보관이 필요한 경우 아래와 같이 보관합니다.</p>
-      <table>
-        <tr><th>보관 항목</th><th>보관 기간</th><th>근거 법령</th></tr>
-        <tr><td>계약 또는 청약 철회 관련 기록</td><td>5년</td><td>전자상거래법</td></tr>
-        <tr><td>대금 결제 및 재화 공급 기록</td><td>5년</td><td>전자상거래법</td></tr>
-        <tr><td>소비자 불만 또는 분쟁 처리 기록</td><td>3년</td><td>전자상거래법</td></tr>
-        <tr><td>접속 로그 기록</td><td>3개월</td><td>통신비밀보호법</td></tr>
-      </table>
-      <p>회원 탈퇴 후에도 법령에서 정한 기간 동안은 위 항목을 보관하며, 해당 기간 종료 후 즉시 파기합니다.</p>
-    </div>
-
-    <div class="doc-section" id="s5">
-      <h2>5. 개인정보의 제3자 제공</h2>
-      <p>회사는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다.</p>
-      <ul>
-        <li>이용자가 사전에 동의한 경우</li>
-        <li>법령에 의거하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
-        <li>서비스 제공에 관한 계약의 이행을 위하여 필요하나 경제적·기술적 사유로 통상의 동의를 받는 것이 현저히 곤란한 경우</li>
-      </ul>
-    </div>
-
-    <div class="doc-section" id="s6">
-      <h2>6. 개인정보 처리 위탁</h2>
-      <p>회사는 서비스 제공을 위하여 아래와 같이 개인정보 처리 업무를 외부에 위탁하고 있습니다.</p>
-      <table>
-        <tr><th>수탁자</th><th>위탁 업무</th><th>보유 기간</th></tr>
-        <tr><td>Amazon Web Services (AWS)</td><td>서버 운영 및 데이터 저장</td><td>회원 탈퇴 시</td></tr>
-        <tr><td>Anthropic</td><td>AI 해설 생성 (Claude API)</td><td>처리 후 즉시 삭제</td></tr>
-        <tr><td>Apple Inc.</td><td>인앱 결제 처리 (iOS)</td><td>결제 처리 완료 시</td></tr>
-        <tr><td>Google LLC</td><td>인앱 결제 처리 (Android)</td><td>결제 처리 완료 시</td></tr>
-        <tr><td>Firebase (Google LLC)</td><td>오류 분석 및 분석 통계</td><td>90일</td></tr>
-      </table>
-      <p>회사는 위탁 계약 시 개인정보보호법에 따라 위탁 업무 수행 목적 외 개인정보 처리 금지, 기술적·관리적 보호조치, 재위탁 제한, 수탁자에 대한 관리·감독, 손해배상 책임 등을 계약서에 명시하고 있습니다.</p>
-    </div>
-
-    <div class="doc-section" id="s7">
-      <h2>7. 이용자의 권리 및 행사 방법</h2>
-      <p>이용자는 언제든지 다음과 같은 권리를 행사할 수 있습니다.</p>
-      <ul>
-        <li><strong>개인정보 조회:</strong> 앱 내 '마이페이지 → 개인정보 관리'에서 직접 확인</li>
-        <li><strong>개인정보 수정:</strong> 앱 내에서 직접 수정하거나 이메일로 요청</li>
-        <li><strong>개인정보 삭제 및 탈퇴:</strong> 앱 내 '마이페이지 → 회원 탈퇴' 또는 이메일 요청</li>
-        <li><strong>개인정보 처리 정지:</strong> 이메일로 요청 (단, 서비스 제공이 불가해질 수 있음)</li>
-        <li><strong>마케팅 수신 동의 철회:</strong> 앱 설정 또는 이메일 하단 수신 거부</li>
-      </ul>
-      <p>위 권리 행사는 support@hapgyeokloop.app으로 연락하시면 처리해 드립니다. 권리 행사의 대리인을 지정하실 경우 위임장을 첨부하여 주시기 바랍니다.</p>
-    </div>
-
-    <div class="doc-section" id="s8">
-      <h2>8. 개인정보의 파기</h2>
-      <p>회사는 보유 기간이 만료되거나 처리 목적이 달성된 개인정보를 지체 없이 파기합니다.</p>
-      <h3>파기 방법</h3>
-      <ul>
-        <li><strong>전자적 파일:</strong> 복원이 불가능한 방법으로 영구 삭제</li>
-        <li><strong>종이 문서:</strong> 분쇄기로 분쇄하거나 소각</li>
-      </ul>
-      <p>법령에 따라 보존해야 하는 개인정보의 경우 별도의 데이터베이스로 이관하여 해당 기간 동안 보관 후 파기합니다.</p>
-    </div>
-
-    <div class="doc-section" id="s9">
-      <h2>9. 개인정보 보호를 위한 기술적·관리적 조치</h2>
-      <h3>기술적 조치</h3>
-      <ul>
-        <li>개인정보 암호화: 비밀번호, 주민등록번호 등 중요 정보는 암호화하여 저장</li>
-        <li>통신 구간 암호화: HTTPS/TLS를 통한 데이터 전송 보호</li>
-        <li>접근 통제: 개인정보 처리 시스템에 대한 접근 권한 최소화 및 관리</li>
-        <li>보안 취약점 점검: 정기적인 보안 취약점 점검 및 업데이트</li>
-      </ul>
-      <h3>관리적 조치</h3>
-      <ul>
-        <li>개인정보 취급 직원 최소화 및 교육 실시</li>
-        <li>개인정보 취급자 보안 서약서 작성</li>
-        <li>개인정보보호 정책 수립 및 이행 여부 점검</li>
-        <li>개인정보 침해사고 대응 절차 마련</li>
-      </ul>
-    </div>
-
-    <div class="doc-section" id="s10">
-      <h2>10. 쿠키 및 유사 기술</h2>
-      <p>앱은 쿠키를 사용하지 않으나, 아래와 같은 기술을 사용합니다.</p>
-      <ul>
-        <li><strong>기기 고유 식별자:</strong> 로그인 상태 유지 및 사용자 학습 데이터 연동을 위해 사용</li>
-        <li><strong>Firebase Analytics:</strong> 앱 이용 통계 수집 (익명화 처리)</li>
-        <li><strong>푸시 알림 토큰:</strong> 학습 알림 발송을 위해 기기 토큰 수집 (동의 시)</li>
-      </ul>
-      <p>이용자는 기기 설정에서 알림 권한을 철회하거나, 앱 설정에서 개인화 통계 수집을 비활성화할 수 있습니다.</p>
-    </div>
-
-    <div class="doc-section" id="s11">
-      <h2>11. 개인정보 보호책임자</h2>
-      <p>회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 이용자의 불만처리 및 피해구제를 처리하기 위하여 아래와 같이 개인정보 보호책임자를 지정합니다.</p>
-      <table>
-        <tr><th>구분</th><th>내용</th></tr>
-        <tr><td>개인정보 보호책임자</td><td>합격루프 개인정보보호팀</td></tr>
-        <tr><td>연락처 (이메일)</td><td>privacy@hapgyeokloop.app</td></tr>
-        <tr><td>처리 기간</td><td>접수 후 10 영업일 이내</td></tr>
-      </table>
-      <p>기타 개인정보 침해에 대한 신고나 상담이 필요하신 경우 아래 기관에 문의하실 수 있습니다.</p>
-      <ul>
-        <li>개인정보 침해신고센터: privacy.kisa.or.kr / ☎ 118</li>
-        <li>개인정보 분쟁조정위원회: www.kopico.go.kr / ☎ 1833-6972</li>
-        <li>경찰청 사이버수사국: ecrm.police.go.kr / ☎ 182</li>
-      </ul>
-    </div>
-
-    <div class="doc-section" id="s12">
-      <h2>12. 방침 변경 안내</h2>
-      <p>본 개인정보처리방침은 2025년 1월 1일부터 시행됩니다.</p>
-      <p>법령 및 방침에 따라 내용이 변경될 경우, 변경 사항의 중요도에 따라 최소 7일 전(중요 변경의 경우 30일 전)에 앱 내 공지사항 또는 이메일을 통해 공지합니다.</p>
-      <div class="info-box">
-        이전 버전의 개인정보처리방침은 support@hapgyeokloop.app으로 요청하시면 확인하실 수 있습니다.
-      </div>
-    </div>
-  </div>
-
-  <footer class="doc-footer">
-    <div class="f-links">
-      <a href="index.html">홈</a>
-      <a href="privacy.html">개인정보처리방침</a>
-      <a href="terms.html">이용약관</a>
-      <a href="mailto:support@hapgyeokloop.app">고객지원</a>
-    </div>
-    <p>© 2025 합격루프. All rights reserved.</p>
-  </footer>
-
 </body>
 </html>

@@ -3,1735 +3,1324 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="합격루프 — AI가 추천하는 맞춤형 기출문제 학습. 최적의 타이밍에 복습을 추천해 기억을 완성하고, 최신 개정사항 반영 해설로 자격증 합격을 앞당기세요.">
-  <meta property="og:title" content="합격루프 — AI 자격증 시험 준비 플랫폼">
-  <meta property="og:description" content="AI가 당신의 망각 시점을 파악해 최적의 타이밍에 복습을 추천합니다. 자격증 합격까지 최단 루프.">
-  <title>합격루프 — AI 자격증 합격 플랫폼</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <meta name="description" content="합격루프는 공인중개사 기출을 기억루프로 돌려서 합격까지 이어주는 학습 앱입니다. 최신 1개년 무료, 월 ₩6,900 / 연 ₩69,000 합격패스로 전체 문제와 광고 제거를 이용하세요.">
+  <title>합격루프 | 공인중개사 기출을 합격 루틴으로</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard/dist/web/static/pretendard.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;display=swap">
   <style>
-    /* ─── CSS VARIABLES ─── */
     :root {
-      --navy:          #040E30;
-      --navy-mid:      #0A1840;
-      --primary:       #1840D4;
-      --primary-lt:    #2B55F0;
-      --primary-pale:  #EEF2FF;
-      --accent:        #FF6B2C;
-      --accent-hover:  #E85A1A;
-      --amber:         #FFB020;
-      --green:         #00C48C;
-      --bg:            #F5F7FD;
-      --surface:       #FFFFFF;
-      --border:        #E2E6F3;
-      --text:          #050D2E;
-      --text-mid:      #3A4166;
-      --text-muted:    #6B728E;
-      --text-light:    #9AA0BA;
-      --r-lg:          18px;
-      --r-md:          12px;
-      --r-sm:          8px;
-      --sh-sm:         0 2px 10px rgba(4,14,48,0.07);
-      --sh-md:         0 8px 32px rgba(4,14,48,0.11);
-      --sh-lg:         0 20px 64px rgba(4,14,48,0.16);
-      --ease:          cubic-bezier(0.4, 0, 0.2, 1);
-      --t:             0.22s;
+      --bg: #f4f7e8;
+      --bg-2: #eef8ff;
+      --surface: rgba(255, 255, 255, 0.8);
+      --surface-strong: rgba(255, 255, 255, 0.96);
+      --ink: #132112;
+      --muted: #5d6a5c;
+      --line: rgba(19, 33, 18, 0.1);
+      --lime: #8ce44f;
+      --lime-deep: #1f8f38;
+      --blue: #7dd8ff;
+      --orange: #ffbf69;
+      --yellow: #ffe66a;
+      --shadow: 0 24px 70px rgba(34, 71, 23, 0.12);
+      --radius-xl: 32px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 14px;
+      --max: 1180px;
     }
 
-    /* ─── RESET ─── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
-      font-family: 'Pretendard Variable', 'Noto Sans KR', sans-serif;
-      font-size: 16px; line-height: 1.6;
-      color: var(--text); background: var(--bg);
+      font-family: 'Pretendard Variable', 'Pretendard', sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(140, 228, 79, 0.28), transparent 24%),
+        radial-gradient(circle at 85% 10%, rgba(125, 216, 255, 0.24), transparent 28%),
+        linear-gradient(180deg, var(--bg) 0%, #fbfdf4 42%, var(--bg-2) 100%);
+      min-height: 100vh;
       overflow-x: hidden;
     }
-    img { max-width: 100%; display: block; }
-    a { color: inherit; text-decoration: none; }
-    ul { list-style: none; }
 
-    /* ─── LAYOUT ─── */
-    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-    .section { padding: 100px 0; }
-    .section-sm { padding: 64px 0; }
-
-    /* ─── TYPOGRAPHY ─── */
-    .eyebrow {
-      display: inline-flex; align-items: center; gap: 7px;
-      font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--primary); background: var(--primary-pale);
-      border: 1px solid rgba(24,64,212,0.14);
-      padding: 5px 14px; border-radius: 100px;
-      margin-bottom: 22px;
-    }
-    .eyebrow .dot {
-      width: 5px; height: 5px; border-radius: 50%;
-      background: var(--accent); flex-shrink: 0;
-    }
-    .h1 {
-      font-size: clamp(38px, 5.8vw, 64px);
-      font-weight: 900; line-height: 1.12; letter-spacing: -0.035em;
-      color: var(--text);
-    }
-    .h2 {
-      font-size: clamp(28px, 3.8vw, 44px);
-      font-weight: 800; line-height: 1.2; letter-spacing: -0.025em;
-      color: var(--text);
-    }
-    .h2-dark { color: #fff; }
-    .lead {
-      font-size: clamp(15px, 1.8vw, 17px);
-      color: var(--text-muted); line-height: 1.75;
-      max-width: 540px;
-    }
-    .lead-dark { color: rgba(255,255,255,0.55); }
-    .tc { text-align: center; }
-    .tc .lead { margin: 0 auto; }
-
-    /* ─── BUTTONS ─── */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      padding: 14px 28px; border-radius: 100px;
-      font-family: inherit; font-size: 15px; font-weight: 700;
-      cursor: pointer; border: none; transition: all var(--t) var(--ease);
-      white-space: nowrap; line-height: 1;
-    }
-    .btn-primary {
-      background: var(--accent); color: #fff;
-      box-shadow: 0 4px 20px rgba(255,107,44,0.38);
-    }
-    .btn-primary:hover {
-      background: var(--accent-hover);
-      box-shadow: 0 6px 28px rgba(255,107,44,0.48);
-      transform: translateY(-2px);
-    }
-    .btn-blue {
-      background: var(--primary); color: #fff;
-      box-shadow: 0 4px 20px rgba(24,64,212,0.3);
-    }
-    .btn-blue:hover {
-      background: var(--primary-lt);
-      box-shadow: 0 6px 28px rgba(24,64,212,0.4);
-      transform: translateY(-2px);
-    }
-    .btn-ghost {
-      background: rgba(255,255,255,0.12); color: #fff;
-      border: 1.5px solid rgba(255,255,255,0.22);
-      backdrop-filter: blur(8px);
-    }
-    .btn-ghost:hover {
-      background: rgba(255,255,255,0.2);
-      border-color: rgba(255,255,255,0.38);
-      transform: translateY(-2px);
-    }
-    .btn-outline {
-      background: transparent; color: var(--primary);
-      border: 2px solid var(--border);
-    }
-    .btn-outline:hover {
-      border-color: var(--primary); background: var(--primary-pale);
-    }
-
-    /* ─── HEADER ─── */
-    .header {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-      transition: all var(--t) var(--ease);
-    }
-    .header-inner {
-      background: rgba(245,247,253,0.82);
-      backdrop-filter: blur(20px) saturate(1.5);
-      border-bottom: 1px solid rgba(226,230,243,0.6);
-      transition: all var(--t) var(--ease);
-    }
-    .header.scrolled .header-inner {
-      background: rgba(255,255,255,0.95);
-      box-shadow: var(--sh-sm);
-    }
-    .nav {
-      display: flex; align-items: center; justify-content: space-between;
-      height: 64px;
-    }
-    .nav-logo {
-      display: flex; align-items: center; gap: 9px;
-      font-size: 18px; font-weight: 900; color: var(--navy);
-      letter-spacing: -0.03em;
-    }
-    .logo-mark {
-      width: 34px; height: 34px; border-radius: 10px;
-      background: var(--primary); position: relative;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; overflow: hidden;
-    }
-    .logo-mark::before, .logo-mark::after {
-      content: ''; position: absolute; border-radius: 50%;
-      border: 2.5px solid rgba(255,255,255,0.85);
-    }
-    .logo-mark::before { width: 20px; height: 20px; }
-    .logo-mark::after { width: 10px; height: 10px; border-color: var(--accent); }
-    .nav-links { display: flex; align-items: center; gap: 30px; }
-    .nav-links a {
-      font-size: 14px; font-weight: 500; color: var(--text-muted);
-      transition: color var(--t);
-    }
-    .nav-links a:hover { color: var(--primary); }
-    .nav-actions { display: flex; align-items: center; gap: 10px; }
-    .nav-actions .btn { padding: 9px 20px; font-size: 14px; }
-    .hamburger {
-      display: none; flex-direction: column; gap: 5px;
-      cursor: pointer; padding: 5px;
-    }
-    .hamburger span {
-      display: block; width: 22px; height: 2px;
-      background: var(--text); border-radius: 2px;
-      transition: all var(--t) var(--ease);
-    }
-    .mobile-nav {
-      display: none; padding: 16px 24px 24px;
-      background: #fff; border-top: 1px solid var(--border);
-    }
-    .mobile-nav a {
-      display: block; padding: 12px 0;
-      font-size: 16px; font-weight: 500; color: var(--text);
-      border-bottom: 1px solid var(--border);
-    }
-    .mobile-nav a:last-child { border-bottom: none; }
-
-    /* ─── HERO ─── */
-    .hero {
-      padding: 132px 0 80px;
-      background: var(--bg);
-      position: relative; overflow: hidden;
-    }
-    /* Mesh gradient bg */
-    .hero::before {
-      content: '';
-      position: absolute; inset: 0; z-index: 0;
-      background:
-        radial-gradient(ellipse 60% 50% at 80% 20%, rgba(24,64,212,0.09) 0%, transparent 70%),
-        radial-gradient(ellipse 40% 40% at 20% 80%, rgba(255,107,44,0.07) 0%, transparent 65%),
-        radial-gradient(ellipse 50% 60% at 50% 50%, rgba(24,64,212,0.04) 0%, transparent 70%);
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(19, 33, 18, 0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(19, 33, 18, 0.028) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent 88%);
       pointer-events: none;
+      z-index: -1;
     }
-    .hero-inner {
-      display: grid; grid-template-columns: 1fr 480px;
-      align-items: center; gap: 56px;
-      position: relative; z-index: 1;
-    }
-    .hero-kicker {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 13px; font-weight: 600; color: var(--primary);
-      background: linear-gradient(135deg, rgba(24,64,212,0.08), rgba(43,85,240,0.05));
-      border: 1px solid rgba(24,64,212,0.14);
-      padding: 6px 16px; border-radius: 100px;
-      margin-bottom: 26px;
-    }
-    .hero-kicker .live-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--green); flex-shrink: 0;
-      animation: blink 2s ease-in-out infinite;
-      box-shadow: 0 0 0 2px rgba(0,196,140,0.25);
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
-    }
-    .hero-title { margin-bottom: 24px; }
-    .hero-title .hl-blue {
-      color: var(--primary); position: relative; display: inline-block;
-    }
-    .hero-title .hl-blue::after {
-      content: '';
-      position: absolute; bottom: 3px; left: 0; right: 0;
-      height: 6px; background: rgba(24,64,212,0.14);
-      border-radius: 3px; z-index: -1;
-    }
-    .hero-title .hl-orange { color: var(--accent); }
-    .hero-lead { margin-bottom: 38px; }
-    .hero-cta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 44px; }
-    .store-pill {
-      display: inline-flex; align-items: center; gap: 10px;
-      background: var(--navy); color: #fff;
-      padding: 11px 20px; border-radius: 12px;
-      font-size: 14px; font-weight: 600;
-      box-shadow: 0 4px 20px rgba(4,14,48,0.25);
-      transition: all var(--t) var(--ease);
-    }
-    .store-pill:hover {
-      background: var(--navy-mid);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(4,14,48,0.32);
-    }
-    .store-pill svg { width: 20px; height: 20px; flex-shrink: 0; }
-    .store-pill .sl { display: flex; flex-direction: column; line-height: 1.2; }
-    .store-pill .sl small { font-size: 10px; font-weight: 400; opacity: 0.65; }
-    .store-pill .sl strong { font-size: 14px; }
-    .hero-proof {
-      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    }
-    .proof-faces { display: flex; }
-    .proof-faces span {
-      width: 36px; height: 36px; border-radius: 50%;
-      border: 2.5px solid #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 800; color: #fff;
-      margin-left: -10px; flex-shrink: 0;
-    }
-    .proof-faces span:first-child { margin-left: 0; }
-    .proof-faces span:nth-child(1) { background: #2B55F0; }
-    .proof-faces span:nth-child(2) { background: #1840D4; }
-    .proof-faces span:nth-child(3) { background: #3566DC; }
-    .proof-faces span:nth-child(4) { background: #0F2FC0; }
-    .proof-text { font-size: 13px; color: var(--text-muted); line-height: 1.45; }
-    .proof-text strong { color: var(--text); font-weight: 700; }
 
-    /* ─── PHONE MOCKUP ─── */
-    .hero-right { position: relative; display: flex; align-items: center; justify-content: center; min-height: 600px; }
-    
-    /* Phone mockup group container */
-    .phone-mockup-group {
-      position: relative; width: 320px; height: 600px;
-      display: flex; align-items: center; justify-content: center;
+    a {
+      color: inherit;
+      text-decoration: none;
     }
-    
-    /* Individual phone mockup frame */
-    .phone-mockup {
-      position: absolute; width: 268px; height: 538px;
-      background: var(--navy); border-radius: 44px;
-      box-shadow:
-        0 40px 100px rgba(4,14,48,0.38),
-        0 0 0 1px rgba(255,255,255,0.06),
-        inset 0 0 0 1px rgba(255,255,255,0.04);
-      overflow: hidden; display: flex; align-items: center; justify-content: center;
-      padding: 12px; /* Notch space + small margin */
+
+    img {
+      max-width: 100%;
+      display: block;
     }
-    
-    /* Primary phone - home screen */
-    .phone-mockup-primary {
-      z-index: 2; transform: translateX(0) translateY(-10px) rotate(-3deg);
-      animation: float-phone-primary 3.8s ease-in-out infinite;
+
+    .shell {
+      width: min(calc(100% - 32px), var(--max));
+      margin: 0 auto;
     }
-    
-    /* Secondary phone - stats screen */
-    .phone-mockup-secondary {
-      z-index: 1; transform: translateX(45px) translateY(20px) rotate(4deg);
-      animation: float-phone-secondary 4.2s ease-in-out infinite;
-      opacity: 0.85;
+
+    .topbar {
+      position: sticky;
+      top: 16px;
+      z-index: 20;
+      padding-top: 16px;
     }
-    
-    /* Phone image styling */
-    .phone-img {
-      width: 100%; height: 100%;
-      border-radius: 36px; /* Slightly less than parent to account for padding */
-      object-fit: cover; display: block;
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 14px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.48);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 14px 34px rgba(29, 54, 27, 0.08);
     }
-    
-    /* Float animations for phones */
-    @keyframes float-phone-primary {
-      0%, 100% { transform: translateX(0) translateY(-10px) rotate(-3deg); }
-      50% { transform: translateX(0) translateY(-18px) rotate(-3deg); }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
     }
-    
-    @keyframes float-phone-secondary {
-      0%, 100% { transform: translateX(45px) translateY(20px) rotate(4deg); }
-      50% { transform: translateX(45px) translateY(12px) rotate(4deg); }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #1f8f38, #8ce44f 62%, #ffe66a);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.12);
     }
-    
-    /* Old CSS classes preserved for backwards compatibility (if referenced elsewhere) */
-    .phone-shell {
-      width: 268px; height: 538px;
-      background: var(--navy);
-      border-radius: 44px;
-      box-shadow:
-        0 40px 100px rgba(4,14,48,0.38),
-        0 0 0 1px rgba(255,255,255,0.06),
-        inset 0 0 0 1px rgba(255,255,255,0.04);
-      position: relative; overflow: hidden; z-index: 2;
-    }
-    .phone-notch {
-      width: 90px; height: 28px;
-      background: var(--navy);
-      border-radius: 0 0 18px 18px;
-      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-      z-index: 10;
-    }
-    .phone-screen {
-      width: 100%; height: 100%;
-      background: linear-gradient(175deg, #0E1F64 0%, #060E38 100%);
-      padding: 44px 16px 20px;
-      display: flex; flex-direction: column; gap: 10px;
-      overflow: hidden;
-    }
-    .p-topbar {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 0 4px 2px;
-    }
-    .p-appname {
-      font-size: 13px; font-weight: 900; color: #fff;
+
+    .brand-copy strong {
+      display: block;
+      font-size: 15px;
       letter-spacing: -0.02em;
     }
-    .p-streak {
-      display: flex; align-items: center; gap: 4px;
-      background: rgba(255,176,32,0.14); border-radius: 20px;
-      padding: 3px 9px; font-size: 11px; font-weight: 700;
-      color: var(--amber);
-    }
-    .p-card {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.09);
-      border-radius: 14px; padding: 13px 14px;
-    }
-    .p-card-label {
-      font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.35);
-      letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 7px;
-    }
-    .p-card-q {
-      font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.9);
-      line-height: 1.55; margin-bottom: 10px;
-    }
-    .p-answers { display: flex; flex-direction: column; gap: 5px; }
-    .p-ans {
-      padding: 7px 10px; border-radius: 8px;
-      font-size: 10.5px; color: rgba(255,255,255,0.65);
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.07);
-    }
-    .p-ans.ok {
-      background: rgba(0,196,140,0.14); border-color: rgba(0,196,140,0.28);
-      color: #6AE7C2;
-    }
-    .p-ans.no {
-      background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.22);
-      color: #FCA5A5;
-    }
-    .p-explain {
-      background: linear-gradient(135deg, rgba(24,64,212,0.35), rgba(10,24,64,0.45));
-      border: 1px solid rgba(24,64,212,0.25);
-      border-radius: 14px; padding: 12px 13px;
-    }
-    .p-explain-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85);
-      font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
-      padding: 2px 8px; border-radius: 20px; margin-bottom: 6px;
-    }
-    .p-explain-text {
-      font-size: 10px; color: rgba(255,255,255,0.72); line-height: 1.65;
-    }
-    .p-review-bar {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 12px; padding: 11px 13px;
-    }
-    .p-review-top {
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: 9.5px; color: rgba(255,255,255,0.45); margin-bottom: 7px;
-    }
-    .p-review-top span { font-size: 10px; font-weight: 700; color: var(--amber); }
-    .p-bar-track {
-      height: 4px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden;
-    }
-    .p-bar-fill {
-      height: 100%; width: 72%;
-      background: linear-gradient(90deg, var(--primary-lt), var(--accent));
-      border-radius: 10px;
+
+    .brand-copy span {
+      color: var(--muted);
+      font-size: 12px;
     }
 
-    /* Floating cards around phone */
-    .fc {
-      position: absolute; background: #fff; border-radius: 14px;
-      padding: 12px 15px; box-shadow: var(--sh-md); z-index: 3;
-      min-width: 130px;
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      font-size: 14px;
+      color: var(--muted);
     }
-    .fc1 { top: 48px; right: -18px; animation: float-a 3.8s ease-in-out infinite; }
-    .fc2 { bottom: 72px; left: -18px; animation: float-b 4.2s ease-in-out infinite; }
-    @keyframes float-a { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
-    @keyframes float-b { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
-    .fc .fc-tag { font-size: 9px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
-    .fc .fc-val { font-size: 22px; font-weight: 900; color: var(--navy); letter-spacing: -0.03em; line-height: 1; }
-    .fc .fc-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-    .fc .fc-up { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--green); }
 
-    /* Orbit rings */
-    .orbit { position: absolute; border-radius: 50%; pointer-events: none; z-index: 0; }
-    .orbit-1 { width: 440px; height: 440px; top:50%;left:50%; transform:translate(-50%,-50%); border: 1px solid rgba(24,64,212,0.08); animation: spin 22s linear infinite; }
-    .orbit-2 { width: 570px; height: 570px; top:50%;left:50%; transform:translate(-50%,-50%); border: 1px dashed rgba(255,107,44,0.07); animation: spin 35s linear infinite reverse; }
-    @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+    .nav a:hover {
+      color: var(--ink);
+    }
 
-    /* ─── SUPPORTED EXAMS ─── */
-    .exams { background: var(--bg); padding: 72px 0; }
-    .exams-inner { text-align: center; margin-bottom: 44px; }
-    .exams-grid {
-      display: flex; align-items: stretch; gap: 16px;
-      flex-wrap: wrap; justify-content: center;
+    .nav-cta {
+      padding: 12px 16px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 14px 24px rgba(19, 33, 18, 0.18);
     }
-    .exam-card {
-      background: var(--surface); border-radius: var(--r-lg);
-      border: 2px solid var(--border);
-      padding: 24px 28px; display: flex; align-items: center; gap: 16px;
-      transition: all var(--t) var(--ease); min-width: 240px; flex: 0 1 auto;
-    }
-    .exam-card.active {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(24,64,212,0.08), var(--sh-md);
-    }
-    .exam-card.coming {
-      opacity: 0.55; cursor: default;
-      border-style: dashed;
-    }
-    .exam-card:not(.coming):hover {
-      transform: translateY(-3px); box-shadow: var(--sh-md);
-    }
-    .exam-icon {
-      width: 48px; height: 48px; border-radius: 13px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-    }
-    .exam-card.active .exam-icon { background: var(--primary-pale); }
-    .exam-card.coming .exam-icon { background: var(--bg); }
-    .exam-info .exam-name { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.01em; }
-    .exam-info .exam-status {
-      font-size: 12px; font-weight: 600; margin-top: 3px;
-    }
-    .exam-card.active .exam-status { color: var(--green); }
-    .exam-card.coming .exam-status { color: var(--text-light); }
-    .exam-live-badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      background: rgba(0,196,140,0.1); color: var(--green);
-      border: 1px solid rgba(0,196,140,0.2);
-      font-size: 11px; font-weight: 700;
-      padding: 3px 10px; border-radius: 100px; margin-top: 3px;
-    }
-    .exam-live-badge .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
 
-    /* ─── FEATURES ─── */
-    .features { background: var(--surface); }
-    .features-header { margin-bottom: 60px; }
-    .features-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr);
-      gap: 24px;
+    main {
+      padding: 28px 0 72px;
     }
-    .feat {
-      background: var(--bg); border-radius: var(--r-lg);
-      border: 1px solid var(--border);
-      padding: 40px 36px;
-      position: relative; overflow: hidden;
-      transition: all var(--t) var(--ease);
-    }
-    .feat::after {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      border-radius: var(--r-lg) var(--r-lg) 0 0;
-      transform: scaleX(0); transform-origin: left;
-      transition: transform 0.4s var(--ease);
-    }
-    .feat-1::after { background: linear-gradient(90deg, var(--primary), var(--primary-lt)); }
-    .feat-2::after { background: linear-gradient(90deg, var(--accent), #FF9B60); }
-    .feat-3::after { background: linear-gradient(90deg, #9333EA, #C084FC); }
-    .feat-4::after { background: linear-gradient(90deg, var(--green), #50E3C2); }
-    .feat:hover { box-shadow: var(--sh-md); transform: translateY(-4px); }
-    .feat:hover::after { transform: scaleX(1); }
-    .feat-ico {
-      width: 58px; height: 58px; border-radius: 16px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 26px; margin-bottom: 22px;
-    }
-    .feat-1 .feat-ico { background: rgba(24,64,212,0.08); }
-    .feat-2 .feat-ico { background: rgba(255,107,44,0.08); }
-    .feat-3 .feat-ico { background: rgba(147,51,234,0.08); }
-    .feat-4 .feat-ico { background: rgba(0,196,140,0.1); }
-    .feat h3 {
-      font-size: 20px; font-weight: 800; letter-spacing: -0.02em;
-      color: var(--text); margin-bottom: 10px;
-    }
-    .feat p { font-size: 14.5px; color: var(--text-muted); line-height: 1.75; }
-    .feat-pill {
-      display: inline-flex; margin-top: 18px;
-      font-size: 11px; font-weight: 700;
-      padding: 4px 11px; border-radius: 6px;
-    }
-    .feat-1 .feat-pill { color: var(--primary); background: rgba(24,64,212,0.08); }
-    .feat-2 .feat-pill { color: var(--accent); background: rgba(255,107,44,0.08); }
-    .feat-3 .feat-pill { color: #9333EA; background: rgba(147,51,234,0.08); }
-    .feat-4 .feat-pill { color: #00A87A; background: rgba(0,196,140,0.1); }
 
-    /* ─── HOW IT WORKS ─── */
-    .how { background: var(--navy); position: relative; overflow: hidden; }
-    .how::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      background:
-        radial-gradient(ellipse 50% 60% at 90% 10%, rgba(24,64,212,0.25) 0%, transparent 60%),
-        radial-gradient(ellipse 40% 50% at 10% 90%, rgba(255,107,44,0.12) 0%, transparent 60%);
-      pointer-events: none;
+    .hero {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 42px;
+      align-items: center;
+      padding: 56px 0 42px;
     }
-    .how .container { position: relative; z-index: 1; }
-    .how-header { margin-bottom: 64px; }
-    .loop-steps {
-      display: grid; grid-template-columns: repeat(4, 1fr);
-      gap: 4px; position: relative;
-    }
-    /* Connecting line */
-    .loop-steps::before {
-      content: '';
-      position: absolute; top: 36px;
-      left: calc(12.5% + 4px); right: calc(12.5% + 4px);
-      height: 1px;
-      background: linear-gradient(90deg,
-        transparent 0%,
-        rgba(255,255,255,0.12) 10%,
-        rgba(255,255,255,0.12) 90%,
-        transparent 100%);
-      z-index: 0;
-    }
-    .step-item {
-      text-align: center; padding: 0 16px;
-      position: relative; z-index: 1;
-    }
-    .step-circle {
-      width: 72px; height: 72px; border-radius: 50%;
-      margin: 0 auto 22px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 26px; position: relative;
-    }
-    .step-item:nth-child(1) .step-circle { background: rgba(24,64,212,0.35); border: 2px solid rgba(24,64,212,0.6); }
-    .step-item:nth-child(2) .step-circle { background: rgba(255,107,44,0.2); border: 2px solid rgba(255,107,44,0.45); }
-    .step-item:nth-child(3) .step-circle { background: rgba(147,51,234,0.2); border: 2px solid rgba(147,51,234,0.45); }
-    .step-item:nth-child(4) .step-circle { background: rgba(0,196,140,0.18); border: 2px solid rgba(0,196,140,0.45); }
-    .step-num-badge {
-      position: absolute; top: -4px; right: -4px;
-      width: 22px; height: 22px; border-radius: 50%;
-      background: var(--navy); border: 1.5px solid rgba(255,255,255,0.12);
-      font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.4);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .step-item h4 {
-      font-size: 16px; font-weight: 800; color: #fff;
-      margin-bottom: 10px; letter-spacing: -0.01em;
-    }
-    .step-item p { font-size: 13.5px; color: rgba(255,255,255,0.48); line-height: 1.7; }
 
-    /* ─── TESTIMONIALS ─── */
-    .testimonials { background: var(--bg); }
-    .t-header { margin-bottom: 60px; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(19, 33, 18, 0.08);
+      color: var(--lime-deep);
+      font-weight: 700;
+      font-size: 13px;
+      box-shadow: 0 10px 20px rgba(31, 143, 56, 0.08);
+    }
 
-    /* ─── PRICING ─── */
-    .pricing { background: var(--surface); }
-    .p-header { margin-bottom: 60px; }
-    .p-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 24px; align-items: start;
+    .hero h1 {
+      margin-top: 20px;
+      font-size: clamp(44px, 7vw, 82px);
+      line-height: 0.95;
+      letter-spacing: -0.06em;
     }
-    .p-card {
-      background: var(--bg); border-radius: var(--r-lg);
-      border: 2px solid var(--border);
-      padding: 32px 28px;
-      transition: all var(--t) var(--ease); position: relative;
-    }
-    .p-card.p-feat {
-      background: var(--surface);
-      border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(24,64,212,0.08), var(--sh-lg);
-      transform: translateY(-10px);
-    }
-    .p-card:not(.p-feat):hover { border-color: rgba(24,64,212,0.3); box-shadow: var(--sh-sm); }
-    .p-badge {
-      position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
-      background: var(--accent); color: #fff;
-      font-size: 12px; font-weight: 700; padding: 4px 16px;
-      border-radius: 100px; white-space: nowrap;
-    }
-    .p-tier { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px; }
-    .p-price {
-      font-size: 44px; font-weight: 900; color: var(--text);
-      letter-spacing: -0.04em; line-height: 1; margin-bottom: 4px;
-    }
-    .p-price sup { font-size: 20px; vertical-align: super; margin-right: 2px; }
-    .p-price .per { font-size: 15px; font-weight: 500; color: var(--text-muted); }
-    .p-savings { font-size: 12px; font-weight: 700; color: var(--green); margin-bottom: 26px; min-height: 18px; }
-    .p-divider { height: 1px; background: var(--border); margin: 0 0 20px; }
-    .p-feats { display: flex; flex-direction: column; gap: 11px; margin-bottom: 28px; }
-    .p-feat-item {
-      display: flex; align-items: flex-start; gap: 10px;
-      font-size: 14px; color: var(--text-muted);
-    }
-    .p-feat-item .ck { color: var(--green); font-size: 16px; flex-shrink: 0; line-height: 1.3; }
-    .p-feat-item .cx { color: var(--text-light); font-size: 16px; flex-shrink: 0; line-height: 1.3; }
-    .p-feat-item.dim { opacity: 0.4; }
-    .p-cta { width: 100%; padding: 14px; border-radius: 10px; font-size: 15px; }
 
-    /* ─── DOWNLOAD CTA ─── */
-    .dl-cta {
-      background: linear-gradient(145deg, #040E30 0%, #0A1840 45%, #101E5A 100%);
-      padding: 100px 0; text-align: center; position: relative; overflow: hidden;
+    .hero h1 .accent {
+      display: block;
+      color: var(--lime-deep);
+      text-shadow: 0 10px 22px rgba(31, 143, 56, 0.16);
     }
-    .dl-cta::before {
-      content: '';
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      width: 640px; height: 640px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,107,44,0.12), transparent 65%);
-      pointer-events: none;
+
+    .hero-copy {
+      margin-top: 20px;
+      max-width: 620px;
+      font-size: clamp(18px, 2.2vw, 22px);
+      line-height: 1.6;
+      color: #314030;
+      letter-spacing: -0.025em;
     }
-    .dl-cta-inner { position: relative; z-index: 1; }
-    .dl-cta h2 {
-      font-size: clamp(30px, 4.5vw, 50px); font-weight: 900;
-      letter-spacing: -0.03em; color: #fff; margin-bottom: 16px; line-height: 1.2;
+
+    .hero-copy strong {
+      color: var(--ink);
     }
-    .dl-cta h2 em { font-style: normal; color: var(--accent); }
-    .dl-cta p { font-size: 17px; color: rgba(255,255,255,0.55); margin-bottom: 44px; }
-    .dl-btns { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
-    .dl-store {
-      display: inline-flex; align-items: center; gap: 12px;
-      background: rgba(255,255,255,0.08); color: #fff;
-      padding: 14px 28px; border-radius: 14px;
-      font-size: 15px; font-weight: 600;
-      border: 1.5px solid rgba(255,255,255,0.18);
-      backdrop-filter: blur(8px);
-      transition: all var(--t) var(--ease);
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
     }
-    .dl-store:hover {
-      background: rgba(255,255,255,0.15);
-      border-color: rgba(255,255,255,0.32);
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 54px;
+      padding: 0 22px;
+      border-radius: 18px;
+      font-weight: 700;
+      font-size: 15px;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    .button:hover {
       transform: translateY(-2px);
     }
-    .dl-store svg { width: 28px; height: 28px; flex-shrink: 0; }
-    .dl-store .ds-l { display: flex; flex-direction: column; line-height: 1.25; text-align: left; }
-    .dl-store .ds-l small { font-size: 11px; font-weight: 400; opacity: 0.65; }
-    .dl-store .ds-l strong { font-size: 17px; }
-    .dl-note { font-size: 13px; color: rgba(255,255,255,0.3); margin-top: 24px; }
 
-    /* ─── FOOTER ─── */
-    .footer { background: #02081F; color: rgba(255,255,255,0.4); padding: 48px 0 32px; }
-    .foot-inner {
-      display: grid; grid-template-columns: 1fr auto;
-      gap: 40px; align-items: start; margin-bottom: 32px;
+    .button-primary {
+      background: linear-gradient(135deg, #1f8f38, #8ce44f);
+      color: #fff;
+      box-shadow: 0 20px 34px rgba(31, 143, 56, 0.24);
     }
-    .foot-logo {
-      display: flex; align-items: center; gap: 9px;
-      font-size: 17px; font-weight: 900; color: #fff;
-      letter-spacing: -0.03em; margin-bottom: 10px;
-    }
-    .foot-desc { font-size: 13px; line-height: 1.7; max-width: 300px; }
-    .foot-links { display: flex; gap: 20px; flex-wrap: wrap; }
-    .foot-links a {
-      font-size: 13px; color: rgba(255,255,255,0.38);
-      transition: color var(--t);
-    }
-    .foot-links a:hover { color: rgba(255,255,255,0.75); }
-    .foot-bottom {
-      border-top: 1px solid rgba(255,255,255,0.06);
-      padding-top: 22px;
-      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-    }
-    .foot-bottom p { font-size: 12px; }
 
-    /* ─── SCROLL ANIMATIONS ─── */
-    .fade-in {
-      opacity: 0; transform: translateY(22px);
-      transition: opacity 0.65s var(--ease), transform 0.65s var(--ease);
+    .button-secondary {
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(19, 33, 18, 0.08);
+      color: var(--ink);
+      box-shadow: 0 18px 30px rgba(19, 33, 18, 0.08);
     }
-    .fade-in.in { opacity: 1; transform: translateY(0); }
-    .fade-in:nth-child(2) { transition-delay: 0.08s; }
-    .fade-in:nth-child(3) { transition-delay: 0.16s; }
-    .fade-in:nth-child(4) { transition-delay: 0.24s; }
 
-    /* ─── RESPONSIVE ─── */
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .meta-pill {
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(19, 33, 18, 0.08);
+      color: var(--muted);
+      font-size: 14px;
+      box-shadow: 0 16px 24px rgba(19, 33, 18, 0.06);
+    }
+
+    .meta-pill strong {
+      color: var(--ink);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 17px;
+      margin-right: 6px;
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 640px;
+      display: grid;
+      place-items: center;
+    }
+
+    .glow {
+      position: absolute;
+      inset: 12% 8% 18%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(255, 230, 106, 0.82), transparent 32%),
+        radial-gradient(circle at 30% 60%, rgba(140, 228, 79, 0.48), transparent 38%),
+        radial-gradient(circle at 72% 72%, rgba(125, 216, 255, 0.46), transparent 36%);
+      filter: blur(24px);
+      opacity: 0.8;
+    }
+
+    .phone {
+      position: relative;
+      width: min(100%, 380px);
+      padding: 18px;
+      border-radius: 42px;
+      background: linear-gradient(180deg, #263524, #111a11);
+      box-shadow:
+        0 40px 90px rgba(20, 41, 18, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      width: 120px;
+      height: 24px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    .screen {
+      border-radius: 30px;
+      padding: 20px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.98)),
+        linear-gradient(180deg, #f5ffe6, #eef7ff);
+      min-height: 590px;
+      overflow: hidden;
+    }
+
+    .screen-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .loop-card {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 26px;
+      background: linear-gradient(135deg, #1f8f38, #8ce44f 75%);
+      color: #fff;
+      box-shadow: 0 24px 44px rgba(31, 143, 56, 0.24);
+    }
+
+    .loop-card small,
+    .screen-block small {
+      display: block;
+      margin-bottom: 8px;
+      opacity: 0.78;
+      letter-spacing: 0.02em;
+    }
+
+    .loop-card h3 {
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: -0.04em;
+    }
+
+    .loop-progress {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .loop-progress span {
+      display: block;
+      padding: 10px 0;
+      border-radius: 16px;
+      text-align: center;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(8px);
+    }
+
+    .screen-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .screen-block {
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(242, 247, 236, 0.98);
+      border: 1px solid rgba(19, 33, 18, 0.07);
+    }
+
+    .screen-block h4 {
+      font-size: 16px;
+      letter-spacing: -0.03em;
+      margin-bottom: 10px;
+    }
+
+    .bar-stack {
+      display: grid;
+      gap: 8px;
+    }
+
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(19, 33, 18, 0.08);
+      overflow: hidden;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #1f8f38, #8ce44f);
+    }
+
+    .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip-list span {
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #fff;
+      border: 1px solid rgba(19, 33, 18, 0.07);
+    }
+
+    .screen-footer {
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(125, 216, 255, 0.18);
+      border: 1px solid rgba(125, 216, 255, 0.38);
+    }
+
+    .screen-footer strong {
+      display: block;
+      font-size: 17px;
+      margin-bottom: 8px;
+      letter-spacing: -0.03em;
+    }
+
+    .floating-card {
+      position: absolute;
+      display: grid;
+      gap: 6px;
+      padding: 16px 18px;
+      border-radius: 24px;
+      background: var(--surface-strong);
+      border: 1px solid rgba(19, 33, 18, 0.08);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      animation: bob 7s ease-in-out infinite;
+    }
+
+    .floating-card strong {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
+      letter-spacing: -0.05em;
+    }
+
+    .floating-card span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .floating-card.top {
+      top: 72px;
+      right: 10px;
+      width: 180px;
+      animation-delay: -1.4s;
+    }
+
+    .floating-card.bottom {
+      left: 0;
+      bottom: 58px;
+      width: 205px;
+      animation-delay: -2.2s;
+    }
+
+    .floating-card em {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-style: normal;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(140, 228, 79, 0.18);
+      color: var(--lime-deep);
+    }
+
+    .section {
+      margin-top: 44px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .section-head h2 {
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.02;
+      letter-spacing: -0.05em;
+      max-width: 640px;
+    }
+
+    .section-head p {
+      max-width: 420px;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 16px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .feature-card,
+    .pricing-card,
+    .faq-card,
+    .compare-panel,
+    .cta-panel {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(255, 255, 255, 0.52);
+      background: var(--surface);
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+    }
+
+    .feature-card {
+      min-height: 340px;
+      padding: 24px;
+    }
+
+    .feature-card::before {
+      content: "";
+      position: absolute;
+      inset: auto -30px -40px auto;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(140, 228, 79, 0.18), transparent 68%);
+    }
+
+    .feature-icon {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      font-size: 24px;
+      background: rgba(31, 143, 56, 0.1);
+    }
+
+    .feature-card h3 {
+      margin-top: 18px;
+      font-size: 24px;
+      letter-spacing: -0.04em;
+    }
+
+    .feature-card p {
+      margin-top: 12px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .mini-board {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .mini-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(19, 33, 18, 0.06);
+    }
+
+    .mini-row b {
+      font-size: 13px;
+      letter-spacing: -0.02em;
+    }
+
+    .mini-row span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pricing-wrap {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .pricing-card {
+      padding: 24px;
+      min-height: 100%;
+    }
+
+    .pricing-card.highlight {
+      background:
+        linear-gradient(180deg, rgba(140, 228, 79, 0.2), rgba(255, 255, 255, 0.96)),
+        rgba(255, 255, 255, 0.96);
+      border-color: rgba(31, 143, 56, 0.18);
+      transform: translateY(-12px);
+    }
+
+    .plan-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+    }
+
+    .pricing-card h3 {
+      font-size: 26px;
+      letter-spacing: -0.04em;
+    }
+
+    .tag {
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--lime-deep);
+      background: rgba(140, 228, 79, 0.18);
+    }
+
+    .price {
+      margin-top: 18px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-family: 'Space Grotesk', sans-serif;
+      letter-spacing: -0.05em;
+    }
+
+    .price strong {
+      font-size: clamp(34px, 4vw, 48px);
+    }
+
+    .price span {
+      color: var(--muted);
+      font-size: 15px;
+      font-family: 'Pretendard Variable', 'Pretendard', sans-serif;
+      letter-spacing: -0.02em;
+    }
+
+    .plan-note {
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.65;
+      min-height: 78px;
+    }
+
+    .plan-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+      list-style: none;
+      color: #30422f;
+    }
+
+    .plan-list li {
+      position: relative;
+      padding-left: 24px;
+      line-height: 1.55;
+    }
+
+    .plan-list li::before {
+      content: "●";
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--lime-deep);
+      font-size: 12px;
+    }
+
+    .plan-foot {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .compare-panel {
+      padding: 26px;
+    }
+
+    .compare-panel h3,
+    .faq-card h3,
+    .cta-panel h3 {
+      font-size: 28px;
+      letter-spacing: -0.04em;
+      margin-bottom: 10px;
+    }
+
+    .compare-panel p,
+    .faq-item p,
+    .cta-panel p {
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .compare-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+      list-style: none;
+    }
+
+    .compare-list li {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(19, 33, 18, 0.06);
+    }
+
+    .compare-list strong {
+      letter-spacing: -0.02em;
+    }
+
+    .compare-list span {
+      color: var(--lime-deep);
+      font-weight: 700;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .proof-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .proof-card {
+      padding: 20px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(19, 33, 18, 0.08);
+      box-shadow: 0 16px 30px rgba(19, 33, 18, 0.06);
+    }
+
+    .proof-card strong {
+      display: block;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 36px;
+      letter-spacing: -0.05em;
+    }
+
+    .proof-card span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .faq-card {
+      padding: 24px;
+    }
+
+    .faq-item + .faq-item {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .faq-item h4 {
+      font-size: 18px;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .cta-panel {
+      margin-top: 22px;
+      padding: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      background:
+        radial-gradient(circle at 18% 24%, rgba(255, 230, 106, 0.44), transparent 24%),
+        radial-gradient(circle at 88% 25%, rgba(125, 216, 255, 0.32), transparent 24%),
+        linear-gradient(135deg, rgba(31, 143, 56, 0.92), rgba(140, 228, 79, 0.9));
+      color: #fff;
+    }
+
+    .cta-panel p {
+      color: rgba(255, 255, 255, 0.86);
+      max-width: 640px;
+    }
+
+    .cta-panel .button-secondary {
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.24);
+      box-shadow: none;
+    }
+
+    footer {
+      padding: 26px 0 56px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(19, 33, 18, 0.08);
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-12px); }
+    }
+
+    @keyframes bob {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(10px); }
+    }
+
     @media (max-width: 1080px) {
-      .hero-inner { grid-template-columns: 1fr; gap: 52px; }
-      .hero-right { order: -1; max-width: 340px; margin: 0 auto; min-height: 500px; }
-      .phone-mockup-group { width: 280px; height: 520px; }
-      .phone-mockup { width: 240px; height: 480px; padding: 10px; }
-      .phone-mockup-primary { transform: translateX(-10px) translateY(-5px) rotate(-2deg); }
-      .phone-mockup-secondary { transform: translateX(35px) translateY(15px) rotate(3deg); }
-      .features-grid { grid-template-columns: 1fr; }
-      .loop-steps { grid-template-columns: repeat(2, 1fr); }
-      .loop-steps::before { display: none; }
-      .p-grid { grid-template-columns: 1fr 1fr; }
-      .p-card.p-feat { transform: none; }
+      .hero,
+      .pricing-wrap,
+      .feature-grid,
+      .proof-strip,
+      .faq-grid,
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding-top: 34px;
+      }
+
+      .hero-visual {
+        min-height: 540px;
+        order: -1;
+      }
+
+      .pricing-card.highlight {
+        transform: none;
+      }
+
+      .proof-card strong {
+        font-size: 28px;
+      }
     }
-    @media (max-width: 768px) {
-      .section { padding: 72px 0; }
-      .nav-links, .nav-actions .btn-outline { display: none; }
-      .hamburger { display: flex; }
-      .hero { padding: 100px 0 60px; }
-      .hero-right { max-width: 280px; min-height: 450px; }
-      .phone-mockup-group { width: 240px; height: 450px; }
-      .phone-mockup { width: 220px; height: 440px; padding: 8px; }
-      .phone-mockup-primary { transform: translateX(-5px) translateY(-3px) rotate(-2deg); }
-      .phone-mockup-secondary { transform: translateX(25px) translateY(10px) rotate(2deg); opacity: 0.8; }
-      .features-grid { grid-template-columns: 1fr; }
-      .loop-steps { grid-template-columns: 1fr 1fr; }
-      .p-grid { grid-template-columns: 1fr; }
-      .p-card.p-feat { transform: none; }
-      .foot-inner { grid-template-columns: 1fr; }
-      .orbit-1, .orbit-2 { display: none; }
-      .fc1, .fc2 { display: none; }
+
+    @media (max-width: 820px) {
+      .topbar {
+        top: 10px;
+      }
+
+      .topbar-inner {
+        border-radius: 28px;
+        padding: 16px;
+      }
+
+      .nav {
+        display: none;
+      }
+
+      .hero h1 {
+        font-size: 52px;
+      }
+
+      .section-head {
+        display: grid;
+      }
+
+      .cta-panel {
+        display: grid;
+      }
+
+      .footer-inner {
+        display: grid;
+      }
     }
-    @media (max-width: 480px) {
-      .hero-inner { grid-template-columns: 1fr; gap: 40px; }
-      .hero-right { max-width: 240px; min-height: 380px; }
-      .phone-mockup-group { width: 200px; height: 380px; }
-      .phone-mockup { width: 190px; height: 370px; padding: 6px; }
-      .phone-mockup-primary { transform: translateX(-3px) translateY(-2px) rotate(-1deg); }
-      .phone-mockup-secondary { transform: translateX(18px) translateY(8px) rotate(1deg); opacity: 0.75; }
-      .loop-steps { grid-template-columns: 1fr; }
-      .exams-grid { flex-direction: column; align-items: stretch; }
-      .exam-card { min-width: unset; }
+
+    @media (max-width: 560px) {
+      .shell {
+        width: min(calc(100% - 20px), var(--max));
+      }
+
+      .hero {
+        gap: 22px;
+        padding-bottom: 22px;
+      }
+
+      .hero h1 {
+        font-size: 42px;
+      }
+
+      .hero-copy {
+        font-size: 17px;
+      }
+
+      .hero-visual {
+        min-height: 460px;
+      }
+
+      .phone {
+        width: 100%;
+        max-width: 330px;
+      }
+
+      .screen {
+        min-height: 520px;
+      }
+
+      .floating-card.top,
+      .floating-card.bottom {
+        width: 150px;
+        padding: 12px 14px;
+      }
+
+      .feature-card,
+      .pricing-card,
+      .faq-card,
+      .compare-panel,
+      .cta-panel {
+        border-radius: 24px;
+      }
     }
   </style>
 </head>
 <body>
-
-  <!-- ─── HEADER ─── -->
-  <header class="header" id="hdr">
-    <div class="header-inner">
-      <div class="container">
-        <nav class="nav">
-          <a href="/" class="nav-logo">
-            <div class="logo-mark"></div>
-            합격루프
-          </a>
-          <ul class="nav-links">
-            <li><a href="#features">핵심 기능</a></li>
-            <li><a href="#how">학습 방법</a></li>
-            <li><a href="#testimonials">다음 시험</a></li>
-            <li><a href="#pricing">요금제</a></li>
-          </ul>
-          <div class="nav-actions">
-            <a href="#pricing" class="btn btn-outline" style="padding:9px 20px;font-size:14px;">요금제</a>
-            <a href="#download" class="btn btn-primary" style="padding:9px 20px;font-size:14px;">무료로 시작하기</a>
-          </div>
-          <div class="hamburger" id="ham" onclick="toggleNav()">
-            <span></span><span></span><span></span>
-          </div>
-        </nav>
-      </div>
-      <div class="mobile-nav" id="mobNav">
-        <a href="#features" onclick="toggleNav()">핵심 기능</a>
-        <a href="#how" onclick="toggleNav()">학습 방법</a>
-        <a href="#testimonials" onclick="toggleNav()">다음 시험</a>
-        <a href="#pricing" onclick="toggleNav()">요금제</a>
-        <a href="#download" onclick="toggleNav()" style="color:var(--accent);font-weight:800;">무료로 시작하기 →</a>
-      </div>
+  <header class="topbar shell">
+    <div class="topbar-inner">
+      <a class="brand" href="#top">
+        <div class="brand-mark">HL</div>
+        <div class="brand-copy">
+          <strong>합격루프</strong>
+          <span>기출을 합격 루틴으로</span>
+        </div>
+      </a>
+      <nav class="nav">
+        <a href="#features">기능</a>
+        <a href="#pricing">가격</a>
+        <a href="#faq">자주 묻는 질문</a>
+        <a href="privacy.html">개인정보 처리방침</a>
+        <a href="terms.html">이용약관</a>
+      </nav>
+      <a class="nav-cta" href="#pricing">합격패스 보기</a>
     </div>
   </header>
 
-  <!-- ─── HERO ─── -->
-  <section class="hero">
-    <div class="container">
-      <div class="hero-inner">
+  <main id="top">
+    <section class="hero shell">
+      <div>
+        <div class="eyebrow">공인중개사 기출 학습 앱 · 최신 1개년 무료</div>
+        <h1>
+          기출을 푸는 앱이 아니라
+          <span class="accent">합격 루틴을 만드는 앱</span>
+        </h1>
+        <p class="hero-copy">
+          합격루프는 문제를 한 번 보여주고 끝내지 않습니다.
+          <strong>틀린 문제, 헷갈린 개념, 다시 볼 타이밍</strong>을 한 화면에서 이어 붙여서
+          공인중개사 공부를 매일 굴러가게 만듭니다.
+        </p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#pricing">합격패스 가격 보기</a>
+          <a class="button button-secondary" href="#features">어떻게 다른지 보기</a>
+        </div>
+        <div class="hero-meta">
+          <div class="meta-pill"><strong>10개년</strong> 전체 문제 루프</div>
+          <div class="meta-pill"><strong>₩0</strong> 최신 1개년 무료</div>
+          <div class="meta-pill"><strong>월 ₩6,900</strong> 광고 제거 + 전체 문제</div>
+        </div>
+      </div>
 
-        <!-- Left: copy -->
-        <div class="hero-content">
-          <div class="hero-kicker">
-            <span class="live-dot"></span>
-            AI 자격증 시험 준비 플랫폼
-          </div>
-          <h1 class="h1 hero-title">
-            <span class="hl-blue">AI가 설계하는</span><br>
-            나만의 합격 루프,<br>
-            <span class="hl-orange">더 빠르게 합격</span>
-          </h1>
-          <p class="lead hero-lead">
-            AI가 당신의 망각 시점을 파악해 최적의 타이밍에 복습을 추천합니다.
-            최신 개정사항 반영 해설과 비슷한 문제 매칭으로 취약점까지 완벽 보완하세요.
-          </p>
-          <div class="hero-cta">
-            <a href="#" class="store-pill">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-              <div class="sl">
-                <small>Download on the</small>
-                <strong>App Store</strong>
+      <div class="hero-visual">
+        <div class="glow"></div>
+        <div class="phone">
+          <div class="screen">
+            <div class="screen-top">
+              <span>오늘의 루프</span>
+              <span>DAY 18</span>
+            </div>
+
+            <div class="loop-card">
+              <small>복습이 끊기지 않게</small>
+              <h3>오늘 다시 볼 문제 14개<br>헷갈린 개념 3개</h3>
+              <div class="loop-progress">
+                <span>기출</span>
+                <span>오답</span>
+                <span>복습</span>
               </div>
-            </a>
-            <a href="#" class="store-pill">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.3.17.64.22.99.14l12.48-7.21-2.82-2.82-10.65 9.89zM.44 1.06C.17 1.4 0 1.89 0 2.53v18.94c0 .64.17 1.13.44 1.47l.08.07 10.61-10.61v-.25L.52.99.44 1.06zM20.14 10.6l-2.85-1.65-3.16 3.16 3.16 3.16 2.88-1.67c.82-.48.82-1.25-.03-1.99zM3.18.24L15.66 7.47l-2.82 2.82L2.19.4a1.07 1.07 0 011-.16z"/></svg>
-              <div class="sl">
-                <small>다운로드</small>
-                <strong>Google Play</strong>
+            </div>
+
+            <div class="screen-grid">
+              <div class="screen-block">
+                <small>기억 루프 진행도</small>
+                <h4>민법은 다음 복습까지 2일</h4>
+                <div class="bar-stack">
+                  <div class="bar"><i style="width: 82%"></i></div>
+                  <div class="bar"><i style="width: 58%"></i></div>
+                  <div class="bar"><i style="width: 35%"></i></div>
+                </div>
+                <div class="chip-list">
+                  <span>민법</span>
+                  <span>중개사법</span>
+                  <span>공법</span>
+                </div>
               </div>
-            </a>
-          </div>
 
-        </div>
-
-        <!-- Right: phone mockup with real screenshots -->
-        <div class="hero-right">
-          <div class="orbit orbit-1"></div>
-          <div class="orbit orbit-2"></div>
-
-          <!-- Phone mockup container with screenshots -->
-          <div class="phone-mockup-group">
-            <!-- Home screen - primary -->
-            <div class="phone-mockup phone-mockup-primary">
-              <img src="screenshot-home.jpg" alt="합격루프 홈 화면" class="phone-img" />
+              <div class="screen-block">
+                <small>오늘의 포인트</small>
+                <h4>오답 4개</h4>
+                <div class="mini-board">
+                  <div class="mini-row">
+                    <b>계약 해제</b>
+                    <span>다시 보기</span>
+                  </div>
+                  <div class="mini-row">
+                    <b>권리분석</b>
+                    <span>유사 문제</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            <!-- Stats screen - secondary, slightly rotated and offset -->
-            <div class="phone-mockup phone-mockup-secondary">
-              <img src="screenshot-stats.jpg" alt="합격루프 학습 통계" class="phone-img" />
-            </div>
-          </div>
 
-          <div class="fc fc1">
-            <div class="fc-tag">이번 주 학습</div>
-            <div class="fc-val">347</div>
-            <div class="fc-sub">문제 완료</div>
-          </div>
-          <div class="fc fc2">
-            <div class="fc-tag">기억 정확도</div>
-            <div class="fc-up">↑ 92<span style="font-size:13px;font-weight:600">%</span></div>
-            <div class="fc-sub">전주 대비 +8%</div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ─── SUPPORTED EXAMS ─── -->
-  <section class="exams" id="exams">
-    <div class="container">
-      <div class="exams-inner">
-        <div class="eyebrow"><span class="dot"></span> 지원 시험</div>
-        <h2 class="h2" style="margin-bottom:10px;">현재 지원 중인 시험</h2>
-        <p class="lead" style="margin:0 auto 0;">합격루프는 더 많은 자격증 시험을 지원할 예정입니다. 지금은 공인중개사 기출문제부터 시작하세요.</p>
-      </div>
-      <div class="exams-grid">
-        <div class="exam-card active">
-          <div class="exam-icon">🏠</div>
-          <div class="exam-info">
-            <div class="exam-name">공인중개사</div>
-            <div class="exam-live-badge"><span class="dot"></span> 지금 이용 가능</div>
-          </div>
-        </div>
-        <div class="exam-card coming">
-          <div class="exam-icon">📖</div>
-          <div class="exam-info">
-            <div class="exam-name">한국사능력검정시험</div>
-            <div class="exam-status">출시 예정</div>
-          </div>
-        </div>
-        <div class="exam-card coming">
-          <div class="exam-icon">📝</div>
-          <div class="exam-info">
-            <div class="exam-name">공무원 9급</div>
-            <div class="exam-status">출시 예정</div>
-          </div>
-        </div>
-        <div class="exam-card coming">
-          <div class="exam-icon">✨</div>
-          <div class="exam-info">
-            <div class="exam-name">더 많은 시험 준비 중</div>
-            <div class="exam-status">계속 추가 예정</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ─── FEATURES ─── -->
-  <section class="section features" id="features">
-    <div class="container">
-      <div class="features-header tc">
-        <div class="eyebrow"><span class="dot"></span> 핵심 기능</div>
-        <h2 class="h2" style="margin-bottom:14px;">왜 합격루프가 다른가요?</h2>
-        <p class="lead">단순 암기는 잊힙니다. AI와 최신 개정사항 반영 해설이 결합된 스마트 학습으로 더 오래 기억하고 더 빠르게 합격하세요.</p>
-      </div>
-      <div class="features-grid">
-        <div class="feat feat-1 fade-in">
-          <div class="feat-ico">🔄</div>
-          <h3>AI 맞춤 복습 추천</h3>
-          <p>AI가 당신의 망각 시점을 파악해 최적의 타이밍에 복습을 추천합니다. 잊기 직전에 딱 한 번 복습하는 것이 10번 반복 암기보다 강력합니다. 바쁜 일상에서도 하루 20분으로 기억이 완성됩니다.</p>
-          <span class="feat-pill">AI 복습 최적화</span>
-        </div>
-        <div class="feat feat-2 fade-in">
-          <div class="feat-ico">✦</div>
-          <h3>최신 개정사항 반영 해설</h3>
-          <p>단순히 정답만 알려주는 것이 아닙니다. 법령 개정사항이 반영된 해설로 왜 맞고 왜 틀렸는지를 명확히 이해할 수 있습니다. 진짜 이해 기반 학습으로 실전에서도 흔들리지 않습니다.</p>
-          <span class="feat-pill">개정 반영 해설</span>
-        </div>
-        <div class="feat feat-3 fade-in">
-          <div class="feat-ico">🎯</div>
-          <h3>비슷한 문제 자동 매칭</h3>
-          <p>틀린 문제와 패턴이 유사한 기출문제를 AI가 자동으로 찾아드립니다. 같은 개념의 다른 표현 방식을 반복 학습해 실전에서 변형 문제에도 완벽히 대응합니다.</p>
-          <span class="feat-pill">취약점 완전 극복</span>
-        </div>
-        <div class="feat feat-4 fade-in">
-          <div class="feat-ico">📊</div>
-          <h3>취약부문 자동 통계 시스템</h3>
-          <p>과목별·주제별 정답률을 자동 분석해 가장 약한 부분부터 강한 부분까지 순위로 보여줍니다. 어디에 집중해야 할지 한눈에 파악할 수 있습니다.</p>
-          <span class="feat-pill">약점 우선 집중</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ─── HOW IT WORKS ─── -->
-  <section class="section how" id="how">
-    <div class="container">
-      <div class="how-header tc">
-        <div class="eyebrow" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.65);border-color:rgba(255,255,255,0.1);">
-          <span class="dot"></span> 학습 흐름
-        </div>
-        <h2 class="h2 h2-dark" style="margin-bottom:14px;">합격루프 4단계 학습법</h2>
-        <p class="lead lead-dark">과학적으로 설계된 순환 학습 사이클. 한 번 루프를 시작하면 자동으로 합격을 향해 달립니다.</p>
-      </div>
-      <div class="loop-steps">
-        <div class="step-item fade-in">
-          <div class="step-circle">
-            🧭
-            <div class="step-num-badge">01</div>
-          </div>
-          <h4>시작하기</h4>
-          <p>원하는 시험을 선택하고 바로 시작하세요. 하루라도 빨리 시작할수록 합격이 가까워집니다.</p>
-        </div>
-        <div class="step-item fade-in">
-          <div class="step-circle">
-            📝
-            <div class="step-num-badge">02</div>
-          </div>
-          <h4>기출문제 풀기</h4>
-          <p>실전과 동일한 기출문제를 풀고, 오답 즉시 최신 개정사항 반영 해설로 완전히 이해합니다.</p>
-        </div>
-        <div class="step-item fade-in">
-          <div class="step-circle">
-            🔔
-            <div class="step-num-badge">03</div>
-          </div>
-          <h4>최적 타이밍 복습</h4>
-          <p>AI가 잊기 직전을 포착해 알림을 보냅니다. 최적의 순간에 복습하면 기억이 장기 기억으로 전환됩니다.</p>
-        </div>
-        <div class="step-item fade-in">
-          <div class="step-circle">
-            🏆
-            <div class="step-num-badge">04</div>
-          </div>
-          <h4>취약점 집중 훈련</h4>
-          <p>비슷한 문제 매칭으로 약점을 집중 공략합니다. 루프가 반복될수록 합격이 가까워집니다.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ─── WAITLIST ─── -->
-  <style>
-    /* ── Waitlist searchable dropdown ── */
-    .waitlist-card {
-      max-width: 600px; margin: 0 auto;
-      padding: 40px; background: var(--surface);
-      border-radius: var(--r-lg); border: 2px solid var(--border);
-      box-shadow: var(--sh-sm);
-    }
-
-    /* Popular chips */
-    .exam-chips {
-      display: flex; flex-wrap: wrap; gap: 8px;
-      margin-bottom: 22px;
-    }
-    .exam-chip {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 7px 14px; border-radius: 100px;
-      font-size: 13px; font-weight: 600;
-      background: var(--bg); color: var(--text-mid);
-      border: 1.5px solid var(--border);
-      cursor: pointer;
-      transition: background var(--t) var(--ease),
-                  color var(--t) var(--ease),
-                  border-color var(--t) var(--ease),
-                  transform var(--t) var(--ease);
-      user-select: none;
-    }
-    .exam-chip:hover {
-      background: var(--primary-pale);
-      border-color: var(--primary);
-      color: var(--primary);
-      transform: translateY(-1px);
-    }
-    .exam-chip.selected {
-      background: var(--primary);
-      border-color: var(--primary);
-      color: #fff;
-    }
-    .exam-chip .chip-icon { font-size: 14px; line-height: 1; }
-
-    /* Search wrapper */
-    .exam-search-wrap {
-      position: relative;
-      margin-bottom: 16px;
-    }
-    .exam-search-input {
-      width: 100%;
-      padding: 14px 48px 14px 18px;
-      border: 2px solid var(--border);
-      border-radius: var(--r-md);
-      font-family: inherit; font-size: 15px;
-      color: var(--text); background: var(--bg);
-      outline: none;
-      transition: border-color var(--t) var(--ease),
-                  box-shadow var(--t) var(--ease),
-                  background var(--t) var(--ease);
-    }
-    .exam-search-input:focus,
-    .exam-search-input.has-value {
-      border-color: var(--primary);
-      background: var(--surface);
-      box-shadow: 0 0 0 4px rgba(24,64,212,0.08);
-    }
-    .exam-search-icon {
-      position: absolute; right: 16px; top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-light); pointer-events: none;
-      font-size: 16px; transition: color var(--t);
-    }
-    .exam-search-input:focus ~ .exam-search-icon { color: var(--primary); }
-    .exam-clear-btn {
-      position: absolute; right: 14px; top: 50%;
-      transform: translateY(-50%);
-      width: 24px; height: 24px; border-radius: 50%;
-      background: var(--border); border: none;
-      display: none; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 13px; color: var(--text-muted);
-      transition: background var(--t), color var(--t);
-    }
-    .exam-clear-btn:hover { background: var(--primary); color: #fff; }
-    .exam-clear-btn.visible { display: flex; }
-
-    /* Dropdown */
-    .exam-dropdown {
-      position: absolute; top: calc(100% + 6px);
-      left: 0; right: 0; z-index: 100;
-      background: var(--surface);
-      border: 2px solid var(--primary);
-      border-radius: var(--r-md);
-      box-shadow: var(--sh-md);
-      max-height: 280px; overflow-y: auto;
-      /* Animation */
-      opacity: 0; transform: translateY(-6px);
-      pointer-events: none;
-      transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
-    }
-    .exam-dropdown.open {
-      opacity: 1; transform: translateY(0);
-      pointer-events: auto;
-    }
-    .exam-dropdown::-webkit-scrollbar { width: 4px; }
-    .exam-dropdown::-webkit-scrollbar-track { background: transparent; }
-    .exam-dropdown::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-    .dropdown-group-label {
-      padding: 8px 16px 4px;
-      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
-      color: var(--text-light); text-transform: uppercase;
-      border-top: 1px solid var(--border); margin-top: 4px;
-    }
-    .dropdown-group-label:first-child { border-top: none; margin-top: 0; }
-
-    .dropdown-item {
-      padding: 10px 16px;
-      font-size: 14px; font-weight: 500; color: var(--text-mid);
-      cursor: pointer;
-      transition: background var(--t) var(--ease), color var(--t) var(--ease);
-      display: flex; align-items: center; gap: 8px;
-    }
-    .dropdown-item:hover,
-    .dropdown-item.focused {
-      background: var(--primary-pale); color: var(--primary);
-    }
-    .dropdown-item .di-icon { font-size: 15px; flex-shrink: 0; }
-    .dropdown-item.custom-entry { color: var(--accent); font-weight: 600; }
-    .dropdown-item.custom-entry:hover { background: rgba(255,107,44,0.06); }
-    .dropdown-empty {
-      padding: 16px; text-align: center;
-      font-size: 13px; color: var(--text-light);
-    }
-
-    /* Selected exam display */
-    .selected-exam-tag {
-      display: none; align-items: center; gap: 8px;
-      padding: 8px 14px;
-      background: rgba(24,64,212,0.07);
-      border: 1.5px solid rgba(24,64,212,0.2);
-      border-radius: var(--r-sm);
-      font-size: 13px; font-weight: 700; color: var(--primary);
-      margin-bottom: 16px;
-      animation: tag-pop 0.2s var(--ease);
-    }
-    .selected-exam-tag.visible { display: flex; }
-    @keyframes tag-pop {
-      from { opacity: 0; transform: scale(0.95); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-    .selected-exam-tag button {
-      margin-left: auto; background: none; border: none;
-      cursor: pointer; color: var(--primary); font-size: 15px;
-      line-height: 1; padding: 0 2px; opacity: 0.6;
-      transition: opacity var(--t);
-    }
-    .selected-exam-tag button:hover { opacity: 1; }
-
-    /* Submit button */
-    .waitlist-submit-btn {
-      width: 100%; padding: 15px;
-      background: var(--accent); color: #fff;
-      border: none; border-radius: var(--r-md);
-      font-family: inherit; font-size: 15px; font-weight: 700;
-      cursor: pointer; letter-spacing: -0.01em;
-      box-shadow: 0 4px 20px rgba(255,107,44,0.32);
-      transition: background var(--t) var(--ease),
-                  box-shadow var(--t) var(--ease),
-                  transform var(--t) var(--ease);
-    }
-    .waitlist-submit-btn:hover:not(:disabled) {
-      background: var(--accent-hover);
-      box-shadow: 0 6px 28px rgba(255,107,44,0.44);
-      transform: translateY(-2px);
-    }
-    .waitlist-submit-btn:disabled {
-      background: var(--border); color: var(--text-light);
-      box-shadow: none; cursor: not-allowed; transform: none;
-    }
-
-    /* Success state */
-    .waitlist-success {
-      display: none;
-      text-align: center; padding: 28px 20px;
-      animation: success-in 0.35s var(--ease);
-    }
-    .waitlist-success.visible { display: block; }
-    @keyframes success-in {
-      from { opacity: 0; transform: scale(0.96) translateY(8px); }
-      to   { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    .success-icon {
-      width: 60px; height: 60px; border-radius: 50%;
-      background: rgba(0,196,140,0.12);
-      border: 2px solid rgba(0,196,140,0.3);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px; margin: 0 auto 16px;
-    }
-    .success-title {
-      font-size: 18px; font-weight: 800; color: var(--text);
-      letter-spacing: -0.02em; margin-bottom: 8px;
-    }
-    .success-desc { font-size: 14px; color: var(--text-muted); line-height: 1.65; }
-    .success-exam-pill {
-      display: inline-block; margin-top: 12px;
-      background: var(--primary-pale); color: var(--primary);
-      border: 1.5px solid rgba(24,64,212,0.2);
-      padding: 5px 16px; border-radius: 100px;
-      font-size: 13px; font-weight: 700;
-    }
-
-    @media (max-width: 480px) {
-      .waitlist-card { padding: 28px 20px; }
-      .exam-chips { gap: 6px; }
-      .exam-chip { font-size: 12px; padding: 6px 11px; }
-    }
-  </style>
-
-  <section class="section testimonials" id="testimonials">
-    <div class="container">
-      <div class="t-header tc">
-        <div class="eyebrow"><span class="dot"></span> 다음 시험 준비</div>
-        <h2 class="h2" style="margin-bottom:14px;">원하는 시험을 알려주세요</h2>
-        <p class="lead">준비 중인 시험을 선택하시면, 출시 즉시 가장 먼저 알려드립니다.</p>
-      </div>
-
-      <div class="waitlist-card">
-
-        <!-- Form state -->
-        <div id="waitlistForm">
-
-          <!-- Popular chips -->
-          <div style="margin-bottom:6px;">
-            <p style="font-size:12px;font-weight:700;color:var(--text-light);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:10px;">인기 시험</p>
-            <div class="exam-chips" id="examChips">
-              <button class="exam-chip" onclick="selectChip(this, '공인중개사')">
-                <span class="chip-icon">🏠</span> 공인중개사
-              </button>
-              <button class="exam-chip" onclick="selectChip(this, '한국사능력검정시험')">
-                <span class="chip-icon">📖</span> 한국사능력검정
-              </button>
-              <button class="exam-chip" onclick="selectChip(this, '9급 공무원')">
-                <span class="chip-icon">🏛️</span> 공무원 9급
-              </button>
-              <button class="exam-chip" onclick="selectChip(this, '세무사')">
-                <span class="chip-icon">📊</span> 세무사
-              </button>
-              <button class="exam-chip" onclick="selectChip(this, '정보처리기사')">
-                <span class="chip-icon">💻</span> 정보처리기사
-              </button>
-              <button class="exam-chip" onclick="selectChip(this, '토익 (TOEIC)')">
-                <span class="chip-icon">🌍</span> 토익
-              </button>
+            <div class="screen-footer">
+              <strong>비슷한 문제로 바로 이어서 복습</strong>
+              <p>오답에서 끝나는 게 아니라, 같은 개념을 다른 문제로 다시 연결해 헷갈림을 줄입니다.</p>
             </div>
           </div>
-
-          <!-- Divider -->
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
-            <div style="flex:1;height:1px;background:var(--border);"></div>
-            <span style="font-size:12px;color:var(--text-light);font-weight:600;">또는 직접 검색</span>
-            <div style="flex:1;height:1px;background:var(--border);"></div>
-          </div>
-
-          <!-- Search field + dropdown -->
-          <div class="exam-search-wrap" id="searchWrap">
-            <input
-              type="text"
-              id="examSearchInput"
-              class="exam-search-input"
-              placeholder="시험 이름을 검색하세요"
-              autocomplete="off"
-              oninput="onExamInput(this)"
-              onfocus="onExamFocus()"
-              onkeydown="onExamKeydown(event)"
-            />
-            <span class="exam-search-icon" id="searchIcon">🔍</span>
-            <button class="exam-clear-btn" id="clearBtn" onclick="clearSearch()" title="지우기">✕</button>
-
-            <div class="exam-dropdown" id="examDropdown" role="listbox"></div>
-          </div>
-
-          <!-- Selected exam tag -->
-          <div class="selected-exam-tag" id="selectedTag">
-            <span>✓</span>
-            <span id="selectedTagText"></span>
-            <button onclick="clearSelection()" title="선택 해제">✕</button>
-          </div>
-
-          <!-- Submit -->
-          <button class="waitlist-submit-btn" id="submitBtn" onclick="submitWaitlist()" disabled>
-            알림 신청하기
-          </button>
-          <p style="margin-top:14px;text-align:center;font-size:12px;color:var(--text-light);">신용카드나 개인정보가 필요하지 않습니다.</p>
         </div>
 
-        <!-- Success state -->
-        <div class="waitlist-success" id="waitlistSuccess">
-          <div class="success-icon">✅</div>
-          <div class="success-title">신청이 완료되었습니다!</div>
-          <div class="success-desc">출시되면 알려드릴게요.<br>조금만 기다려 주세요.</div>
-          <div class="success-exam-pill" id="successExamPill"></div>
+        <div class="floating-card top">
+          <em>연속 학습</em>
+          <strong>18일</strong>
+          <span>하루를 비우지 않고 루틴을 유지하는 흐름</span>
         </div>
 
+        <div class="floating-card bottom">
+          <em>합격패스</em>
+          <strong>10개년 전체</strong>
+          <span>광고 제거, 전체 문제, 더 넓은 복습 범위를 한 번에</span>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <script>
-    /* ── Exam data ── */
-    const EXAM_GROUPS = [
-      {
-        label: '자격증 시험',
-        exams: [
-          { name: '공인중개사', icon: '🏠' },
-          { name: '주택관리사', icon: '🏢' },
-          { name: '경비지도사', icon: '🛡️' },
-          { name: '손해평가사', icon: '📋' },
-          { name: '관세사', icon: '🚢' },
-          { name: '세무사', icon: '📊' },
-          { name: '공인회계사 (CPA)', icon: '💼' },
-          { name: '감정평가사', icon: '🏦' },
-          { name: '법무사', icon: '⚖️' },
-          { name: '행정사', icon: '📝' },
-          { name: '사회복지사 1급', icon: '🤝' },
-          { name: '요양보호사', icon: '❤️' },
-          { name: '위험물산업기사', icon: '⚗️' },
-          { name: '전기기사', icon: '⚡' },
-          { name: '소방설비기사', icon: '🚒' },
-          { name: '정보처리기사', icon: '💻' },
-          { name: '컴퓨터활용능력', icon: '🖥️' },
-          { name: '한식조리기능사', icon: '🍳' },
-          { name: '운전면허 필기', icon: '🚗' },
-        ]
-      },
-      {
-        label: '공무원 시험',
-        exams: [
-          { name: '9급 공무원', icon: '🏛️' },
-          { name: '7급 공무원', icon: '🏛️' },
-          { name: '소방공무원', icon: '🔥' },
-          { name: '경찰공무원', icon: '👮' },
-          { name: '군무원', icon: '🎖️' },
-        ]
-      },
-      {
-        label: '검정시험',
-        exams: [
-          { name: '한국사능력검정시험', icon: '📖' },
-          { name: '한자능력검정시험', icon: '✍️' },
-          { name: '토익 (TOEIC)', icon: '🌍' },
-          { name: '토플 (TOEFL)', icon: '🌐' },
-          { name: 'JLPT (일본어능력시험)', icon: '🗾' },
-          { name: 'HSK (중국어)', icon: '🀄' },
-        ]
-      }
-    ];
-
-    const ALL_EXAMS = EXAM_GROUPS.flatMap(g => g.exams);
-
-    let selectedExam = '';
-    let focusedIndex = -1;
-    let dropdownItems = [];
-
-    const searchInput = document.getElementById('examSearchInput');
-    const dropdown    = document.getElementById('examDropdown');
-    const clearBtn    = document.getElementById('clearBtn');
-    const searchIcon  = document.getElementById('searchIcon');
-    const selectedTag = document.getElementById('selectedTag');
-    const selectedTagText = document.getElementById('selectedTagText');
-    const submitBtn   = document.getElementById('submitBtn');
-
-    function getFilteredGroups(query) {
-      if (!query) return EXAM_GROUPS;
-      const q = query.toLowerCase().replace(/\s/g, '');
-      return EXAM_GROUPS
-        .map(g => ({
-          ...g,
-          exams: g.exams.filter(e =>
-            e.name.toLowerCase().replace(/\s/g, '').includes(q)
-          )
-        }))
-        .filter(g => g.exams.length > 0);
-    }
-
-    function renderDropdown(query) {
-      dropdown.innerHTML = '';
-      focusedIndex = -1;
-      dropdownItems = [];
-
-      const groups = getFilteredGroups(query);
-      const totalMatches = groups.reduce((s, g) => s + g.exams.length, 0);
-
-      if (totalMatches === 0 && !query) {
-        // No query yet — show all
-        EXAM_GROUPS.forEach(g => renderGroup(g));
-      } else if (totalMatches === 0) {
-        // No match — show custom entry
-        const empty = document.createElement('div');
-        empty.className = 'dropdown-empty';
-        empty.textContent = `"${query}"에 해당하는 시험이 없습니다.`;
-        dropdown.appendChild(empty);
-
-        const custom = document.createElement('div');
-        custom.className = 'dropdown-item custom-entry';
-        custom.innerHTML = `<span class="di-icon">✏️</span> <span>"${query}" 직접 입력</span>`;
-        custom.onclick = () => selectExam(query);
-        dropdown.appendChild(custom);
-        dropdownItems.push(custom);
-      } else {
-        groups.forEach(g => renderGroup(g));
-
-        // Always show "직접 입력" at the bottom when there's a query
-        if (query) {
-          const divider = document.createElement('div');
-          divider.style.cssText = 'height:1px;background:var(--border);margin:4px 0;';
-          dropdown.appendChild(divider);
-
-          const custom = document.createElement('div');
-          custom.className = 'dropdown-item custom-entry';
-          custom.innerHTML = `<span class="di-icon">✏️</span> <span>"${query}" 직접 입력</span>`;
-          custom.onclick = () => selectExam(query);
-          dropdown.appendChild(custom);
-          dropdownItems.push(custom);
-        }
-      }
-    }
-
-    function renderGroup(group) {
-      const label = document.createElement('div');
-      label.className = 'dropdown-group-label';
-      label.textContent = group.label;
-      dropdown.appendChild(label);
-
-      group.exams.forEach(exam => {
-        const item = document.createElement('div');
-        item.className = 'dropdown-item';
-        item.setAttribute('role', 'option');
-        item.innerHTML = `<span class="di-icon">${exam.icon}</span><span>${exam.name}</span>`;
-        item.onclick = () => selectExam(exam.name);
-        dropdown.appendChild(item);
-        dropdownItems.push(item);
-      });
-    }
-
-    function openDropdown() {
-      renderDropdown(searchInput.value.trim());
-      dropdown.classList.add('open');
-    }
-
-    function closeDropdown() {
-      dropdown.classList.remove('open');
-      focusedIndex = -1;
-    }
-
-    function onExamFocus() {
-      if (!selectedExam) openDropdown();
-    }
-
-    function onExamInput(input) {
-      const val = input.value;
-      // Toggle clear button
-      clearBtn.classList.toggle('visible', val.length > 0);
-      searchIcon.style.display = val.length > 0 ? 'none' : '';
-      input.classList.toggle('has-value', val.length > 0);
-
-      // If user edits after a chip was selected, deselect chip
-      if (selectedExam && val !== selectedExam) {
-        clearSelectedChip();
-        selectedExam = '';
-        selectedTag.classList.remove('visible');
-        submitBtn.disabled = true;
-      }
-
-      renderDropdown(val.trim());
-      dropdown.classList.add('open');
-    }
-
-    function onExamKeydown(e) {
-      if (!dropdown.classList.contains('open')) {
-        if (e.key === 'ArrowDown' || e.key === 'Enter') openDropdown();
-        return;
-      }
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        focusedIndex = Math.min(focusedIndex + 1, dropdownItems.length - 1);
-        updateFocus();
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        focusedIndex = Math.max(focusedIndex - 1, 0);
-        updateFocus();
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (focusedIndex >= 0 && dropdownItems[focusedIndex]) {
-          dropdownItems[focusedIndex].click();
-        } else if (searchInput.value.trim()) {
-          selectExam(searchInput.value.trim());
-        }
-      } else if (e.key === 'Escape') {
-        closeDropdown();
-      }
-    }
-
-    function updateFocus() {
-      dropdownItems.forEach((item, i) => {
-        item.classList.toggle('focused', i === focusedIndex);
-      });
-      if (focusedIndex >= 0 && dropdownItems[focusedIndex]) {
-        dropdownItems[focusedIndex].scrollIntoView({ block: 'nearest' });
-      }
-    }
-
-    function selectExam(name) {
-      selectedExam = name;
-      searchInput.value = name;
-      searchInput.classList.add('has-value');
-      clearBtn.classList.add('visible');
-      searchIcon.style.display = 'none';
-
-      selectedTagText.textContent = name;
-      selectedTag.classList.add('visible');
-      submitBtn.disabled = false;
-
-      closeDropdown();
-
-      // Sync chips
-      clearSelectedChip();
-      document.querySelectorAll('.exam-chip').forEach(chip => {
-        if (chip.dataset.exam === name || chip.textContent.trim().includes(name.replace(/ \(.*\)/, ''))) {
-          chip.classList.add('selected');
-        }
-      });
-    }
-
-    function clearSearch() {
-      searchInput.value = '';
-      searchInput.classList.remove('has-value');
-      clearBtn.classList.remove('visible');
-      searchIcon.style.display = '';
-      clearSelectedChip();
-      selectedExam = '';
-      selectedTag.classList.remove('visible');
-      submitBtn.disabled = true;
-      closeDropdown();
-      searchInput.focus();
-    }
-
-    function clearSelection() {
-      clearSearch();
-    }
-
-    function clearSelectedChip() {
-      document.querySelectorAll('.exam-chip.selected').forEach(c => c.classList.remove('selected'));
-    }
-
-    function selectChip(btn, examName) {
-      clearSelectedChip();
-      btn.classList.add('selected');
-      selectExam(examName);
-      // Smooth scroll into view if needed
-      document.getElementById('searchWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-
-    // Close dropdown on outside click
-    document.addEventListener('click', e => {
-      if (!document.getElementById('searchWrap').contains(e.target)) {
-        closeDropdown();
-      }
-    });
-
-    // Waitlist submit
-    function submitWaitlist() {
-      if (!selectedExam) return;
-      console.log('Waitlist submission:', selectedExam);
-
-      // Show success
-      document.getElementById('waitlistForm').style.display = 'none';
-      document.getElementById('successExamPill').textContent = selectedExam;
-      document.getElementById('waitlistSuccess').classList.add('visible');
-    }
-  </script>
-
-  <!-- ─── PRICING ─── -->
-  <section class="section pricing" id="pricing">
-    <div class="container">
-      <div class="p-header tc">
-        <div class="eyebrow"><span class="dot"></span> 요금제</div>
-        <h2 class="h2" style="margin-bottom:14px;">하루 163원, 합격의 시작</h2>
-        <p class="lead">커피 한 잔 값이 연봉을 바꿉니다.</p>
-        
+    <section class="section shell" id="features">
+      <div class="section-head">
+        <h2>문제를 많이 푸는 게 아니라, 다시 맞히는 구조로 설계했습니다.</h2>
+        <p>Duolingo식의 가벼운 진입감은 가져오되, 공인중개사 시험 준비에 맞게 더 차분하고 실전 중심으로 정리했습니다. 한 번의 세션이 다음 복습으로 자연스럽게 이어집니다.</p>
       </div>
-      <div class="p-grid">
 
-        <!-- Free -->
-        <div class="p-card fade-in">
-          <div class="p-tier">무료</div>
-          <div class="p-price">₩0</div>
-          <div class="p-savings" style="color:var(--text-light);">영구 무료</div>
-          <div class="p-divider"></div>
-          <div class="p-feats">
-            <div class="p-feat-item"><span class="ck">✓</span><span>최근 3개년 기출문제</span></div>
-            <div class="p-feat-item"><span class="ck">✓</span><span>최신 개정사항 반영 해설</span></div>
-            <div class="p-feat-item dim"><span class="cx">✕</span><span>무제한 비슷한 문제</span></div>
-            <div class="p-feat-item dim"><span class="cx">✕</span><span>전체 기출문제</span></div>
-            <div class="p-feat-item dim"><span class="cx">✕</span><span>광고 제거</span></div>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon">⟳</div>
+          <h3>기출을 루프로 돌리는 복습 구조</h3>
+          <p>합격루프는 문제를 푼 뒤 끝내지 않습니다. 다시 볼 타이밍을 잡고, 오늘 풀 문제와 복습할 문제를 분리해 학습 흐름을 만듭니다.</p>
+          <div class="mini-board">
+            <div class="mini-row">
+              <b>오늘 풀기</b>
+              <span>신규 12문제</span>
+            </div>
+            <div class="mini-row">
+              <b>다시 보기</b>
+              <span>오답 8문제</span>
+            </div>
+            <div class="mini-row">
+              <b>개념 확인</b>
+              <span>헷갈린 포인트 3개</span>
+            </div>
           </div>
-          <a href="#" class="btn btn-outline p-cta">무료로 시작하기</a>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon">✦</div>
+          <h3>오답에서 비슷한 문제까지 한 번에</h3>
+          <p>틀린 문제를 그냥 표시만 하지 않고, 같은 개념에서 흔들리는 문제를 이어서 보여줘서 '아는 줄 알았는데 헷갈리는 지점'을 빨리 잡게 합니다.</p>
+          <div class="chip-list">
+            <span>비슷한 문제</span>
+            <span>개념 노트</span>
+            <span>오답 복습</span>
+            <span>약점 확인</span>
+          </div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon">▦</div>
+          <h3>시험 공부에 맞는 통계와 루틴 관리</h3>
+          <p>연속 학습, 정답률, 최근 흐름이 한 화면에서 보이도록 설계했습니다. 숫자가 예쁘게만 보이는 게 아니라, 내일 무엇을 해야 하는지 바로 보이게 정리합니다.</p>
+          <div class="mini-board">
+            <div class="mini-row">
+              <b>최근 정답률</b>
+              <span>78%</span>
+            </div>
+            <div class="mini-row">
+              <b>연속 학습</b>
+              <span>18일</span>
+            </div>
+            <div class="mini-row">
+              <b>다음 복습</b>
+              <span>민법 2일 후</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section shell">
+      <div class="section-head">
+        <h2>지금 필요한 만큼만 시작하고, 필요하면 합격패스로 넓히세요.</h2>
+        <p>무료는 최신 1개년으로 가볍게 시작하고, 합격패스는 전체 문제와 광고 제거로 공부 흐름을 확장합니다. 가격은 현재 앱 상품 기준에 맞춰 정리했습니다.</p>
+      </div>
+
+      <div class="pricing-wrap" id="pricing">
+        <div class="pricing-grid">
+          <article class="pricing-card">
+            <div class="plan-top">
+              <div>
+                <h3>무료</h3>
+              </div>
+              <span class="tag">가볍게 시작</span>
+            </div>
+            <div class="price">
+              <strong>₩0</strong>
+              <span>/ 계속</span>
+            </div>
+            <p class="plan-note">최근 기출 감각을 먼저 확인하고 싶은 수험생에게 맞는 진입 플랜입니다.</p>
+            <ul class="plan-list">
+              <li>최신 1개년 문제 이용</li>
+              <li>기본 학습 흐름 체험</li>
+              <li>광고 포함</li>
+              <li>전체 연도와 넓은 복습 범위는 제한</li>
+            </ul>
+            <div class="plan-foot">무료로 시작한 뒤 필요할 때 합격패스로 확장할 수 있습니다.</div>
+          </article>
+
+          <article class="pricing-card">
+            <div class="plan-top">
+              <div>
+                <h3>월간</h3>
+              </div>
+              <span class="tag">유연한 선택</span>
+            </div>
+            <div class="price">
+              <strong>₩6,900</strong>
+              <span>/ 월</span>
+            </div>
+            <p class="plan-note">단기 집중 구간이나 시험 직전 루틴을 빠르게 정리하고 싶을 때 적합합니다.</p>
+            <ul class="plan-list">
+              <li>광고 제거</li>
+              <li>전체 문제 이용</li>
+              <li>연도와 과목 제한 없이 학습</li>
+              <li>스토어를 통한 구독 복원 지원</li>
+            </ul>
+            <div class="plan-foot">앱 내 인앱결제로 구매하며, 구독 관리는 각 스토어에서 할 수 있습니다.</div>
+          </article>
+
+          <article class="pricing-card highlight">
+            <div class="plan-top">
+              <div>
+                <h3>연간</h3>
+              </div>
+              <span class="tag">추천 · 2개월 무료</span>
+            </div>
+            <div class="price">
+              <strong>₩69,000</strong>
+              <span>/ 연</span>
+            </div>
+            <p class="plan-note">시험이 연간 사이클로 굴러가는 수험생에게 가장 자연스러운 플랜입니다. 월 환산 약 ₩5,750입니다.</p>
+            <ul class="plan-list">
+              <li>월간 기능 전체 포함</li>
+              <li>1년 공부 루틴에 맞는 비용 구조</li>
+              <li>월간 12개월 대비 ₩13,800 절약</li>
+              <li>실질적으로 2개월 무료 수준의 가격</li>
+            </ul>
+            <div class="plan-foot">현재 합격루프에서 가장 추천하는 기본 플랜입니다.</div>
+          </article>
         </div>
 
-        <!-- Monthly - Featured -->
-        <div class="p-card p-feat fade-in">
-          <div class="p-badge">가장 인기</div>
-          <div class="p-tier">월간 합격패스</div>
-          <div class="p-price"><sup>₩</sup>4,900<span class="per"> / 월</span></div>
-          <div class="p-savings">언제든 해지 가능</div>
-          <div class="p-divider"></div>
-          <div class="p-feats">
-            <div class="p-feat-item"><span class="ck">✓</span><span>전체 기출문제</span></div>
-            <div class="p-feat-item"><span class="ck">✓</span><span>최신 개정사항 반영 해설</span></div>
-            <div class="p-feat-item"><span class="ck">✓</span><span>무제한 비슷한 문제 검색</span></div>
-            <div class="p-feat-item"><span class="ck">✓</span><span>광고 완전 제거</span></div>
-          </div>
-          <a href="#" class="btn btn-primary p-cta">월간 시작하기</a>
-        </div>
-
-        <!-- Annual -->
-        <div class="p-card fade-in">
-          <div class="p-tier">연간 합격패스</div>
-          <div class="p-price"><sup>₩</sup>39,000<span class="per"> / 년</span></div>
-          <div class="p-savings">월 ₩3,250 — 4개월 무료</div>
-          <div class="p-divider"></div>
-          <div class="p-feats">
-            <div class="p-feat-item"><span class="ck">✓</span><span>전체 기출문제</span></div>
-            <div class="p-feat-item"><span class="ck">✓</span><span>최신 개정사항 반영 해설</span></div>
-            <div class="p-feat-item"><span class="ck">✓</span><span>무제한 비슷한 문제 검색</span></div>
-            <div class="p-feat-item"><span class="ck">✓</span><span>광고 완전 제거</span></div>
-          </div>
-          <a href="#" class="btn btn-outline p-cta" style="border-color:var(--primary);color:var(--primary);">연간 시작하기</a>
-        </div>
-
+        <aside class="compare-panel">
+          <h3>합격패스에서 열리는 것</h3>
+          <p>지금 앱 기준으로 핵심 가치는 단순한 "프리미엄 배지"가 아니라, 문제 범위와 학습 흐름의 확장입니다.</p>
+          <ul class="compare-list">
+            <li>
+              <strong>전체 문제 범위</strong>
+              <span>최신 1개년 → 전체 문제</span>
+            </li>
+            <li>
+              <strong>광고 없이 공부</strong>
+              <span>집중 흐름 유지</span>
+            </li>
+            <li>
+              <strong>과목/연도 제약 완화</strong>
+              <span>원하는 범위로 학습</span>
+            </li>
+            <li>
+              <strong>복습 범위 확장</strong>
+              <span>더 넓은 반복 루프</span>
+            </li>
+          </ul>
+        </aside>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ─── DOWNLOAD CTA ─── -->
-  <section class="dl-cta" id="download">
-    <div class="dl-cta-inner">
-      <h2>자격증 하나가 연봉을 바꿉니다.<br><em>지금 시작하세요.</em></h2>
-      <p>미루는 하루가 합격을 멀어지게 합니다. 무료로 시작하세요.</p>
-      <div class="dl-btns">
-        <a href="#" class="dl-store">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-          <div class="ds-l">
-            <small>Download on the</small>
-            <strong>App Store</strong>
-          </div>
-        </a>
-        <a href="#" class="dl-store">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76c.3.17.64.22.99.14l12.48-7.21-2.82-2.82-10.65 9.89zM.44 1.06C.17 1.4 0 1.89 0 2.53v18.94c0 .64.17 1.13.44 1.47l.08.07 10.61-10.61v-.25L.52.99.44 1.06zM20.14 10.6l-2.85-1.65-3.16 3.16 3.16 3.16 2.88-1.67c.82-.48.82-1.25-.03-1.99zM3.18.24L15.66 7.47l-2.82 2.82L2.19.4a1.07 1.07 0 011-.16z"/></svg>
-          <div class="ds-l">
-            <small>다운로드</small>
-            <strong>Google Play</strong>
-          </div>
-        </a>
+    <section class="section shell">
+      <div class="section-head">
+        <h2>랜딩도 앱처럼, 빠르게 이해되고 바로 행동하게.</h2>
+        <p>정적인 소개 페이지가 아니라 "무엇을 하는 앱인지", "왜 다른지", "얼마인지"가 위에서 아래까지 이어지는 구조로 바꿨습니다.</p>
       </div>
-      <div class="dl-note">무료 플랜으로 시작 · 신용카드 불필요 · 언제든 업그레이드</div>
-    </div>
-  </section>
 
-  <!-- ─── FOOTER ─── -->
-  <footer class="footer">
-    <div class="container">
-      <div class="foot-inner">
+      <div class="proof-strip">
+        <article class="proof-card">
+          <strong>10개년</strong>
+          <span>합격패스로 더 넓은 문제 범위를 열어 반복 학습에 사용할 수 있습니다.</span>
+        </article>
+        <article class="proof-card">
+          <strong>1개년 무료</strong>
+          <span>최신 기출 감각을 확인해 본 뒤, 필요할 때만 유료 플랜으로 확장하면 됩니다.</span>
+        </article>
+        <article class="proof-card">
+          <strong>₩6,900</strong>
+          <span>월간 플랜은 짧은 집중 구간을 위한 가장 직관적인 선택지입니다.</span>
+        </article>
+        <article class="proof-card">
+          <strong>₩69,000</strong>
+          <span>연간 플랜은 시험 준비 주기와 가장 잘 맞는 기본 요금제입니다.</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="section shell" id="faq">
+      <div class="section-head">
+        <h2>자주 묻는 질문</h2>
+        <p>광고, 가격, 구독 관리처럼 랜딩에서 바로 해소돼야 하는 질문을 먼저 넣었습니다.</p>
+      </div>
+
+      <div class="faq-grid">
+        <article class="faq-card">
+          <div class="faq-item">
+            <h4>무료로 어디까지 쓸 수 있나요?</h4>
+            <p>현재 기준으로 무료 플랜은 최신 1개년 문제를 중심으로 학습할 수 있습니다. 전체 범위와 광고 제거는 합격패스에서 제공합니다.</p>
+          </div>
+          <div class="faq-item">
+            <h4>합격패스는 무엇이 달라지나요?</h4>
+            <p>광고가 제거되고, 전체 문제 범위가 열리며, 연도와 과목을 더 자유롭게 선택할 수 있습니다. 공부 흐름을 끊지 않는 쪽에 초점을 둔 플랜입니다.</p>
+          </div>
+        </article>
+
+        <article class="faq-card">
+          <div class="faq-item">
+            <h4>구독은 어디서 결제하나요?</h4>
+            <p>Apple App Store 또는 Google Play Store의 인앱결제로 구매합니다. 결제 후 복원도 스토어 기반으로 지원합니다.</p>
+          </div>
+          <div class="faq-item">
+            <h4>월간과 연간 중 어떤 걸 추천하나요?</h4>
+            <p>시험을 1년 사이클로 준비한다면 연간 플랜이 자연스럽고, 단기 집중이나 기능 확인이 목적이라면 월간 플랜이 더 유연합니다.</p>
+          </div>
+        </article>
+      </div>
+
+      <div class="cta-panel">
         <div>
-          <div class="foot-logo">
-            <div class="logo-mark" style="width:28px;height:28px;border-radius:8px;"></div>
-            합격루프
-          </div>
-          <p class="foot-desc">AI가 추천하는 맞춤형 기출문제 학습으로 자격증 합격까지 최단 루프. 공인중개사를 시작으로 다양한 시험을 지원합니다.</p>
+          <h3>합격을 위한 루틴을 더 선명하게.</h3>
+          <p>지금 페이지는 브랜드 소개, 기능 설명, 가격 안내가 한 번에 정리되도록 다시 설계했습니다. 문의나 제휴가 필요하면 아래 메일로 바로 연결하면 됩니다.</p>
         </div>
-        <div class="foot-links">
-          <a href="privacy.html">개인정보처리방침</a>
-          <a href="terms.html">이용약관</a>
-          <a href="mailto:support@hapgyeokloop.app">고객지원</a>
+        <div class="hero-actions">
+          <a class="button button-secondary" href="mailto:support@hapgyeokloop.com">문의하기</a>
+          <a class="button button-secondary" href="privacy.html">개인정보 처리방침</a>
         </div>
       </div>
-      <div class="foot-bottom">
-        <p>© 2025 합격루프. All rights reserved.</p>
-        <p>사업자등록번호: 000-00-00000 · 통신판매업신고: 제2025-서울-00000호</p>
+    </section>
+  </main>
+
+  <footer class="shell">
+    <div class="footer-inner">
+      <span>© 2026 Hapgyeokloop. 반복이 합격이다.</span>
+      <div class="footer-links">
+        <a href="privacy.html">개인정보 처리방침</a>
+        <a href="terms.html">이용약관</a>
+        <a href="mailto:support@hapgyeokloop.com">support@hapgyeokloop.com</a>
       </div>
     </div>
   </footer>
-
-  <script>
-    // Header scroll
-    const hdr = document.getElementById('hdr');
-    window.addEventListener('scroll', () => {
-      hdr.classList.toggle('scrolled', window.scrollY > 40);
-    }, { passive: true });
-
-    // Mobile nav
-    function toggleNav() {
-      const nav = document.getElementById('mobNav');
-      nav.style.display = nav.style.display === 'block' ? 'none' : 'block';
-    }
-
-    // Smooth anchor scroll
-    document.querySelectorAll('a[href^="#"]').forEach(a => {
-      a.addEventListener('click', e => {
-        const t = document.querySelector(a.getAttribute('href'));
-        if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-      });
-    });
-
-    // Scroll reveal
-    const reveal = new IntersectionObserver(entries => {
-      entries.forEach(en => { if (en.isIntersecting) en.target.classList.add('in'); });
-    }, { threshold: 0.12, rootMargin: '0px 0px -36px 0px' });
-    document.querySelectorAll('.fade-in').forEach(el => reveal.observe(el));
-
-    // Waitlist functions are defined inline near the waitlist section
-  </script>
 </body>
 </html>
