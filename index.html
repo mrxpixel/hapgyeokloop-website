@@ -228,7 +228,8 @@
       "availableLanguage": "Korean"
     },
     "sameAs": [
-      "https://apps.apple.com/kr/app/id6762024496"
+      "https://apps.apple.com/kr/app/id6762024496",
+      "https://www.instagram.com/hapgyeokloop_official"
     ]
   }
   </script>
@@ -344,10 +345,11 @@
       margin-bottom: 14px;
     }
 
-    .popup h2 {
+    .popup h2, .popup-title {
       font-size: 22px;
       letter-spacing: -0.03em;
       margin-bottom: 12px;
+      font-weight: 700;
     }
 
     .popup p {
@@ -811,6 +813,11 @@
       border-radius: inherit;
       background: linear-gradient(90deg, #1f8f38, #8ce44f);
     }
+    .bar-82 { width: 82%; }
+    .bar-58 { width: 58%; }
+    .bar-35 { width: 35%; }
+
+    .cta-actions { display: grid; gap: 12px; }
 
     .chip-list {
       display: flex;
@@ -1456,7 +1463,7 @@
   <div class="popup-overlay" id="popup" role="dialog" aria-modal="true" aria-label="앱 다운로드 안내">
     <div class="popup">
       <div class="popup-icon" aria-hidden="true">&#127881;</div>
-      <h2 style="font-size:22px;font-weight:700;margin:0 0 12px">합격루프가 출시되었습니다</h2>
+      <h2 class="popup-title">합격루프가 출시되었습니다</h2>
       <p>현재 <strong>iOS App Store</strong>에서 바로 다운로드할 수 있습니다.<br><strong>Google Play Store</strong>는 준비 중이며,<br>Android에서 미리 사용해보고 싶으신 분은<br>아래 오픈채팅으로 문의해 주세요.</p>
       <p>오픈 기념으로 개선 기간 동안<br><strong>10개년 전체 문제를 무료로 개방</strong>합니다.</p>
       <div class="popup-actions">
@@ -1465,7 +1472,7 @@
           <div class="popup-btn popup-btn-store disabled" role="button" aria-disabled="true" aria-label="Google Play - Coming soon"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.49L14.07 12 3.18.51C2.56 1.05 2.15 1.94 2.15 3.04v17.92c0 1.1.41 1.99 1.03 2.53zm1.63.75l12.2-6.88-2.72-2.73L4.81 24.24zm12.2-15.37L4.81-.24l8.48 9.61 2.72-2.73zm1.84 1.04l-3.34 1.88L18.24 14.54l3.52-1.99c1.17-.66 1.17-1.74 0-2.4l-.91-.51z"/></svg><div class="store-text"><span>Coming soon</span>Google Play</div></div>
         </div>
         <a class="popup-btn popup-btn-kakao" href="https://open.kakao.com/o/gevc2wqi" target="_blank" rel="noopener">Android 테스터 신청 (카카오톡)</a>
-        <button class="popup-btn popup-btn-close" onclick="document.getElementById('popup').classList.add('hidden')" aria-label="팝업 닫기">닫기</button>
+        <button class="popup-btn popup-btn-close" id="popup-close" aria-label="팝업 닫기">닫기</button>
       </div>
     </div>
   </div>
@@ -1485,7 +1492,7 @@
         <a href="#pricing">가격</a>
         <a href="#faq">자주 묻는 질문</a>
       </nav>
-      <button class="mobile-menu-btn" aria-label="메뉴 열기" aria-expanded="false" onclick="this.parentElement.classList.toggle('menu-open'); this.setAttribute('aria-expanded', this.getAttribute('aria-expanded')==='false'?'true':'false')">
+      <button class="mobile-menu-btn" id="mobile-menu" aria-label="메뉴 열기" aria-expanded="false">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <a class="nav-cta" href="#pricing">합격패스 보기</a>
@@ -1544,9 +1551,9 @@
                 <small>기억 루프 진행도</small>
                 <div class="screen-title">민법은 다음 복습까지 2일</div>
                 <div class="bar-stack">
-                  <div class="bar"><i style="width: 82%"></i></div>
-                  <div class="bar"><i style="width: 58%"></i></div>
-                  <div class="bar"><i style="width: 35%"></i></div>
+                  <div class="bar"><i class="bar-82"></i></div>
+                  <div class="bar"><i class="bar-58"></i></div>
+                  <div class="bar"><i class="bar-35"></i></div>
                 </div>
                 <div class="chip-list">
                   <span>민법</span>
@@ -1930,7 +1937,7 @@
           <h2 class="cta-heading">합격을 위한 루틴을 더 선명하게.</h2>
           <p>궁금한 점이나 제휴 제안이 있다면 편하게 연락해 주세요.</p>
         </div>
-        <div style="display: grid; gap: 12px;">
+        <div class="cta-actions">
           <div class="store-row">
             <a class="popup-btn popup-btn-store" href="https://apps.apple.com/kr/app/%ED%95%A9%EA%B2%A9%EB%A3%A8%ED%94%84-%EA%B3%B5%EC%9D%B8%EC%A4%91%EA%B0%9C%EC%82%AC-%EC%8B%9C%ED%97%98-%EC%A4%80%EB%B9%84/id6762024496" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg><div class="store-text"><span>Download on the</span>App Store</div></a>
             <div class="popup-btn popup-btn-store disabled" role="button" aria-disabled="true" aria-label="Google Play - Coming soon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.49L14.07 12 3.18.51C2.56 1.05 2.15 1.94 2.15 3.04v17.92c0 1.1.41 1.99 1.03 2.53zm1.63.75l12.2-6.88-2.72-2.73L4.81 24.24zm12.2-15.37L4.81-.24l8.48 9.61 2.72-2.73zm1.84 1.04l-3.34 1.88L18.24 14.54l3.52-1.99c1.17-.66 1.17-1.74 0-2.4l-.91-.51z"/></svg><div class="store-text"><span>Coming soon</span>Google Play</div></div>
@@ -1944,6 +1951,9 @@
     </section>
   </main>
 
+  <script>
+document.addEventListener('DOMContentLoaded',function(){var c=document.getElementById('popup-close');if(c)c.addEventListener('click',function(){document.getElementById('popup').classList.add('hidden');});var m=document.getElementById('mobile-menu');if(m)m.addEventListener('click',function(){this.parentElement.classList.toggle('menu-open');this.setAttribute('aria-expanded',this.getAttribute('aria-expanded')==='false'?'true':'false');});});
+</script>
   <footer class="shell">
     <div class="footer-inner">
       <span>© 2026 Hapgyeokloop. 반복이 합격이다.</span>
