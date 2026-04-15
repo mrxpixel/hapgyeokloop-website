@@ -15,6 +15,7 @@
   <meta name="naver-site-verification" content="3010c3c2ccc5ec080f2889a24727ca3dba61c075">
   <meta name="google-site-verification" content="HoOIj2jW9xg-N1YRRimuPt8PWOBoyWAEvMmaOunOiNo">
   <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#f4f7e8">
 
   <!-- Open Graph (카카오톡, 페이스북 공유) -->
   <meta property="og:type" content="website">
@@ -26,6 +27,7 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="합격루프 — 공인중개사 기출문제 반복학습 앱 화면">
+  <meta property="og:image:type" content="image/jpeg">
   <meta property="og:locale" content="ko_KR">
 
   <!-- Twitter Card -->
@@ -85,9 +87,9 @@
     ],
     "screenshot": "https://hapgyeokloop.com/screenshot-home.jpg",
     "inLanguage": "ko",
-    "author": {
+    "publisher": {
       "@type": "Organization",
-      "name": "Hapgyeokloop",
+      "name": "합격루프",
       "url": "https://hapgyeokloop.com/"
     }
   }
@@ -186,7 +188,12 @@
     "@type": "Organization",
     "name": "합격루프",
     "url": "https://hapgyeokloop.com/",
-    "logo": "https://hapgyeokloop.com/assets/favicon/icon-512.png",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://hapgyeokloop.com/assets/favicon/icon-512.png",
+      "width": 512,
+      "height": 512
+    },
     "contactPoint": {
       "@type": "ContactPoint",
       "email": "support@hapgyeokloop.com",
@@ -700,7 +707,7 @@
       letter-spacing: 0.02em;
     }
 
-    .loop-card h3 {
+    .loop-card h3, .loop-card .loop-title {
       font-size: 22px;
       line-height: 1.2;
       letter-spacing: -0.04em;
@@ -737,7 +744,7 @@
       border: 1px solid rgba(19, 33, 18, 0.07);
     }
 
-    .screen-block h4 {
+    .screen-block h4, .screen-block .screen-title {
       font-size: 16px;
       letter-spacing: -0.03em;
       margin-bottom: 10px;
@@ -1153,7 +1160,7 @@
       border-top: 1px solid var(--line);
     }
 
-    .faq-item h4 {
+    .faq-item h3 {
       font-size: 18px;
       letter-spacing: -0.03em;
       margin-bottom: 8px;
@@ -1399,7 +1406,7 @@
 
             <div class="loop-card">
               <small>복습이 끊기지 않게</small>
-              <h3>오늘 다시 볼 문제 14개<br>헷갈린 개념 3개</h3>
+              <div class="loop-title">오늘 다시 볼 문제 14개<br>헷갈린 개념 3개</div>
               <div class="loop-progress">
                 <span>기출</span>
                 <span>오답</span>
@@ -1410,7 +1417,7 @@
             <div class="screen-grid">
               <div class="screen-block">
                 <small>기억 루프 진행도</small>
-                <h4>민법은 다음 복습까지 2일</h4>
+                <div class="screen-title">민법은 다음 복습까지 2일</div>
                 <div class="bar-stack">
                   <div class="bar"><i style="width: 82%"></i></div>
                   <div class="bar"><i style="width: 58%"></i></div>
@@ -1425,7 +1432,7 @@
 
               <div class="screen-block">
                 <small>오늘의 포인트</small>
-                <h4>오답 4개</h4>
+                <div class="screen-title">오답 4개</div>
                 <div class="mini-board">
                   <div class="mini-row">
                     <b>계약 해제</b>
@@ -1469,8 +1476,8 @@
       <div class="feature-grid">
         <article class="feature-card">
           <div class="feature-icon">⟳</div>
-          <h3>기출을 루프로 돌리는 복습 구조</h3>
-          <p>합격루프는 문제를 푼 뒤 끝내지 않습니다. 다시 볼 타이밍을 잡고, 오늘 풀 문제와 복습할 문제를 분리해 학습 흐름을 만듭니다.</p>
+          <h3>기출을 루프로 돌리는 반복학습 구조</h3>
+          <p>합격루프는 문제를 푼 뒤 끝내지 않습니다. 다시 볼 타이밍을 잡고, 오늘 풀 문제와 오답복습 문제를 분리해 학습 흐름을 만듭니다.</p>
           <div class="mini-board">
             <div class="mini-row">
               <b>오늘 풀기</b>
@@ -1489,8 +1496,8 @@
 
         <article class="feature-card">
           <div class="feature-icon">✦</div>
-          <h3>오답에서 비슷한 문제까지 한 번에</h3>
-          <p>틀린 문제를 그냥 표시만 하지 않고, 같은 개념에서 흔들리는 문제를 이어서 보여줘서 '아는 줄 알았는데 헷갈리는 지점'을 빨리 잡게 합니다.</p>
+          <h3>오답복습에서 비슷한 문제까지 한 번에</h3>
+          <p>틀린 문제를 그냥 표시만 하지 않고, 같은 개념에서 흔들리는 문제를 이어서 보여줘서 반복학습으로 '아는 줄 알았는데 헷갈리는 지점'을 빨리 잡게 합니다.</p>
           <div class="chip-list">
             <span>비슷한 문제</span>
             <span>개념 노트</span>
@@ -1701,7 +1708,7 @@
 
     <section class="section shell">
       <div class="section-head">
-        <h2>한눈에 보는 합격루프</h2>
+        <h2>공인중개사 기출 앱 합격루프, 한눈에 보기</h2>
       </div>
 
       <div class="proof-strip">
@@ -1733,44 +1740,44 @@
       <div class="faq-grid">
         <article class="faq-card">
           <div class="faq-item">
-            <h4>공인중개사 시험은 몇 과목이고 어떻게 구성되나요?</h4>
+            <h3>공인중개사 시험은 몇 과목이고 어떻게 구성되나요?</h3>
             <p>1차 시험은 부동산학개론과 민법 및 민사특별법 2과목이고, 2차 시험은 공인중개사법·부동산공법·부동산공시법·부동산세법 4과목입니다. 과목당 40문항 100점 만점이며, 과목별 40점 이상·전체 평균 60점 이상이 합격 기준입니다.</p>
           </div>
           <div class="faq-item">
-            <h4>공인중개사 기출문제 몇 개년을 공부해야 하나요?</h4>
+            <h3>공인중개사 기출문제 몇 개년을 공부해야 하나요?</h3>
             <p>통상 최근 5~7개년을 중심으로 반복 학습하는 것이 효율적입니다. 합격루프 합격패스는 10개년 기출문제 전체를 제공하며, 무료 플랜에서 최신 1개년을 먼저 체험할 수 있습니다.</p>
           </div>
         </article>
 
         <article class="faq-card">
           <div class="faq-item">
-            <h4>무료로 어디까지 쓸 수 있나요?</h4>
+            <h3>무료로 어디까지 쓸 수 있나요?</h3>
             <p>무료 플랜에서는 최신 1개년 기출문제를 이용할 수 있습니다. 전체 10개년 문제 범위와 광고 제거는 월 6,900원 또는 연 69,000원 합격패스로 이용 가능합니다.</p>
           </div>
           <div class="faq-item">
-            <h4>공인중개사 민법 기출 공부는 어떻게 하나요?</h4>
+            <h3>공인중개사 민법 기출 공부는 어떻게 하나요?</h3>
             <p>민법은 물권·채권·계약 파트에서 오답이 집중됩니다. 합격루프에서 민법 과목을 선택해 기출을 풀면, 틀린 문제가 기억 루프로 자동 복습되고 같은 조문의 유사 문제까지 이어서 연습할 수 있습니다.</p>
           </div>
         </article>
 
         <article class="faq-card">
           <div class="faq-item">
-            <h4>공인중개사 합격률은 어느 정도인가요?</h4>
+            <h3>공인중개사 합격률은 어느 정도인가요?</h3>
             <p>1·2차 동시 합격률은 연도에 따라 다르지만 통상 20~30% 내외입니다 (한국산업인력공단 시험 결과 기준). 절대평가이므로 과목별 40점 이상·전체 60점 이상의 기준점을 넘는 것이 목표입니다.</p>
           </div>
           <div class="faq-item">
-            <h4>합격패스는 무엇이 달라지나요?</h4>
+            <h3>합격패스는 무엇이 달라지나요?</h3>
             <p>광고가 제거되고 전체 10개년 문제 범위가 열리며, 연도와 과목을 제한 없이 선택할 수 있습니다. 월 6,900원 또는 연 69,000원이며, 연간 플랜은 월 환산 약 5,750원입니다.</p>
           </div>
         </article>
 
         <article class="faq-card">
           <div class="faq-item">
-            <h4>부동산세법은 어렵나요? 기출로 준비할 수 있나요?</h4>
+            <h3>부동산세법은 어렵나요? 기출로 준비할 수 있나요?</h3>
             <p>취득세·재산세·종합부동산세·양도소득세 계산 문제 비중이 높아 처음에는 어렵게 느껴지지만, 반복 출제 패턴이 일정하므로 기출 반복으로 계산 절차와 조건을 익히면 충분히 점수를 올릴 수 있습니다.</p>
           </div>
           <div class="faq-item">
-            <h4>구독은 어디서 결제하고, 취소는 어떻게 하나요?</h4>
+            <h3>구독은 어디서 결제하고, 취소는 어떻게 하나요?</h3>
             <p>Apple App Store 또는 Google Play Store의 인앱결제로 구매합니다. 구독 취소와 복원도 각 스토어의 구독 관리 화면에서 처리할 수 있습니다.</p>
           </div>
         </article>
