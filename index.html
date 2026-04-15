@@ -34,6 +34,12 @@
   <meta name="twitter:description" content="틀린 문제를 다시 만나고, 헷갈린 개념을 반복해서 잡아주는 공인중개사 기출 학습 앱. 최신 1개년 무료.">
   <meta name="twitter:image" content="https://hapgyeokloop.com/screenshot-home.jpg">
 
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/icon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/icon-180.png">
+
   <!-- 앱 링크 -->
   <meta property="al:ios:app_store_id" content="6762024496">
   <meta property="al:ios:app_name" content="합격루프 - 공인중개사 시험 준비">
@@ -447,11 +453,13 @@
       display: grid;
       place-items: center;
       border-radius: 14px;
-      background: linear-gradient(135deg, #1f8f38, #8ce44f 62%, #ffe66a);
-      color: #fff;
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 700;
-      box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.12);
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.14), 0 1px 2px rgba(0,0,0,0.08), inset 0 -3px 0 rgba(0,0,0,0.06);
+    }
+    .brand-mark img {
+      width: 28px;
+      height: 28px;
+      display: block;
     }
 
     .brand-copy strong {
@@ -1323,7 +1331,7 @@
   <header class="topbar shell">
     <div class="topbar-inner">
       <a class="brand" href="#top">
-        <div class="brand-mark">HL</div>
+        <div class="brand-mark"><img src="/assets/favicon/icon-loop-only.png" alt="합격루프" width="26" height="26"></div>
         <div class="brand-copy">
           <strong>합격루프</strong>
           <span>기출을 합격 루틴으로</span>
