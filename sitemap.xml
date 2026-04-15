@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://hapgyeokloop.com/</loc>
     <lastmod>2026-04-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://hapgyeokloop.com/screenshot-home.jpg</image:loc>
+      <image:caption>합격루프 앱 메인 화면 — 기출문제 학습, 오답 복습, 기억 루프</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://hapgyeokloop.com/screenshot-stats.jpg</image:loc>
+      <image:caption>합격루프 앱 통계 화면 — 연속 학습일, 정답률, 과목별 진행도</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://hapgyeokloop.com/privacy.html</loc>

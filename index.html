@@ -90,12 +90,22 @@
         "url": "https://apps.apple.com/kr/app/id6762024496"
       }
     ],
-    "screenshot": {
-      "@type": "ImageObject",
-      "url": "https://hapgyeokloop.com/screenshot-home.jpg",
-      "width": 1200,
-      "height": 630
-    },
+    "screenshot": [
+      {
+        "@type": "ImageObject",
+        "url": "https://hapgyeokloop.com/screenshot-home.jpg",
+        "width": 588,
+        "height": 1280,
+        "caption": "합격루프 앱 메인 화면"
+      },
+      {
+        "@type": "ImageObject",
+        "url": "https://hapgyeokloop.com/screenshot-stats.jpg",
+        "width": 588,
+        "height": 1280,
+        "caption": "학습 통계 및 루틴 관리 화면"
+      }
+    ],
     "inLanguage": "ko",
     "publisher": {
       "@id": "https://hapgyeokloop.com/#organization"
@@ -1177,6 +1187,33 @@
       line-height: 1.55;
     }
 
+    .app-screenshots {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-top: 28px;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .app-screenshot {
+      text-align: center;
+    }
+
+    .app-screenshot img {
+      width: 100%;
+      height: auto;
+      border-radius: 24px;
+      box-shadow: 0 16px 40px rgba(19, 33, 18, 0.12);
+    }
+
+    .app-screenshot figcaption {
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
     .faq-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1815,6 +1852,23 @@
           <strong>₩69,000</strong>
           <span>연간 플랜은 시험 준비 주기와 가장 잘 맞는 기본 요금제입니다.</span>
         </article>
+      </div>
+
+      <div class="app-screenshots">
+        <figure class="app-screenshot">
+          <picture>
+            <source srcset="/screenshot-home.webp" type="image/webp">
+            <img src="/screenshot-home.jpg" alt="합격루프 앱 메인 화면 — 오늘의 루프, 과목별 학습 진행도, 오답 복습 현황" width="588" height="1280" loading="lazy">
+          </picture>
+          <figcaption>기출문제 학습 메인 화면</figcaption>
+        </figure>
+        <figure class="app-screenshot">
+          <picture>
+            <source srcset="/screenshot-stats.webp" type="image/webp">
+            <img src="/screenshot-stats.jpg" alt="합격루프 앱 통계 화면 — 연속 학습일, 정답률, 과목별 진행도 그래프" width="588" height="1280" loading="lazy">
+          </picture>
+          <figcaption>학습 통계 및 루틴 관리 화면</figcaption>
+        </figure>
       </div>
     </section>
 
