@@ -81,6 +81,87 @@
       margin: 0 auto;
     }
 
+    .popup-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(19, 33, 18, 0.5);
+      backdrop-filter: blur(6px);
+      padding: 20px;
+    }
+
+    .popup-overlay.hidden {
+      display: none;
+    }
+
+    .popup {
+      width: min(420px, 100%);
+      padding: 32px 28px;
+      border-radius: var(--radius-xl);
+      background: #fff;
+      box-shadow: 0 32px 80px rgba(19, 33, 18, 0.24);
+      text-align: center;
+    }
+
+    .popup-icon {
+      font-size: 40px;
+      margin-bottom: 14px;
+    }
+
+    .popup h2 {
+      font-size: 22px;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+    }
+
+    .popup p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    .popup p + p {
+      margin-top: 10px;
+    }
+
+    .popup-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .popup-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border-radius: 16px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.15s ease;
+    }
+
+    .popup-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .popup-btn-kakao {
+      background: #FEE500;
+      color: #3C1E1E;
+    }
+
+    .popup-btn-close {
+      background: rgba(19, 33, 18, 0.06);
+      color: var(--ink);
+    }
+
     .notice-banner {
       padding: 18px 20px;
       border-radius: var(--radius-lg);
@@ -1002,6 +1083,19 @@
   </style>
 </head>
 <body>
+  <div class="popup-overlay" id="popup">
+    <div class="popup">
+      <div class="popup-icon">&#127881;</div>
+      <h2>Google Play Store 출시 안내</h2>
+      <p>현재 <strong>iOS App Store</strong>에서 다운로드할 수 있습니다.<br>Google Play Store는 약 <strong>2주 후 출시 예정</strong>입니다.</p>
+      <p>Android에서 미리 사용해보고 싶으신 분은<br>아래 오픈채팅으로 문의해 주세요.</p>
+      <div class="popup-actions">
+        <a class="popup-btn popup-btn-kakao" href="https://open.kakao.com/o/gevc2wqi" target="_blank" rel="noopener">카카오톡 오픈채팅 참여하기</a>
+        <button class="popup-btn popup-btn-close" onclick="document.getElementById('popup').classList.add('hidden')">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <header class="topbar shell">
     <div class="topbar-inner">
       <a class="brand" href="#top">
@@ -1025,7 +1119,7 @@
   <div class="notice-banner">
     <strong>현재 개선 기간 — 모든 기능을 무료로 이용하실 수 있습니다</strong>
     <p>iOS App Store에서 바로 다운로드할 수 있습니다. Google Play Store는 약 2주 후 출시 예정입니다.</p>
-    <p>Android 사용자분들은 <a href="mailto:support@hapgyeokloop.com">support@hapgyeokloop.com</a>으로 문의해 주시면 테스트 버전 참여 방법을 안내드립니다.</p>
+    <p>Android에서 미리 사용해보고 싶으신 분은 <a href="https://open.kakao.com/o/gevc2wqi" target="_blank" rel="noopener">카카오톡 오픈채팅</a>으로 문의해 주세요.</p>
   </div>
 
   <main id="top">
