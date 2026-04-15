@@ -53,12 +53,14 @@
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
+    "@id": "https://hapgyeokloop.com/#app",
     "name": "합격루프 - 공인중개사 시험 준비",
     "description": "공인중개사 기출문제 10개년을 반복 복습으로 합격까지 이어주는 학습 앱. 민법, 부동산학개론, 공법, 중개사법, 부동산공시법 과목별 오답 복습과 기억 루프.",
     "url": "https://hapgyeokloop.com/",
     "applicationCategory": "EducationalApplication",
     "operatingSystem": "iOS",
     "downloadUrl": "https://apps.apple.com/kr/app/id6762024496",
+    "featureList": ["10개년 기출문제", "과목별 오답 복습", "기억 루프 반복학습", "비슷한 문제 연결", "학습 통계"],
     "offers": [
       {
         "@type": "Offer",
@@ -66,7 +68,8 @@
         "priceCurrency": "KRW",
         "name": "무료 (최신 1개년)",
         "description": "최신 1개년 기출문제 무료 이용",
-        "availability": "https://schema.org/InStock"
+        "availability": "https://schema.org/InStock",
+        "url": "https://apps.apple.com/kr/app/id6762024496"
       },
       {
         "@type": "Offer",
@@ -74,7 +77,8 @@
         "priceCurrency": "KRW",
         "name": "월간 합격패스",
         "description": "전체 10개년 기출문제, 광고 제거",
-        "availability": "https://schema.org/InStock"
+        "availability": "https://schema.org/InStock",
+        "url": "https://apps.apple.com/kr/app/id6762024496"
       },
       {
         "@type": "Offer",
@@ -82,15 +86,19 @@
         "priceCurrency": "KRW",
         "name": "연간 합격패스",
         "description": "전체 10개년 기출문제, 광고 제거, 2개월 무료 수준",
-        "availability": "https://schema.org/InStock"
+        "availability": "https://schema.org/InStock",
+        "url": "https://apps.apple.com/kr/app/id6762024496"
       }
     ],
-    "screenshot": "https://hapgyeokloop.com/screenshot-home.jpg",
+    "screenshot": {
+      "@type": "ImageObject",
+      "url": "https://hapgyeokloop.com/screenshot-home.jpg",
+      "width": 1200,
+      "height": 630
+    },
     "inLanguage": "ko",
     "publisher": {
-      "@type": "Organization",
-      "name": "합격루프",
-      "url": "https://hapgyeokloop.com/"
+      "@id": "https://hapgyeokloop.com/#organization"
     }
   }
   </script>
@@ -100,6 +108,7 @@
   {
     "@context": "https://schema.org",
     "@type": "FAQPage",
+    "@id": "https://hapgyeokloop.com/#faq",
     "dateModified": "2026-04-15",
     "mainEntity": [
       {
@@ -163,7 +172,7 @@
         "name": "구독은 어디서 결제하고, 취소는 어떻게 하나요?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Apple App Store 또는 Google Play Store의 인앱결제로 구매합니다. 구독 취소와 복원도 각 스토어의 구독 관리 화면에서 처리할 수 있습니다."
+          "text": "현재 Apple App Store의 인앱결제로 구매합니다. Google Play Store는 준비 중입니다. 구독 취소와 복원은 스토어의 구독 관리 화면에서 처리할 수 있습니다."
         }
       }
     ]
@@ -175,9 +184,13 @@
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": "https://hapgyeokloop.com/#website",
     "name": "합격루프",
     "url": "https://hapgyeokloop.com/",
-    "inLanguage": "ko"
+    "inLanguage": "ko",
+    "publisher": {
+      "@id": "https://hapgyeokloop.com/#organization"
+    }
   }
   </script>
 
@@ -186,8 +199,12 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": "https://hapgyeokloop.com/#organization",
     "name": "합격루프",
     "url": "https://hapgyeokloop.com/",
+    "description": "공인중개사 기출문제 10개년 반복학습 앱",
+    "foundingDate": "2025",
+    "areaServed": "KR",
     "logo": {
       "@type": "ImageObject",
       "url": "https://hapgyeokloop.com/assets/favicon/icon-512.png",
@@ -197,7 +214,8 @@
     "contactPoint": {
       "@type": "ContactPoint",
       "email": "support@hapgyeokloop.com",
-      "contactType": "customer service"
+      "contactType": "customer service",
+      "availableLanguage": "Korean"
     },
     "sameAs": [
       "https://apps.apple.com/kr/app/id6762024496"
@@ -210,8 +228,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/pretendard/dist/web/static/pretendard.css" as="style">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard/dist/web/static/pretendard.css">
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.min.css" as="style">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;display=swap">
   <style>
     :root {
@@ -514,6 +532,20 @@
       font-size: 14px;
       box-shadow: 0 14px 24px rgba(19, 33, 18, 0.18);
     }
+
+    .mobile-menu-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--ink);
+      border-radius: 10px;
+    }
+    .mobile-menu-btn:hover { background: rgba(19,33,18,0.06); }
 
     main {
       padding: 28px 0 72px;
@@ -1073,6 +1105,7 @@
 
     .compare-panel h3,
     .faq-card h3,
+    .cta-panel .cta-heading,
     .cta-panel h3 {
       font-size: 28px;
       letter-spacing: -0.04em;
@@ -1223,6 +1256,31 @@
       50% { transform: translateY(10px); }
     }
 
+    @media (prefers-reduced-motion: reduce) {
+      .phone, .floating-card { animation: none; }
+    }
+
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: 16px;
+      padding: 12px 18px;
+      background: var(--ink);
+      color: #fff;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      z-index: 999;
+    }
+    .skip-link:focus {
+      top: 16px;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--lime-deep);
+      outline-offset: 2px;
+    }
+
     @media (max-width: 1080px) {
       .hero,
       .pricing-wrap,
@@ -1259,10 +1317,35 @@
       .topbar-inner {
         border-radius: 28px;
         padding: 16px;
+        flex-wrap: wrap;
       }
 
       .nav {
         display: none;
+        width: 100%;
+        flex-direction: column;
+        gap: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      .topbar-inner.menu-open .nav {
+        display: flex;
+      }
+
+      .mobile-menu-btn {
+        display: flex;
+      }
+
+      .nav-cta {
+        display: none;
+      }
+
+      .topbar-inner.menu-open .nav-cta {
+        display: inline-flex;
+        width: 100%;
+        text-align: center;
+        justify-content: center;
       }
 
       .hero h1 {
@@ -1330,20 +1413,21 @@
   </style>
 </head>
 <body>
+  <a href="#top" class="skip-link">본문으로 이동</a>
   <noscript><style>.popup-overlay { display: none !important; }</style></noscript>
-  <div class="popup-overlay" id="popup">
+  <div class="popup-overlay" id="popup" role="dialog" aria-modal="true" aria-label="앱 다운로드 안내">
     <div class="popup">
-      <div class="popup-icon">&#127881;</div>
-      <p style="font-size:22px;font-weight:700;margin:0 0 12px">합격루프가 출시되었습니다</p>
+      <div class="popup-icon" aria-hidden="true">&#127881;</div>
+      <h2 style="font-size:22px;font-weight:700;margin:0 0 12px">합격루프가 출시되었습니다</h2>
       <p>현재 <strong>iOS App Store</strong>에서 바로 다운로드할 수 있습니다.<br><strong>Google Play Store</strong>는 준비 중이며,<br>Android에서 미리 사용해보고 싶으신 분은<br>아래 오픈채팅으로 문의해 주세요.</p>
       <p>오픈 기념으로 개선 기간 동안<br><strong>10개년 전체 문제를 무료로 개방</strong>합니다.</p>
       <div class="popup-actions">
         <div class="popup-store-row">
           <a class="popup-btn popup-btn-store" href="https://apps.apple.com/kr/app/%ED%95%A9%EA%B2%A9%EB%A3%A8%ED%94%84-%EA%B3%B5%EC%9D%B8%EC%A4%91%EA%B0%9C%EC%82%AC-%EC%8B%9C%ED%97%98-%EC%A4%80%EB%B9%84/id6762024496" target="_blank" rel="noopener"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg><div class="store-text"><span>Download on the</span>App Store</div></a>
-          <div class="popup-btn popup-btn-store disabled"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.49L14.07 12 3.18.51C2.56 1.05 2.15 1.94 2.15 3.04v17.92c0 1.1.41 1.99 1.03 2.53zm1.63.75l12.2-6.88-2.72-2.73L4.81 24.24zm12.2-15.37L4.81-.24l8.48 9.61 2.72-2.73zm1.84 1.04l-3.34 1.88L18.24 14.54l3.52-1.99c1.17-.66 1.17-1.74 0-2.4l-.91-.51z"/></svg><div class="store-text"><span>Coming soon</span>Google Play</div></div>
+          <div class="popup-btn popup-btn-store disabled" role="button" aria-disabled="true" aria-label="Google Play - Coming soon"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.49L14.07 12 3.18.51C2.56 1.05 2.15 1.94 2.15 3.04v17.92c0 1.1.41 1.99 1.03 2.53zm1.63.75l12.2-6.88-2.72-2.73L4.81 24.24zm12.2-15.37L4.81-.24l8.48 9.61 2.72-2.73zm1.84 1.04l-3.34 1.88L18.24 14.54l3.52-1.99c1.17-.66 1.17-1.74 0-2.4l-.91-.51z"/></svg><div class="store-text"><span>Coming soon</span>Google Play</div></div>
         </div>
         <a class="popup-btn popup-btn-kakao" href="https://open.kakao.com/o/gevc2wqi" target="_blank" rel="noopener">Android 테스터 신청 (카카오톡)</a>
-        <button class="popup-btn popup-btn-close" onclick="document.getElementById('popup').classList.add('hidden')">닫기</button>
+        <button class="popup-btn popup-btn-close" onclick="document.getElementById('popup').classList.add('hidden')" aria-label="팝업 닫기">닫기</button>
       </div>
     </div>
   </div>
@@ -1357,12 +1441,15 @@
           <span>기출을 합격 루틴으로</span>
         </div>
       </a>
-      <nav class="nav">
+      <nav class="nav" aria-label="메인 내비게이션">
         <a href="#features">기능</a>
         <a href="#subjects">과목</a>
         <a href="#pricing">가격</a>
         <a href="#faq">자주 묻는 질문</a>
       </nav>
+      <button class="mobile-menu-btn" aria-label="메뉴 열기" aria-expanded="false" onclick="this.parentElement.classList.toggle('menu-open'); this.setAttribute('aria-expanded', this.getAttribute('aria-expanded')==='false'?'true':'false')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
       <a class="nav-cta" href="#pricing">합격패스 보기</a>
     </div>
   </header>
@@ -1386,7 +1473,7 @@
         </div>
         <div class="store-row">
           <a class="popup-btn popup-btn-store" href="https://apps.apple.com/kr/app/%ED%95%A9%EA%B2%A9%EB%A3%A8%ED%94%84-%EA%B3%B5%EC%9D%B8%EC%A4%91%EA%B0%9C%EC%82%AC-%EC%8B%9C%ED%97%98-%EC%A4%80%EB%B9%84/id6762024496" target="_blank" rel="noopener"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg><div class="store-text"><span>Download on the</span>App Store</div></a>
-          <div class="popup-btn popup-btn-store disabled"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.49L14.07 12 3.18.51C2.56 1.05 2.15 1.94 2.15 3.04v17.92c0 1.1.41 1.99 1.03 2.53zm1.63.75l12.2-6.88-2.72-2.73L4.81 24.24zm12.2-15.37L4.81-.24l8.48 9.61 2.72-2.73zm1.84 1.04l-3.34 1.88L18.24 14.54l3.52-1.99c1.17-.66 1.17-1.74 0-2.4l-.91-.51z"/></svg><div class="store-text"><span>Coming soon</span>Google Play</div></div>
+          <div class="popup-btn popup-btn-store disabled" role="button" aria-disabled="true" aria-label="Google Play - Coming soon"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.49L14.07 12 3.18.51C2.56 1.05 2.15 1.94 2.15 3.04v17.92c0 1.1.41 1.99 1.03 2.53zm1.63.75l12.2-6.88-2.72-2.73L4.81 24.24zm12.2-15.37L4.81-.24l8.48 9.61 2.72-2.73zm1.84 1.04l-3.34 1.88L18.24 14.54l3.52-1.99c1.17-.66 1.17-1.74 0-2.4l-.91-.51z"/></svg><div class="store-text"><span>Coming soon</span>Google Play</div></div>
         </div>
         <div class="hero-meta">
           <div class="meta-pill"><strong>10개년</strong> 전체 문제 루프</div>
@@ -1475,7 +1562,7 @@
 
       <div class="feature-grid">
         <article class="feature-card">
-          <div class="feature-icon">⟳</div>
+          <div class="feature-icon" aria-hidden="true">⟳</div>
           <h3>기출을 루프로 돌리는 반복학습 구조</h3>
           <p>합격루프는 문제를 푼 뒤 끝내지 않습니다. 다시 볼 타이밍을 잡고, 오늘 풀 문제와 오답복습 문제를 분리해 학습 흐름을 만듭니다.</p>
           <div class="mini-board">
@@ -1495,7 +1582,7 @@
         </article>
 
         <article class="feature-card">
-          <div class="feature-icon">✦</div>
+          <div class="feature-icon" aria-hidden="true">✦</div>
           <h3>오답복습에서 비슷한 문제까지 한 번에</h3>
           <p>틀린 문제를 그냥 표시만 하지 않고, 같은 개념에서 흔들리는 문제를 이어서 보여줘서 반복학습으로 '아는 줄 알았는데 헷갈리는 지점'을 빨리 잡게 합니다.</p>
           <div class="chip-list">
@@ -1507,7 +1594,7 @@
         </article>
 
         <article class="feature-card">
-          <div class="feature-icon">▦</div>
+          <div class="feature-icon" aria-hidden="true">▦</div>
           <h3>시험 공부에 맞는 통계와 루틴 관리</h3>
           <p>연속 학습, 정답률, 최근 흐름이 한 화면에서 보이도록 설계했습니다. 숫자가 예쁘게만 보이는 게 아니라, 내일 무엇을 해야 하는지 바로 보이게 정리합니다.</p>
           <div class="mini-board">
@@ -1536,7 +1623,7 @@
 
       <div class="feature-grid">
         <article class="feature-card">
-          <div class="feature-icon">&#9878;</div>
+          <div class="feature-icon" aria-hidden="true">&#9878;</div>
           <h3>민법 및 민사특별법</h3>
           <p>1차 시험 과목입니다. 물권법, 채권법, 계약 해제·해지, 주택임대차보호법, 상가건물임대차보호법이 핵심 범위입니다. 민법 기출문제는 매년 사례형 출제 비중이 높고, 법조문 예외 규정에서 오답이 집중됩니다. 기출문제 반복으로 조문별 적용 맥락을 익히는 것이 효과적입니다.</p>
           <div class="chip-list">
@@ -1548,7 +1635,7 @@
         </article>
 
         <article class="feature-card">
-          <div class="feature-icon">&#127960;</div>
+          <div class="feature-icon" aria-hidden="true">&#127960;</div>
           <h3>부동산학개론</h3>
           <p>1차 시험 과목입니다. 부동산 경제, 시장 분석, 투자론, 감정평가론이 주요 영역입니다. 부동산학개론 기출문제는 계산과 이론이 혼합 출제되며, 수익환원법·비교방식 등 감정평가 3방식은 매년 고빈도로 나옵니다.</p>
           <div class="chip-list">
@@ -1560,7 +1647,7 @@
         </article>
 
         <article class="feature-card">
-          <div class="feature-icon">&#127963;</div>
+          <div class="feature-icon" aria-hidden="true">&#127963;</div>
           <h3>부동산공법</h3>
           <p>2차 시험 과목입니다. 국토계획법, 건축법, 도시개발법, 주택법이 핵심입니다. 부동산공법 기출문제는 조문 수가 방대하고 개정이 잦아 최신 기출 기반 학습이 중요합니다. 용도지역·지구·구역 분류와 건폐율·용적률은 자주 혼동되는 포인트입니다.</p>
           <div class="chip-list">
@@ -1572,7 +1659,7 @@
         </article>
 
         <article class="feature-card">
-          <div class="feature-icon">&#128203;</div>
+          <div class="feature-icon" aria-hidden="true">&#128203;</div>
           <h3>공인중개사법 및 중개실무</h3>
           <p>2차 시험 과목입니다. 공인중개사법, 부동산 거래신고법, 중개실무 전반이 범위입니다. 중개사법 기출문제에서는 개업공인중개사의 의무와 금지행위, 중개수수료 요율, 손해배상 책임이 실수가 잦은 구간입니다.</p>
           <div class="chip-list">
@@ -1584,7 +1671,7 @@
         </article>
 
         <article class="feature-card">
-          <div class="feature-icon">&#128196;</div>
+          <div class="feature-icon" aria-hidden="true">&#128196;</div>
           <h3>부동산공시법</h3>
           <p>2차 시험 과목입니다. 지적법과 부동산등기법이 양대 축입니다. 부동산공시법 기출문제에서는 등기부등본 기재사항, 지적공부의 종류, 토지이동 유형이 반복 출제됩니다. 용어와 절차를 기출문제 맥락에서 정리하면 암기 효율이 올라갑니다.</p>
           <div class="chip-list">
@@ -1596,7 +1683,7 @@
         </article>
 
         <article class="feature-card">
-          <div class="feature-icon">&#128176;</div>
+          <div class="feature-icon" aria-hidden="true">&#128176;</div>
           <h3>부동산세법</h3>
           <p>2차 시험 과목입니다. 취득세, 재산세, 종합부동산세, 양도소득세가 핵심 세목입니다. 부동산세법 기출문제는 세율·과세표준 계산, 비과세·감면 요건이 자주 출제되며 계산 비중이 높습니다. 세법은 매년 개정이 있어 최신 기출문제 기준으로 공부해야 합니다.</p>
           <div class="chip-list">
@@ -1785,13 +1872,13 @@
 
       <div class="cta-panel">
         <div>
-          <h3>합격을 위한 루틴을 더 선명하게.</h3>
+          <h2 class="cta-heading">합격을 위한 루틴을 더 선명하게.</h2>
           <p>궁금한 점이나 제휴 제안이 있다면 편하게 연락해 주세요.</p>
         </div>
         <div style="display: grid; gap: 12px;">
           <div class="store-row">
             <a class="popup-btn popup-btn-store" href="https://apps.apple.com/kr/app/%ED%95%A9%EA%B2%A9%EB%A3%A8%ED%94%84-%EA%B3%B5%EC%9D%B8%EC%A4%91%EA%B0%9C%EC%82%AC-%EC%8B%9C%ED%97%98-%EC%A4%80%EB%B9%84/id6762024496" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg><div class="store-text"><span>Download on the</span>App Store</div></a>
-            <div class="popup-btn popup-btn-store disabled"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.49L14.07 12 3.18.51C2.56 1.05 2.15 1.94 2.15 3.04v17.92c0 1.1.41 1.99 1.03 2.53zm1.63.75l12.2-6.88-2.72-2.73L4.81 24.24zm12.2-15.37L4.81-.24l8.48 9.61 2.72-2.73zm1.84 1.04l-3.34 1.88L18.24 14.54l3.52-1.99c1.17-.66 1.17-1.74 0-2.4l-.91-.51z"/></svg><div class="store-text"><span>Coming soon</span>Google Play</div></div>
+            <div class="popup-btn popup-btn-store disabled" role="button" aria-disabled="true" aria-label="Google Play - Coming soon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.49L14.07 12 3.18.51C2.56 1.05 2.15 1.94 2.15 3.04v17.92c0 1.1.41 1.99 1.03 2.53zm1.63.75l12.2-6.88-2.72-2.73L4.81 24.24zm12.2-15.37L4.81-.24l8.48 9.61 2.72-2.73zm1.84 1.04l-3.34 1.88L18.24 14.54l3.52-1.99c1.17-.66 1.17-1.74 0-2.4l-.91-.51z"/></svg><div class="store-text"><span>Coming soon</span>Google Play</div></div>
           </div>
           <div class="hero-actions">
             <a class="button button-secondary" href="mailto:support@hapgyeokloop.com">문의하기</a>
