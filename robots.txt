@@ -7,5 +7,10 @@ Disallow:
 User-agent: Googlebot
 Disallow:
 
+User-agent: Yeti
+Disallow:
+
 User-agent: *
 Allow: /
+
+Sitemap: https://hapgyeokloop.com/sitemap.xml
