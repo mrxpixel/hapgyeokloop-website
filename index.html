@@ -43,6 +43,7 @@
 
     body {
       font-family: 'Pretendard Variable', 'Pretendard', sans-serif;
+      word-break: keep-all;
       color: var(--ink);
       background:
         radial-gradient(circle at top left, rgba(140, 228, 79, 0.28), transparent 24%),
@@ -78,6 +79,39 @@
     .shell {
       width: min(calc(100% - 32px), var(--max));
       margin: 0 auto;
+    }
+
+    .notice-banner {
+      padding: 18px 20px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, rgba(31, 143, 56, 0.1), rgba(125, 216, 255, 0.1));
+      border: 1px solid rgba(31, 143, 56, 0.2);
+      margin: 0 auto;
+      width: min(calc(100% - 32px), var(--max));
+      margin-top: 12px;
+    }
+
+    .notice-banner strong {
+      display: block;
+      font-size: 15px;
+      color: var(--lime-deep);
+      margin-bottom: 8px;
+    }
+
+    .notice-banner p {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--ink);
+    }
+
+    .notice-banner p + p {
+      margin-top: 6px;
+    }
+
+    .notice-banner a {
+      color: var(--lime-deep);
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
 
     .topbar {
@@ -182,9 +216,9 @@
 
     .hero h1 {
       margin-top: 20px;
-      font-size: clamp(44px, 7vw, 82px);
-      line-height: 0.95;
-      letter-spacing: -0.06em;
+      font-size: clamp(38px, 5.2vw, 64px);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
     }
 
     .hero h1 .accent {
@@ -602,9 +636,8 @@
 
     .pricing-wrap {
       display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
+      grid-template-columns: 1fr;
       gap: 18px;
-      align-items: start;
     }
 
     .pricing-grid {
@@ -905,7 +938,7 @@
       }
 
       .hero h1 {
-        font-size: 52px;
+        font-size: 38px;
       }
 
       .section-head {
@@ -988,6 +1021,12 @@
       <a class="nav-cta" href="#pricing">합격패스 보기</a>
     </div>
   </header>
+
+  <div class="notice-banner">
+    <strong>현재 개선 기간 — 모든 기능을 무료로 이용하실 수 있습니다</strong>
+    <p>iOS App Store에서 바로 다운로드할 수 있습니다. Google Play Store는 약 2주 후 출시 예정입니다.</p>
+    <p>Android 사용자분들은 <a href="mailto:support@hapgyeokloop.com">support@hapgyeokloop.com</a>으로 문의해 주시면 테스트 버전 참여 방법을 안내드립니다.</p>
+  </div>
 
   <main id="top">
     <section class="hero shell">
