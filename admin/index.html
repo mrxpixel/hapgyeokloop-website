@@ -141,6 +141,11 @@
     .report-sub { font-size:12px; color:var(--ink-dim); font-family:var(--mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .badge { display:inline-flex; align-items:center; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; font-family:var(--mono); letter-spacing:.03em; flex-shrink:0; }
     .badge-pending { background:var(--amber-bg); color:var(--amber); }
+    .badge-update { background:rgba(88,166,255,.12); color:var(--accent); }
+    .badge-notice { background:var(--amber-bg); color:var(--amber); }
+    .badge-plan   { background:var(--purple-bg); color:var(--purple); }
+    .badge-published { background:var(--green-bg); color:var(--green); }
+    .badge-draft { background:rgba(139,148,158,.12); color:var(--ink-dim); }
     .badge-in-progress { background:var(--cyan-bg); color:var(--cyan); }
     .badge-resolved { background:var(--green-bg); color:var(--green); }
     .badge-rejected { background:var(--red-bg); color:var(--red); }
@@ -354,6 +359,7 @@
       <div class="tab active" data-tab="reports" onclick="switchTab('reports')">신고 관리</div>
       <div class="tab" data-tab="admins" id="tab-admins" style="display:none" onclick="switchTab('admins')">관리자 관리 <span class="tab-count amber" id="admin-pending-count" style="display:none">0</span></div>
       <div class="tab" data-tab="settings" onclick="switchTab('settings')">설정</div>
+      <div class="tab" data-tab="announcements" onclick="switchTab('announcements')">공지사항</div>
     </div>
 
     <!-- tab: reports -->
@@ -397,6 +403,27 @@
         <div class="auth-error" id="pw-error"></div>
         <div class="auth-success" id="pw-success"></div>
       </div>
+    </div>
+
+    <!-- tab: announcements -->
+    <div class="tab-panel" id="panel-announcements">
+      <div class="settings-section" id="announcement-create-section">
+        <div class="settings-title" id="ann-form-title">새 공지사항</div>
+        <div class="field"><label>제목</label><input type="text" id="ann-title" placeholder="공지 제목"></div>
+        <div class="field"><label>유형</label>
+          <select id="ann-type" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--ink);font-size:14px">
+            <option value="notice">공지</option>
+            <option value="update">업데이트</option>
+            <option value="plan">계획</option>
+          </select>
+        </div>
+        <div class="field"><label>내용</label>
+          <textarea id="ann-body" style="width:100%;min-height:120px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--ink);font-size:14px;resize:vertical;font-family:var(--sans)" placeholder="공지 내용을 입력하세요..."></textarea>
+        </div>
+        <div class="field"><label>만료일 (선택)</label><input type="datetime-local" id="ann-expires" style="color-scheme:dark"></div>
+        <button class="btn btn-resolve" id="ann-submit-btn" onclick="createAnnouncement()">공지 등록</button>
+      </div>
+      <div id="announcement-list" class="report-list"></div>
     </div>
   </div>
 </div>
@@ -605,7 +632,8 @@ function enterDashboard(subjectCode, subjectName) {
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
-  const titles = { reports:'신고 관리', admins:'관리자 관리', settings:'설정' };
+  const titles = { reports:'신고 관리', admins:'관리자 관리', settings:'설정', announcements:'공지사항' };
+  if (tab === 'announcements') loadAnnouncements();
   document.getElementById('topbar-title').textContent = titles[tab] || '';
 }
 
@@ -970,6 +998,125 @@ async function toggleSubjectAssign(adminId, subjectCode, assign) {
     toast('시험 배정이 해제되었습니다.');
   }
   await loadAdmins();
+}
+
+// ═══ Announcements ═══
+
+let allAnnouncements = [];
+let editingAnnouncementId = null;
+
+async function loadAnnouncements() {
+  const el = document.getElementById('announcement-list');
+  el.innerHTML = '<div class="loading-full"><div class="spinner"></div>불러오는 중...</div>';
+  const { data, error } = await sb.rpc('admin_list_announcements');
+  if (error) { el.innerHTML = `<div class="empty-state"><p style="color:var(--red)">${escHtml(error.message)}</p></div>`; return; }
+  allAnnouncements = data || [];
+  renderAnnouncements();
+}
+
+function renderAnnouncements() {
+  const el = document.getElementById('announcement-list');
+  if (!allAnnouncements.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📢</div><p>등록된 공지사항이 없습니다.</p></div>'; return; }
+  el.innerHTML = allAnnouncements.map(annCardHtml).join('');
+}
+
+function annCardHtml(a) {
+  const typeLabels = { update:'업데이트', notice:'공지', plan:'계획' };
+  const typeBadge = { update:'badge-update', notice:'badge-notice', plan:'badge-plan' };
+  const pubBadge = a.is_published ? '<span class="badge badge-published">발행됨</span>' : '<span class="badge badge-draft">미발행</span>';
+  const expires = a.expires_at ? `만료: ${new Date(a.expires_at).toLocaleDateString('ko-KR')}` : '만료 없음';
+  const toggleLabel = a.is_published ? '내리기' : '발행';
+  const toggleClass = a.is_published ? 'btn-ghost' : 'btn-resolve';
+  return `
+  <div class="report-card" id="ann-${a.id}">
+    <div class="report-header" onclick="toggleCard('ann-${a.id}')">
+      <div class="report-meta">
+        <div class="report-reason">${escHtml(a.title)}</div>
+        <div class="report-sub">${escHtml(a.creator_name||'')} · ${relativeTime(a.created_at)} · ${expires}</div>
+      </div>
+      <span class="badge ${typeBadge[a.type]||''}">${typeLabels[a.type]||a.type}</span>
+      ${pubBadge}
+      <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 010-1.06z"/></svg>
+    </div>
+    <div class="report-body">
+      <div class="detail-section"><div class="detail-label">내용</div><div class="detail-text" style="white-space:pre-wrap">${escHtml(a.body)}</div></div>
+      <div class="form-actions" style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn ${toggleClass}" onclick="togglePublish('${a.id}', ${!a.is_published})">${toggleLabel}</button>
+        <button class="btn btn-ghost" onclick="editAnnouncement('${a.id}')">수정</button>
+        <button class="btn btn-reject" onclick="deleteAnnouncement('${a.id}')">삭제</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function createAnnouncement() {
+  const title = document.getElementById('ann-title').value.trim();
+  const body = document.getElementById('ann-body').value.trim();
+  const type = document.getElementById('ann-type').value;
+  const expiresRaw = document.getElementById('ann-expires').value;
+  const expires_at = expiresRaw ? new Date(expiresRaw).toISOString() : null;
+  if (!title || !body) { toast('제목과 내용을 입력하세요.', true); return; }
+  const { error } = await sb.rpc('admin_create_announcement', { p_title: title, p_body: body, p_type: type, p_expires_at: expires_at });
+  if (error) { toast('등록 실패: ' + error.message, true); return; }
+  resetAnnForm();
+  toast('공지사항이 등록되었습니다.');
+  await loadAnnouncements();
+}
+
+async function updateAnnouncement(id) {
+  const title = document.getElementById('ann-title').value.trim();
+  const body = document.getElementById('ann-body').value.trim();
+  const type = document.getElementById('ann-type').value;
+  const expiresRaw = document.getElementById('ann-expires').value;
+  const expires_at = expiresRaw ? new Date(expiresRaw).toISOString() : null;
+  if (!title || !body) { toast('제목과 내용을 입력하세요.', true); return; }
+  const { error } = await sb.rpc('admin_update_announcement', { p_id: id, p_title: title, p_body: body, p_type: type, p_expires_at: expires_at });
+  if (error) { toast('수정 실패: ' + error.message, true); return; }
+  resetAnnForm();
+  toast('수정되었습니다.');
+  await loadAnnouncements();
+}
+
+async function togglePublish(id, publish) {
+  const { error } = await sb.rpc('admin_toggle_announcement_publish', { p_id: id, p_publish: publish });
+  if (error) { toast('실패: ' + error.message, true); return; }
+  toast(publish ? '발행되었습니다.' : '내려졌습니다.');
+  await loadAnnouncements();
+}
+
+function editAnnouncement(id) {
+  const a = allAnnouncements.find(x => x.id === id);
+  if (!a) return;
+  editingAnnouncementId = id;
+  document.getElementById('ann-title').value = a.title;
+  document.getElementById('ann-body').value = a.body;
+  document.getElementById('ann-type').value = a.type;
+  document.getElementById('ann-expires').value = a.expires_at ? a.expires_at.slice(0,16) : '';
+  document.getElementById('ann-form-title').textContent = '공지사항 수정';
+  const btn = document.getElementById('ann-submit-btn');
+  btn.textContent = '수정 저장';
+  btn.setAttribute('onclick', `updateAnnouncement('${id}')`);
+  document.getElementById('announcement-create-section').scrollIntoView({ behavior:'smooth' });
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('이 공지사항을 삭제하시겠습니까?')) return;
+  const { error } = await sb.rpc('admin_delete_announcement', { p_id: id });
+  if (error) { toast('삭제 실패: ' + error.message, true); return; }
+  toast('삭제되었습니다.');
+  await loadAnnouncements();
+}
+
+function resetAnnForm() {
+  editingAnnouncementId = null;
+  document.getElementById('ann-title').value = '';
+  document.getElementById('ann-body').value = '';
+  document.getElementById('ann-type').value = 'notice';
+  document.getElementById('ann-expires').value = '';
+  document.getElementById('ann-form-title').textContent = '새 공지사항';
+  const btn = document.getElementById('ann-submit-btn');
+  btn.textContent = '공지 등록';
+  btn.setAttribute('onclick', 'createAnnouncement()');
 }
 
 // ═══ Init ═══
