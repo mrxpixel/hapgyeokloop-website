@@ -915,9 +915,11 @@ async function addSubject() {
   if (!code || !name) { toast('코드와 시험명을 입력하세요.', true); return; }
   const { error } = await sb.rpc('admin_add_subject', { subject_code: code, subject_name: name });
   if (error) { toast('추가 실패: ' + error.message, true); return; }
+  // 미매핑 과목 자동 연결
+  const { data: cnt } = await sb.rpc('admin_auto_map_unmapped', { p_exam_code: code });
   document.getElementById('new-subject-code').value = '';
   document.getElementById('new-subject-name').value = '';
-  toast(name + ' 시험이 추가되었습니다.');
+  toast(name + ' 시험 추가 완료' + (cnt > 0 ? ` (${cnt}개 과목 자동 연결)` : ''));
   await loadSubjectList();
 }
 
