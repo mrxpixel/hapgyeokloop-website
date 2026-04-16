@@ -336,7 +336,7 @@
 <div id="dashboard-view">
   <nav class="topbar">
     <div class="topbar-left">
-      <span class="topbar-logo" id="topbar-subject" style="cursor:pointer" onclick="showSubjectSelector()">ADMIN</span>
+      <span class="topbar-logo" id="topbar-subject" style="cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color=''" onclick="showSubjectSelector()">ADMIN</span>
       <span class="topbar-title" id="topbar-title">신고 관리</span>
     </div>
     <div class="topbar-right">
@@ -591,7 +591,7 @@ function enterDashboard(subjectCode, subjectName) {
   const roleEl = document.getElementById('topbar-role');
   roleEl.textContent = currentRole === 'super_admin' ? 'SUPER ADMIN' : 'ADMIN';
   roleEl.style.display = '';
-  document.getElementById('topbar-subject').textContent = currentSubject ? currentSubject.name : '전체';
+  document.getElementById('topbar-subject').innerHTML = (currentSubject ? currentSubject.name : '전체') + ' <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle;opacity:.5"><path d="M4.427 7.427l3.396 3.396a.25.25 0 00.354 0l3.396-3.396A.25.25 0 0011.396 7H4.604a.25.25 0 00-.177.427z"/></svg>';
   document.getElementById('topbar-subject').title = '클릭하여 시험 변경';
   document.getElementById('tab-admins').style.display = currentRole === 'super_admin' ? '' : 'none';
   loadReports();
