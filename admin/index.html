@@ -421,7 +421,10 @@
           <textarea id="ann-body" style="width:100%;min-height:120px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--ink);font-size:14px;resize:vertical;font-family:var(--sans)" placeholder="공지 내용을 입력하세요..."></textarea>
         </div>
         <div class="field"><label>만료일 (선택)</label><input type="datetime-local" id="ann-expires" style="color-scheme:dark"></div>
-        <button class="btn btn-resolve" id="ann-submit-btn" onclick="createAnnouncement()">공지 등록</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-resolve" id="ann-submit-btn" onclick="createAnnouncement()">초안 저장</button>
+          <button class="btn btn-approve" id="ann-publish-btn" onclick="createAndPublish()">바로 발행</button>
+        </div>
       </div>
       <div id="announcement-list" class="report-list"></div>
     </div>
@@ -763,7 +766,7 @@ function reportCardHtml(r) {
   </div>`;
 }
 
-function toggleCard(id) { document.getElementById('card-'+id).classList.toggle('open'); }
+function toggleCard(id) { const el = document.getElementById('card-'+id) || document.getElementById(id); if (el) el.classList.toggle('open'); }
 
 async function assignReport(id) {
   const { error } = await sb.rpc('admin_assign_report', { report_id: id });
@@ -1059,7 +1062,22 @@ async function createAnnouncement() {
   const { error } = await sb.rpc('admin_create_announcement', { p_title: title, p_body: body, p_type: type, p_expires_at: expires_at });
   if (error) { toast('등록 실패: ' + error.message, true); return; }
   resetAnnForm();
-  toast('공지사항이 등록되었습니다.');
+  toast('초안이 저장되었습니다. 발행 버튼을 눌러 앱에 게시하세요.');
+  await loadAnnouncements();
+}
+
+async function createAndPublish() {
+  const title = document.getElementById('ann-title').value.trim();
+  const body = document.getElementById('ann-body').value.trim();
+  const type = document.getElementById('ann-type').value;
+  const expiresRaw = document.getElementById('ann-expires').value;
+  const expires_at = expiresRaw ? new Date(expiresRaw).toISOString() : null;
+  if (!title || !body) { toast('제목과 내용을 입력하세요.', true); return; }
+  const { data: id, error } = await sb.rpc('admin_create_announcement', { p_title: title, p_body: body, p_type: type, p_expires_at: expires_at });
+  if (error) { toast('등록 실패: ' + error.message, true); return; }
+  await sb.rpc('admin_toggle_announcement_publish', { p_id: id, p_publish: true });
+  resetAnnForm();
+  toast('공지사항이 발행되었습니다.');
   await loadAnnouncements();
 }
 
@@ -1096,6 +1114,7 @@ function editAnnouncement(id) {
   const btn = document.getElementById('ann-submit-btn');
   btn.textContent = '수정 저장';
   btn.setAttribute('onclick', `updateAnnouncement('${id}')`);
+  document.getElementById('ann-publish-btn').style.display = 'none';
   document.getElementById('announcement-create-section').scrollIntoView({ behavior:'smooth' });
 }
 
@@ -1115,8 +1134,9 @@ function resetAnnForm() {
   document.getElementById('ann-expires').value = '';
   document.getElementById('ann-form-title').textContent = '새 공지사항';
   const btn = document.getElementById('ann-submit-btn');
-  btn.textContent = '공지 등록';
+  btn.textContent = '초안 저장';
   btn.setAttribute('onclick', 'createAnnouncement()');
+  document.getElementById('ann-publish-btn').style.display = '';
 }
 
 // ═══ Init ═══
