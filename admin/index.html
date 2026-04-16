@@ -914,7 +914,7 @@ async function addSubject() {
   const name = document.getElementById('new-subject-name').value.trim();
   if (!code || !name) { toast('코드와 시험명을 입력하세요.', true); return; }
   const { error } = await sb.rpc('admin_add_subject', { subject_code: code, subject_name: name });
-  if (error) { toast('추가 실패: ' + error.message, true); return; }
+  if (error) { toast(error.message.includes('duplicate') || error.message.includes('unique') ? `코드 "${code}"는 이미 사용 중입니다. 다른 코드를 입력하세요.` : '추가 실패: ' + error.message, true); return; }
   // 미매핑 과목 자동 연결
   const { data: cnt } = await sb.rpc('admin_auto_map_unmapped', { p_exam_code: code });
   document.getElementById('new-subject-code').value = '';
