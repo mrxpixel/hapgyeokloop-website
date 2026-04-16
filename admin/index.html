@@ -359,7 +359,7 @@
       <div class="tab active" data-tab="reports" onclick="switchTab('reports')">신고 관리</div>
       <div class="tab" data-tab="admins" id="tab-admins" style="display:none" onclick="switchTab('admins')">관리자 관리 <span class="tab-count amber" id="admin-pending-count" style="display:none">0</span></div>
       <div class="tab" data-tab="settings" onclick="switchTab('settings')">설정</div>
-      <div class="tab" data-tab="announcements" onclick="switchTab('announcements')">공지사항</div>
+      <div class="tab" data-tab="announcements" onclick="switchTab('announcements')">공지사항/업데이트</div>
     </div>
 
     <!-- tab: reports -->
@@ -635,7 +635,7 @@ function enterDashboard(subjectCode, subjectName) {
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
-  const titles = { reports:'신고 관리', admins:'관리자 관리', settings:'설정', announcements:'공지사항' };
+  const titles = { reports:'신고 관리', admins:'관리자 관리', settings:'설정', announcements:'공지사항/업데이트' };
   if (tab === 'announcements') loadAnnouncements();
   document.getElementById('topbar-title').textContent = titles[tab] || '';
 }
