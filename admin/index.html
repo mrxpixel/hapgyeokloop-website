@@ -887,13 +887,26 @@ async function loadSubjectList() {
   const el = document.getElementById('subject-list');
   const { data } = await sb.rpc('admin_get_subjects');
   allSubjects = data || [];
-  el.innerHTML = allSubjects.map(s => `
-    <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);">
-      <strong style="font-family:var(--mono);font-size:12px">${escHtml(s.code)}</strong>
-      <span style="font-size:13px">${escHtml(s.name)}</span>
-      <span style="font-size:11px;color:var(--ink-faint)">(${s.total_count}건)</span>
-      <span onclick="removeSubject('${escHtml(s.code)}')" style="cursor:pointer;color:var(--ink-faint);font-size:16px;line-height:1" title="삭제">&times;</span>
-    </div>`).join('');
+
+  let html = '';
+  for (const s of allSubjects) {
+    const { data: mappings } = await sb.rpc('admin_get_subject_mappings', { p_exam_code: s.code });
+    const { data: unmapped } = await sb.rpc('admin_get_unmapped_subjects');
+    const mapTags = (mappings||[]).map(m => `<span class="subject-tag">${escHtml(m.subject_id)} <small style="opacity:.6">(${m.question_count})</small> <span class="remove-tag" onclick="removeMapping('${escHtml(s.code)}','${escHtml(m.subject_id)}')">&times;</span></span>`).join('');
+    const addOpts = (unmapped||[]).map(u => `<option value="${escHtml(u.subject_id)}">${escHtml(u.subject_id)} (${u.question_count}문제)</option>`).join('');
+    const addSelect = addOpts ? `<select onchange="if(this.value)addMapping('${escHtml(s.code)}',this.value)" style="padding:3px 8px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--accent);cursor:pointer;font-family:var(--mono)"><option value="">+ 과목 연결</option>${addOpts}</select>` : '';
+
+    html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <strong style="font-family:var(--mono);font-size:13px">${escHtml(s.code)}</strong>
+        <span style="font-size:14px;font-weight:600">${escHtml(s.name)}</span>
+        <span style="font-size:11px;color:var(--ink-faint)">신고 ${s.total_count}건</span>
+        <span onclick="removeSubject('${escHtml(s.code)}')" style="cursor:pointer;color:var(--ink-faint);font-size:14px;margin-left:auto" title="시험 삭제">&times;</span>
+      </div>
+      <div class="subject-tags">${mapTags}${addSelect}</div>
+    </div>`;
+  }
+  el.innerHTML = html;
 }
 
 async function addSubject() {
@@ -909,10 +922,22 @@ async function addSubject() {
 }
 
 async function removeSubject(code) {
-  if (!confirm(`"${code}" 시험을 삭제하시겠습니까?`)) return;
+  if (!confirm(`"${code}" 시험을 삭제하시겠습니까? 연결된 과목 매핑도 모두 삭제됩니다.`)) return;
   const { error } = await sb.rpc('admin_remove_subject', { subject_code: code });
   if (error) { toast('삭제 실패: ' + error.message, true); return; }
   toast('시험이 삭제되었습니다.'); await loadSubjectList();
+}
+
+async function addMapping(examCode, subjectId) {
+  const { error } = await sb.rpc('admin_add_subject_mapping', { p_exam_code: examCode, p_subject_id: subjectId });
+  if (error) { toast('연결 실패: ' + error.message, true); return; }
+  toast('과목이 연결되었습니다.'); await loadSubjectList();
+}
+
+async function removeMapping(examCode, subjectId) {
+  const { error } = await sb.rpc('admin_remove_subject_mapping', { p_exam_code: examCode, p_subject_id: subjectId });
+  if (error) { toast('해제 실패: ' + error.message, true); return; }
+  toast('과목 연결이 해제되었습니다.'); await loadSubjectList();
 }
 
 // ── Admin subject assignment ──
