@@ -412,9 +412,8 @@
         <div class="field"><label>제목</label><input type="text" id="ann-title" placeholder="공지 제목"></div>
         <div class="field"><label>유형</label>
           <select id="ann-type" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--ink);font-size:14px">
-            <option value="notice">공지</option>
+            <option value="notice">공지사항</option>
             <option value="update">업데이트</option>
-            <option value="plan">계획</option>
           </select>
         </div>
         <div class="field"><label>내용</label>
@@ -1024,8 +1023,8 @@ function renderAnnouncements() {
 }
 
 function annCardHtml(a) {
-  const typeLabels = { update:'업데이트', notice:'공지', plan:'계획' };
-  const typeBadge = { update:'badge-update', notice:'badge-notice', plan:'badge-plan' };
+  const typeLabels = { update:'업데이트', notice:'공지사항' };
+  const typeBadge = { update:'badge-update', notice:'badge-notice' };
   const pubBadge = a.is_published ? '<span class="badge badge-published">발행됨</span>' : '<span class="badge badge-draft">미발행</span>';
   const expires = a.expires_at ? `만료: ${new Date(a.expires_at).toLocaleDateString('ko-KR')}` : '만료 없음';
   const toggleLabel = a.is_published ? '내리기' : '발행';
