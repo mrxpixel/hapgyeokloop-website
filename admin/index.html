@@ -226,6 +226,7 @@
     <form id="login-form">
       <div class="field"><label>EMAIL</label><input type="email" id="login-email" autocomplete="email" required></div>
       <div class="field"><label>PASSWORD</label><input type="password" id="login-password" autocomplete="current-password" required></div>
+      <label style="display:flex;align-items:center;gap:8px;margin:4px 0 12px;font-size:13px;color:var(--ink-dim);cursor:pointer;user-select:none"><input type="checkbox" id="remember-email" style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer">이메일 저장</label>
       <button type="submit" class="btn btn-primary" id="login-btn">로그인</button>
     </form>
     <div class="auth-error" id="login-error"></div>
@@ -355,6 +356,12 @@ let currentFilter = 'pending';
 let currentRole = '';
 let currentUserId = '';
 
+// ═══ Remember Email ═══
+(function() {
+  const saved = localStorage.getItem('admin_email');
+  if (saved) { document.getElementById('login-email').value = saved; document.getElementById('remember-email').checked = true; }
+})();
+
 // ═══ Helpers ═══
 
 function escHtml(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
@@ -410,6 +417,8 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   btn.disabled = true; btn.textContent = '로그인 중...';
   const email = document.getElementById('login-email').value.trim();
   const pw = document.getElementById('login-password').value;
+  if (document.getElementById('remember-email').checked) localStorage.setItem('admin_email', email);
+  else localStorage.removeItem('admin_email');
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
   if (error) { showErr('login-error', '로그인 실패: 이메일 또는 비밀번호를 확인하세요.'); btn.disabled = false; btn.textContent = '로그인'; return; }
   currentUserId = data.user.id;
