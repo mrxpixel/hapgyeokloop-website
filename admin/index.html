@@ -648,7 +648,8 @@ function reportCardHtml(r) {
   const isInProgress = r.status === 'in_progress';
   const isResolved = r.status === 'resolved';
   const time = relativeTime(r.created_at);
-  const qLabel = r.year_session && r.question_number ? `${r.subject_id||''} | ${r.year_session}회 ${r.question_number}번` : r.question_id;
+  const subjectName = r.subject_display_name || r.subject_id || '';
+  const qLabel = r.year_session && r.question_number ? `${subjectName} | ${r.year_session}회 ${r.question_number}번` : r.question_id;
 
   // Header badges
   let headerBadges = '';
