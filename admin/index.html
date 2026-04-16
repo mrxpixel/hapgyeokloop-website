@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>합격루프 관리자</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0e1117;
+      --bg-raised: #161b22;
+      --bg-card:   #1c2129;
+      --bg-hover:  #262d38;
+      --border:    #2d333b;
+      --border-hi: #444c56;
+      --ink:       #e6edf3;
+      --ink-dim:   #8b949e;
+      --ink-faint: #545d68;
+      --accent:    #58a6ff;
+      --amber:     #f0983e;
+      --amber-bg:  rgba(240,152,62,.12);
+      --green:     #3fb950;
+      --green-bg:  rgba(63,185,80,.12);
+      --red:       #f85149;
+      --red-bg:    rgba(248,81,73,.10);
+      --purple:    #bc8cff;
+      --purple-bg: rgba(188,140,255,.10);
+      --cyan:      #56d4dd;
+      --cyan-bg:   rgba(86,212,221,.10);
+      --radius:    10px;
+      --radius-sm: 6px;
+      --shadow:    0 8px 32px rgba(0,0,0,.4);
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'Noto Sans KR', -apple-system, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: var(--bg); color: var(--ink); }
+    body { font-family: var(--sans); font-size: 14px; line-height: 1.6; min-height: 100dvh; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── auth views ── */
+    .auth-view { display:none; align-items:center; justify-content:center; min-height:100dvh; padding:24px; }
+    .auth-view.visible { display: flex; }
+    .auth-box { width:100%; max-width:400px; background:var(--bg-raised); border:1px solid var(--border); border-radius:var(--radius); padding:40px 32px; box-shadow:var(--shadow); }
+    .auth-box h1 { font-family:var(--mono); font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:4px; }
+    .auth-box .brand { font-size:22px; font-weight:700; margin-bottom:28px; color:var(--ink); }
+    .field { margin-bottom:16px; }
+    .field label { display:block; font-size:12px; font-weight:500; color:var(--ink-dim); margin-bottom:6px; font-family:var(--mono); letter-spacing:.04em; }
+    .field input { width:100%; padding:10px 14px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--ink); font-size:14px; font-family:var(--sans); outline:none; transition:border-color .15s; }
+    .field input:focus { border-color:var(--accent); }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 20px; border:none; border-radius:var(--radius-sm); font-family:var(--sans); font-size:14px; font-weight:500; cursor:pointer; transition:all .15s; white-space:nowrap; }
+    .btn-primary { width:100%; background:var(--accent); color:#fff; margin-top:8px; }
+    .btn-primary:hover { filter:brightness(1.15); }
+    .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+    .auth-error { margin-top:12px; padding:10px 14px; background:var(--red-bg); border:1px solid rgba(248,81,73,.25); border-radius:var(--radius-sm); color:var(--red); font-size:13px; display:none; }
+    .auth-success { margin-top:12px; padding:10px 14px; background:var(--green-bg); border:1px solid rgba(63,185,80,.25); border-radius:var(--radius-sm); color:var(--green); font-size:13px; display:none; }
+    .auth-switch { margin-top:20px; text-align:center; font-size:13px; color:var(--ink-dim); }
+    .auth-switch a { color:var(--accent); cursor:pointer; text-decoration:none; }
+    .auth-switch a:hover { text-decoration:underline; }
+    .auth-links { margin-top:12px; text-align:center; }
+    .auth-links a { font-size:12px; color:var(--ink-faint); cursor:pointer; text-decoration:none; }
+    .auth-links a:hover { color:var(--accent); }
+
+    /* ── status views (pending/rejected) ── */
+    .status-icon { width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
+    .status-icon.amber { background:var(--amber-bg); color:var(--amber); }
+    .status-icon.red { background:var(--red-bg); color:var(--red); }
+    .status-text { text-align:center; }
+    .status-text h2 { font-size:18px; font-weight:700; margin-bottom:8px; }
+    .status-text p { color:var(--ink-dim); font-size:14px; line-height:1.7; }
+    .status-actions { margin-top:24px; text-align:center; }
+
+    /* ── buttons ── */
+    .btn-ghost { background:transparent; color:var(--ink-dim); border:1px solid var(--border); padding:6px 14px; font-size:12px; }
+    .btn-ghost:hover { background:var(--bg-hover); color:var(--ink); }
+    .btn-resolve { background:var(--green); color:#fff; }
+    .btn-resolve:hover { filter:brightness(1.1); }
+    .btn-resolve:disabled { opacity:.5; cursor:not-allowed; }
+    .btn-reopen { background:transparent; color:var(--amber); border:1px solid rgba(240,152,62,.3); }
+    .btn-reopen:hover { background:var(--amber-bg); }
+    .btn-assign { background:var(--cyan-bg); color:var(--cyan); border:1px solid rgba(86,212,221,.25); padding:7px 14px; font-size:12px; }
+    .btn-assign:hover { filter:brightness(1.15); }
+    .btn-unassign { background:transparent; color:var(--ink-faint); border:1px solid var(--border); padding:7px 14px; font-size:12px; }
+    .btn-unassign:hover { color:var(--red); border-color:rgba(248,81,73,.3); }
+    .btn-approve { background:var(--green); color:#fff; padding:7px 16px; font-size:13px; }
+    .btn-approve:hover { filter:brightness(1.1); }
+    .btn-reject { background:transparent; color:var(--red); border:1px solid rgba(248,81,73,.3); padding:7px 16px; font-size:13px; }
+    .btn-reject:hover { background:var(--red-bg); }
+    .btn-revoke { background:transparent; color:var(--ink-faint); border:1px solid var(--border); padding:7px 16px; font-size:13px; }
+    .btn-revoke:hover { background:var(--bg-hover); color:var(--red); border-color:rgba(248,81,73,.3); }
+
+    /* ── dashboard ── */
+    #dashboard-view { display:none; }
+    .topbar { position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between; padding:0 28px; height:56px; background:rgba(14,17,23,.85); backdrop-filter:blur(16px); border-bottom:1px solid var(--border); }
+    .topbar-left { display:flex; align-items:center; gap:12px; }
+    .topbar-logo { font-family:var(--mono); font-weight:600; font-size:13px; letter-spacing:.06em; color:var(--ink-dim); }
+    .topbar-title { font-weight:700; font-size:15px; }
+    .topbar-right { display:flex; align-items:center; gap:12px; }
+    .topbar-email { font-size:12px; color:var(--ink-faint); font-family:var(--mono); }
+    .topbar-role { font-size:10px; font-family:var(--mono); font-weight:600; letter-spacing:.04em; padding:2px 8px; border-radius:20px; background:var(--purple-bg); color:var(--purple); }
+    .container { max-width:960px; margin:0 auto; padding:28px 28px 80px; }
+
+    /* ── tabs ── */
+    .tabs { display:flex; gap:2px; margin-bottom:24px; border-bottom:1px solid var(--border); }
+    .tab { padding:10px 20px; font-size:13px; font-weight:500; color:var(--ink-dim); cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; position:relative; bottom:-1px; }
+    .tab:hover { color:var(--ink); }
+    .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    .tab .tab-count { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; margin-left:6px; border-radius:10px; font-size:11px; font-family:var(--mono); font-weight:600; }
+    .tab .tab-count.amber { background:var(--amber-bg); color:var(--amber); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+
+    /* ── stats ── */
+    .stats { display:flex; gap:12px; margin-bottom:24px; }
+    .stat-card { flex:1; background:var(--bg-raised); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; cursor:pointer; transition:all .15s; }
+    .stat-card:hover { border-color:var(--border-hi); }
+    .stat-card.active { border-color:var(--accent); background:rgba(88,166,255,.06); }
+    .stat-label { font-size:11px; font-family:var(--mono); font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:6px; }
+    .stat-value { font-size:28px; font-weight:700; font-family:var(--mono); }
+    .stat-card.pending .stat-value { color:var(--amber); }
+    .stat-card.in_progress .stat-value { color:var(--cyan); }
+    .stat-card.resolved .stat-value { color:var(--green); }
+    .stat-card.total .stat-value { color:var(--ink); }
+
+    /* ── report cards ── */
+    .report-list { display:flex; flex-direction:column; gap:10px; }
+    .report-card { background:var(--bg-raised); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; transition:border-color .15s; }
+    .report-card:hover { border-color:var(--border-hi); }
+    .report-header { display:flex; align-items:center; gap:14px; padding:16px 20px; cursor:pointer; user-select:none; }
+    .status-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .status-dot.pending { background:var(--amber); box-shadow:0 0 8px rgba(240,152,62,.4); }
+    .status-dot.in_progress { background:var(--cyan); box-shadow:0 0 8px rgba(86,212,221,.4); }
+    .status-dot.resolved { background:var(--green); box-shadow:0 0 8px rgba(63,185,80,.3); }
+    .report-meta { flex:1; min-width:0; }
+    .report-reason { font-weight:600; font-size:14px; margin-bottom:2px; }
+    .report-sub { font-size:12px; color:var(--ink-dim); font-family:var(--mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .badge { display:inline-flex; align-items:center; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; font-family:var(--mono); letter-spacing:.03em; flex-shrink:0; }
+    .badge-pending { background:var(--amber-bg); color:var(--amber); }
+    .badge-in-progress { background:var(--cyan-bg); color:var(--cyan); }
+    .badge-resolved { background:var(--green-bg); color:var(--green); }
+    .badge-rejected { background:var(--red-bg); color:var(--red); }
+    .badge-super { background:var(--purple-bg); color:var(--purple); }
+    .badge-assigned { background:var(--cyan-bg); color:var(--cyan); }
+    .report-time { font-size:12px; color:var(--ink-faint); font-family:var(--mono); flex-shrink:0; }
+    .chevron { color:var(--ink-faint); transition:transform .2s; flex-shrink:0; }
+    .report-card.open .chevron { transform:rotate(90deg); }
+    .report-body { display:none; border-top:1px solid var(--border); padding:20px; }
+    .report-card.open .report-body { display:block; }
+    .detail-section { margin-bottom:20px; }
+    .detail-section:last-child { margin-bottom:0; }
+    .detail-label { font-size:11px; font-family:var(--mono); font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:8px; }
+    .detail-text { font-size:14px; line-height:1.7; color:var(--ink); white-space:pre-wrap; }
+    .question-box { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px; }
+    .question-stem { font-size:14px; font-weight:500; line-height:1.7; margin-bottom:14px; }
+    .choices-list { list-style:none; display:flex; flex-direction:column; gap:6px; }
+    .choice-item { font-size:13px; line-height:1.6; padding:8px 12px; border-radius:var(--radius-sm); color:var(--ink-dim); }
+    .choice-item.correct { background:var(--green-bg); color:var(--green); font-weight:500; }
+    .explanation-box { margin-top:14px; padding:14px; background:rgba(88,166,255,.05); border-left:3px solid var(--accent); border-radius:0 var(--radius-sm) var(--radius-sm) 0; font-size:13px; line-height:1.8; color:var(--ink-dim); white-space:pre-wrap; }
+    .admin-response-existing { background:var(--green-bg); border:1px solid rgba(63,185,80,.2); border-radius:var(--radius-sm); padding:14px; font-size:14px; line-height:1.7; white-space:pre-wrap; }
+    .response-form textarea { width:100%; min-height:80px; padding:12px 14px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.6; resize:vertical; outline:none; transition:border-color .15s; }
+    .response-form textarea:focus { border-color:var(--accent); }
+    .response-form textarea::placeholder { color:var(--ink-faint); }
+    .form-actions { display:flex; gap:8px; margin-top:10px; justify-content:flex-end; }
+
+    /* ── internal tracking strip ── */
+    .tracking-strip { display:flex; flex-wrap:wrap; gap:12px; padding:12px 16px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); font-size:12px; font-family:var(--mono); color:var(--ink-dim); }
+    .tracking-item { display:flex; align-items:center; gap:6px; }
+    .tracking-item svg { flex-shrink:0; }
+    .internal-note-box { margin-top:8px; padding:12px 16px; background:rgba(188,140,255,.05); border:1px solid rgba(188,140,255,.15); border-radius:var(--radius-sm); font-size:13px; line-height:1.7; color:var(--ink-dim); white-space:pre-wrap; }
+
+    /* ── admin user cards ── */
+    .user-list { display:flex; flex-direction:column; gap:10px; }
+    .user-card { background:var(--bg-raised); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; display:flex; align-items:center; gap:16px; transition:border-color .15s; }
+    .user-card:hover { border-color:var(--border-hi); }
+    .user-avatar { width:40px; height:40px; border-radius:50%; background:var(--bg-hover); display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; font-size:15px; color:var(--ink-dim); flex-shrink:0; }
+    .user-info { flex:1; min-width:0; }
+    .user-name { font-weight:600; font-size:14px; margin-bottom:2px; }
+    .user-email-small { font-size:12px; color:var(--ink-dim); font-family:var(--mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .user-stat { font-size:11px; color:var(--ink-faint); font-family:var(--mono); margin-top:2px; }
+    .user-actions { display:flex; gap:8px; flex-shrink:0; }
+
+    /* ── settings panel ── */
+    .settings-section { background:var(--bg-raised); border:1px solid var(--border); border-radius:var(--radius); padding:24px; margin-bottom:16px; }
+    .settings-title { font-size:15px; font-weight:700; margin-bottom:4px; }
+    .settings-desc { font-size:13px; color:var(--ink-dim); margin-bottom:20px; }
+    .settings-section .field { max-width:360px; }
+    .settings-section .btn-primary { max-width:360px; }
+
+    /* ── loading/empty/toast ── */
+    .empty-state { text-align:center; padding:80px 20px; color:var(--ink-faint); }
+    .empty-icon { font-size:48px; margin-bottom:16px; opacity:.3; }
+    .empty-state p { font-size:15px; }
+    .spinner { display:inline-block; width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .6s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .loading-full { display:flex; align-items:center; justify-content:center; gap:12px; padding:80px 20px; color:var(--ink-dim); font-size:14px; }
+    .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); padding:10px 20px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); font-size:13px; font-weight:500; color:var(--green); opacity:0; transition:all .3s; z-index:100; pointer-events:none; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    @media (max-width:640px) {
+      .stats { flex-direction:column; }
+      .topbar { padding:0 16px; }
+      .container { padding:16px 16px 60px; }
+      .report-header { padding:14px 16px; gap:10px; }
+      .report-body { padding:16px; }
+      .report-time { display:none; }
+      .stat-value { font-size:22px; }
+      .user-card { flex-wrap:wrap; }
+      .user-actions { width:100%; justify-content:flex-end; }
+      .topbar-email { display:none; }
+      .tracking-strip { flex-direction:column; gap:6px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="login-view" class="auth-view visible">
+  <div class="auth-box">
+    <h1>Admin Console</h1>
+    <div class="brand">합격루프</div>
+    <form id="login-form">
+      <div class="field"><label>EMAIL</label><input type="email" id="login-email" autocomplete="email" required></div>
+      <div class="field"><label>PASSWORD</label><input type="password" id="login-password" autocomplete="current-password" required></div>
+      <button type="submit" class="btn btn-primary" id="login-btn">로그인</button>
+    </form>
+    <div class="auth-error" id="login-error"></div>
+    <div class="auth-links"><a onclick="showView('reset')">비밀번호를 잊으셨나요?</a></div>
+    <div class="auth-switch">관리자 계정이 없으신가요? <a onclick="showView('signup')">가입 신청</a></div>
+  </div>
+</div>
+
+<!-- ═══ SIGNUP ═══ -->
+<div id="signup-view" class="auth-view">
+  <div class="auth-box">
+    <h1>Admin Registration</h1>
+    <div class="brand">관리자 가입 신청</div>
+    <form id="signup-form">
+      <div class="field"><label>이름</label><input type="text" id="signup-name" placeholder="관리자 이름" required></div>
+      <div class="field"><label>EMAIL</label><input type="email" id="signup-email" autocomplete="email" required></div>
+      <div class="field"><label>PASSWORD (6자 이상)</label><input type="password" id="signup-password" autocomplete="new-password" minlength="6" required></div>
+      <button type="submit" class="btn btn-primary" id="signup-btn">가입 신청</button>
+    </form>
+    <div class="auth-error" id="signup-error"></div>
+    <div class="auth-switch">이미 계정이 있으신가요? <a onclick="showView('login')">로그인</a></div>
+  </div>
+</div>
+
+<!-- ═══ PASSWORD RESET ═══ -->
+<div id="reset-view" class="auth-view">
+  <div class="auth-box">
+    <h1>Password Reset</h1>
+    <div class="brand">비밀번호 재설정</div>
+    <form id="reset-form">
+      <div class="field"><label>EMAIL</label><input type="email" id="reset-email" autocomplete="email" required></div>
+      <button type="submit" class="btn btn-primary" id="reset-btn">재설정 메일 발송</button>
+    </form>
+    <div class="auth-error" id="reset-error"></div>
+    <div class="auth-success" id="reset-success"></div>
+    <div class="auth-switch"><a onclick="showView('login')">로그인으로 돌아가기</a></div>
+  </div>
+</div>
+
+<!-- ═══ PENDING ═══ -->
+<div id="pending-view" class="auth-view">
+  <div class="auth-box" style="text-align:center">
+    <div class="status-icon amber">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <div class="status-text"><h2>승인 대기 중</h2><p>가입 신청이 완료되었습니다.<br>최고 관리자가 승인하면 접속이 가능합니다.</p></div>
+    <div class="status-actions"><button class="btn btn-ghost" onclick="handleLogout()">로그아웃</button></div>
+  </div>
+</div>
+
+<!-- ═══ REJECTED ═══ -->
+<div id="rejected-view" class="auth-view">
+  <div class="auth-box" style="text-align:center">
+    <div class="status-icon red">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+    </div>
+    <div class="status-text"><h2>접근이 거부되었습니다</h2><p>관리자 승인이 거절되었습니다.<br>문의사항이 있으면 최고 관리자에게 연락하세요.</p></div>
+    <div class="status-actions"><button class="btn btn-ghost" onclick="handleLogout()">로그아웃</button></div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="dashboard-view">
+  <nav class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">ADMIN</span>
+      <span class="topbar-title" id="topbar-title">신고 관리</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-role" id="topbar-role"></span>
+      <span class="topbar-email" id="user-email"></span>
+      <button class="btn btn-ghost" onclick="handleLogout()">로그아웃</button>
+    </div>
+  </nav>
+  <div class="container">
+    <div class="tabs">
+      <div class="tab active" data-tab="reports" onclick="switchTab('reports')">신고 관리</div>
+      <div class="tab" data-tab="admins" id="tab-admins" style="display:none" onclick="switchTab('admins')">관리자 관리 <span class="tab-count amber" id="admin-pending-count" style="display:none">0</span></div>
+      <div class="tab" data-tab="settings" onclick="switchTab('settings')">설정</div>
+    </div>
+
+    <!-- tab: reports -->
+    <div class="tab-panel active" id="panel-reports">
+      <div class="stats">
+        <div class="stat-card pending active" data-filter="pending" onclick="setFilter('pending')"><div class="stat-label">대기중</div><div class="stat-value" id="count-pending">-</div></div>
+        <div class="stat-card in_progress" data-filter="in_progress" onclick="setFilter('in_progress')"><div class="stat-label">처리 중</div><div class="stat-value" id="count-in-progress">-</div></div>
+        <div class="stat-card resolved" data-filter="resolved" onclick="setFilter('resolved')"><div class="stat-label">처리 완료</div><div class="stat-value" id="count-resolved">-</div></div>
+        <div class="stat-card total" data-filter="all" onclick="setFilter('all')"><div class="stat-label">전체</div><div class="stat-value" id="count-total">-</div></div>
+      </div>
+      <div id="report-list" class="report-list"><div class="loading-full"><div class="spinner"></div>신고 내역을 불러오는 중...</div></div>
+    </div>
+
+    <!-- tab: admin management -->
+    <div class="tab-panel" id="panel-admins">
+      <div id="admin-list" class="user-list"><div class="loading-full"><div class="spinner"></div>관리자 목록을 불러오는 중...</div></div>
+    </div>
+
+    <!-- tab: settings -->
+    <div class="tab-panel" id="panel-settings">
+      <div class="settings-section">
+        <div class="settings-title">비밀번호 변경</div>
+        <div class="settings-desc">새 비밀번호를 입력하세요. 6자 이상이어야 합니다.</div>
+        <form id="pw-change-form">
+          <div class="field"><label>새 비밀번호</label><input type="password" id="pw-new" minlength="6" required></div>
+          <div class="field"><label>새 비밀번호 확인</label><input type="password" id="pw-confirm" minlength="6" required></div>
+          <button type="submit" class="btn btn-primary" id="pw-change-btn">비밀번호 변경</button>
+        </form>
+        <div class="auth-error" id="pw-error"></div>
+        <div class="auth-success" id="pw-success"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://fulgfanxrcjtsyzfrtjl.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_eOk3axdqIq7U4ccasRFXsw_HNQpvPpo';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let allReports = [];
+let allAdmins = [];
+let adminStats = {};
+let currentFilter = 'pending';
+let currentRole = '';
+let currentUserId = '';
+
+// ═══ Helpers ═══
+
+function escHtml(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+function relativeTime(iso) {
+  const d = Date.now() - new Date(iso).getTime(), m = Math.floor(d/60000);
+  if (m<1) return '방금'; if (m<60) return m+'분 전';
+  const h = Math.floor(m/60); if (h<24) return h+'시간 전';
+  const dy = Math.floor(h/24); if (dy<30) return dy+'일 전';
+  return new Date(iso).toLocaleDateString('ko-KR');
+}
+function toast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.color = isErr ? 'var(--red)' : 'var(--green)';
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
+}
+function showErr(id, msg) { const e = document.getElementById(id); e.textContent = msg; e.style.display = 'block'; }
+function hideMsg(id) { document.getElementById(id).style.display = 'none'; }
+
+// ═══ View Routing ═══
+
+function showView(name) {
+  document.querySelectorAll('.auth-view').forEach(v => v.classList.remove('visible'));
+  document.getElementById('dashboard-view').style.display = 'none';
+  const el = document.getElementById(name + '-view');
+  if (el) el.classList.add('visible');
+  if (name === 'dashboard') document.getElementById('dashboard-view').style.display = 'block';
+}
+
+// ═══ Auth ═══
+
+async function checkSession() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  currentUserId = session.user.id;
+  await routeByAdminStatus(session.user.email);
+}
+
+async function routeByAdminStatus(email) {
+  const { data, error } = await sb.rpc('admin_check_status');
+  if (error) { showView('login'); return; }
+  const row = data?.[0];
+  if (!row || !row.is_registered) { showView('login'); return; }
+  if (row.status === 'pending') { showView('pending'); return; }
+  if (row.status === 'rejected') { showView('rejected'); return; }
+  currentRole = row.role;
+  showDashboard(email, row.role);
+}
+
+// Login
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('login-btn'); hideMsg('login-error');
+  btn.disabled = true; btn.textContent = '로그인 중...';
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-password').value;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (error) { showErr('login-error', '로그인 실패: 이메일 또는 비밀번호를 확인하세요.'); btn.disabled = false; btn.textContent = '로그인'; return; }
+  currentUserId = data.user.id;
+  btn.disabled = false; btn.textContent = '로그인';
+  await routeByAdminStatus(email);
+});
+
+// Signup
+document.getElementById('signup-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('signup-btn'); hideMsg('signup-error');
+  btn.disabled = true; btn.textContent = '처리 중...';
+  const name = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pw = document.getElementById('signup-password').value;
+
+  const { error: suErr } = await sb.auth.signUp({ email, password: pw });
+  if (suErr) {
+    showErr('signup-error', suErr.message.includes('already registered') ? '이미 가입된 이메일입니다.' : '가입 실패: ' + suErr.message);
+    btn.disabled = false; btn.textContent = '가입 신청'; return;
+  }
+  const { data: siData, error: siErr } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (siErr) { showErr('signup-error', '계정 생성 완료. 이메일 확인 후 로그인하세요.'); btn.disabled = false; btn.textContent = '가입 신청'; return; }
+  currentUserId = siData.user.id;
+  const { error: regErr } = await sb.rpc('admin_register', { admin_name: name });
+  if (regErr && !regErr.message.includes('already_registered')) { showErr('signup-error', '등록 실패: ' + regErr.message); btn.disabled = false; btn.textContent = '가입 신청'; return; }
+  btn.disabled = false; btn.textContent = '가입 신청'; showView('pending');
+});
+
+// Password Reset
+document.getElementById('reset-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('reset-btn'); hideMsg('reset-error'); hideMsg('reset-success');
+  btn.disabled = true; btn.textContent = '발송 중...';
+  const email = document.getElementById('reset-email').value.trim();
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/admin/' });
+  if (error) { showErr('reset-error', '발송 실패: ' + error.message); }
+  else { const s = document.getElementById('reset-success'); s.textContent = email + '로 재설정 링크를 발송했습니다. 메일을 확인하세요.'; s.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = '재설정 메일 발송';
+});
+
+// Password Change (in settings)
+document.getElementById('pw-change-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideMsg('pw-error'); hideMsg('pw-success');
+  const pw = document.getElementById('pw-new').value;
+  const confirm = document.getElementById('pw-confirm').value;
+  if (pw !== confirm) { showErr('pw-error', '비밀번호가 일치하지 않습니다.'); return; }
+  if (pw.length < 6) { showErr('pw-error', '6자 이상 입력하세요.'); return; }
+  const btn = document.getElementById('pw-change-btn');
+  btn.disabled = true; btn.textContent = '변경 중...';
+  const { error } = await sb.auth.updateUser({ password: pw });
+  if (error) { showErr('pw-error', '변경 실패: ' + error.message); }
+  else { const s = document.getElementById('pw-success'); s.textContent = '비밀번호가 변경되었습니다.'; s.style.display = 'block'; document.getElementById('pw-new').value = ''; document.getElementById('pw-confirm').value = ''; }
+  btn.disabled = false; btn.textContent = '비밀번호 변경';
+});
+
+// Handle password recovery redirect (Supabase appends #access_token=...)
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') { showView('dashboard'); switchTab('settings'); toast('새 비밀번호를 설정하세요.'); }
+});
+
+async function handleLogout() { await sb.auth.signOut(); currentRole = ''; currentUserId = ''; showView('login'); }
+
+// ═══ Dashboard ═══
+
+function showDashboard(email, role) {
+  showView('dashboard');
+  document.getElementById('user-email').textContent = email;
+  const roleEl = document.getElementById('topbar-role');
+  roleEl.textContent = role === 'super_admin' ? 'SUPER ADMIN' : 'ADMIN';
+  roleEl.style.display = '';
+  document.getElementById('tab-admins').style.display = role === 'super_admin' ? '' : 'none';
+  loadReports();
+  if (role === 'super_admin') { loadAdmins(); loadStats(); }
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+  const titles = { reports:'신고 관리', admins:'관리자 관리', settings:'설정' };
+  document.getElementById('topbar-title').textContent = titles[tab] || '';
+}
+
+// ═══ Reports ═══
+
+async function loadReports() {
+  const el = document.getElementById('report-list');
+  el.innerHTML = '<div class="loading-full"><div class="spinner"></div>불러오는 중...</div>';
+  const { data, error } = await sb.rpc('admin_get_reports');
+  if (error) { el.innerHTML = `<div class="empty-state"><p style="color:var(--red)">${escHtml(error.message)}</p></div>`; return; }
+  allReports = data || [];
+  updateCounts(); renderReports();
+}
+
+function updateCounts() {
+  const p = allReports.filter(r => r.status==='pending').length;
+  const ip = allReports.filter(r => r.status==='in_progress').length;
+  const rv = allReports.filter(r => r.status==='resolved').length;
+  document.getElementById('count-pending').textContent = p;
+  document.getElementById('count-in-progress').textContent = ip;
+  document.getElementById('count-resolved').textContent = rv;
+  document.getElementById('count-total').textContent = allReports.length;
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.stat-card').forEach(c => c.classList.toggle('active', c.dataset.filter === f));
+  renderReports();
+}
+
+function renderReports() {
+  const el = document.getElementById('report-list');
+  const list = currentFilter === 'all' ? allReports : allReports.filter(r => r.status === currentFilter);
+  if (!list.length) { const msgs = {pending:'대기 중인 신고가 없습니다.',in_progress:'처리 중인 신고가 없습니다.',resolved:'처리 완료된 신고가 없습니다.',all:'신고가 없습니다.'}; el.innerHTML = `<div class="empty-state"><p>${msgs[currentFilter]||msgs.all}</p></div>`; return; }
+  el.innerHTML = list.map(reportCardHtml).join('');
+}
+
+function reportCardHtml(r) {
+  const isPending = r.status === 'pending';
+  const isInProgress = r.status === 'in_progress';
+  const isResolved = r.status === 'resolved';
+  const time = relativeTime(r.created_at);
+  const qLabel = r.year_session && r.question_number ? `${r.subject_id||''} | ${r.year_session}회 ${r.question_number}번` : r.question_id;
+
+  // Header badges
+  let headerBadges = '';
+  if ((isPending || isInProgress) && r.assigned_name) headerBadges += `<span class="badge badge-assigned">${escHtml(r.assigned_name)}</span>`;
+  const badgeClass = isPending ? 'badge-pending' : isInProgress ? 'badge-in-progress' : 'badge-resolved';
+  const badgeText = isPending ? 'PENDING' : isInProgress ? '처리 중' : 'RESOLVED';
+  headerBadges += `<span class="badge ${badgeClass}">${badgeText}</span>`;
+
+  // Choices
+  let choicesHtml = '';
+  if (r.choices && Array.isArray(r.choices)) {
+    choicesHtml = '<ul class="choices-list">' + r.choices.map(c => `<li class="choice-item${c.id===r.correct_answer?' correct':''}">${escHtml(c.id)}. ${escHtml(c.text)}</li>`).join('') + '</ul>';
+  }
+
+  // Tracking strip (internal — who assigned, who resolved)
+  let trackingHtml = '<div class="detail-section"><div class="tracking-strip">';
+  if (r.assigned_name) trackingHtml += `<div class="tracking-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${escHtml(r.assigned_name)} 담당</div>`;
+  if (r.resolved_name) trackingHtml += `<div class="tracking-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>${escHtml(r.resolved_name)} 처리${r.resolved_at ? ' &middot; ' + relativeTime(r.resolved_at) : ''}</div>`;
+  trackingHtml += `<div class="tracking-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>신고: ${time}</div>`;
+  trackingHtml += '</div>';
+  if (r.internal_note) trackingHtml += `<div class="internal-note-box"><strong style="color:var(--purple);font-size:11px;font-family:var(--mono)">내부 메모</strong><br>${escHtml(r.internal_note)}</div>`;
+  trackingHtml += '</div>';
+
+  // Assign/unassign buttons
+  let assignHtml = '';
+  if (isPending || isInProgress) {
+    if (!r.assigned_to) {
+      assignHtml = `<button class="btn btn-assign" onclick="event.stopPropagation();assignReport('${r.id}')">내가 담당</button>`;
+    } else if (r.assigned_to === currentUserId || currentRole === 'super_admin') {
+      assignHtml = `<button class="btn btn-unassign" onclick="event.stopPropagation();unassignReport('${r.id}')">담당 해제</button>`;
+    }
+  }
+
+  // Response form or resolved info
+  let formHtml = '';
+  if (isPending || isInProgress) {
+    formHtml = `<div class="detail-section">
+      <div class="detail-label">답변 작성</div>
+      <div class="response-form">
+        <textarea id="resp-${r.id}" placeholder="유저에게 보여질 답변을 입력하세요..."></textarea>
+        <div style="margin-top:8px"><div class="detail-label">내부 메모 (유저에게 안 보임)</div>
+        <textarea id="note-${r.id}" placeholder="관리자 내부 메모..." style="min-height:50px">${escHtml(r.internal_note||'')}</textarea></div>
+        <div class="form-actions">
+          <button class="btn btn-resolve" onclick="resolveReport('${r.id}')">처리 완료</button>
+        </div>
+      </div></div>`;
+  } else {
+    formHtml = r.admin_response ? `<div class="detail-section"><div class="detail-label">운영팀 답변</div><div class="admin-response-existing">${escHtml(r.admin_response)}</div></div>` : '';
+    if (currentRole === 'super_admin' || r.resolved_by === currentUserId) {
+      formHtml += `<div class="detail-section"><div class="form-actions"><button class="btn btn-reopen" onclick="reopenReport('${r.id}')">다시 열기</button></div></div>`;
+    }
+  }
+
+  return `
+  <div class="report-card" id="card-${r.id}">
+    <div class="report-header" onclick="toggleCard('${r.id}')">
+      <div class="status-dot ${r.status}"></div>
+      <div class="report-meta">
+        <div class="report-reason">${escHtml(r.reason)}</div>
+        <div class="report-sub">${escHtml(qLabel)}</div>
+      </div>
+      ${assignHtml}
+      ${headerBadges}
+      <span class="report-time">${time}</span>
+      <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 010-1.06z"/></svg>
+    </div>
+    <div class="report-body">
+      ${r.detail ? `<div class="detail-section"><div class="detail-label">상세 사유</div><div class="detail-text">${escHtml(r.detail)}</div></div>` : ''}
+      ${r.stem ? `<div class="detail-section"><div class="detail-label">문제 원문</div><div class="question-box"><div class="question-stem">${escHtml(r.stem)}</div>${choicesHtml}${r.explanation?`<div class="explanation-box">${escHtml(r.explanation)}</div>`:''}</div></div>` : ''}
+      ${trackingHtml}
+      ${formHtml}
+      <div class="detail-section" style="margin-top:12px"><div class="report-sub">신고자: ${escHtml(r.display_name||'익명')} &middot; ID: <span style="font-size:11px">${r.user_id}</span></div></div>
+    </div>
+  </div>`;
+}
+
+function toggleCard(id) { document.getElementById('card-'+id).classList.toggle('open'); }
+
+async function assignReport(id) {
+  const { error } = await sb.rpc('admin_assign_report', { report_id: id });
+  if (error) { toast(error.message.includes('already_assigned') ? '이미 다른 관리자가 담당 중입니다.' : error.message, true); return; }
+  toast('담당자로 배정되었습니다.'); await loadReports();
+}
+
+async function unassignReport(id) {
+  const { error } = await sb.rpc('admin_unassign_report', { report_id: id });
+  if (error) { toast('해제 실패: ' + error.message, true); return; }
+  toast('담당이 해제되었습니다.'); await loadReports();
+}
+
+async function resolveReport(id) {
+  const resp = document.getElementById('resp-'+id)?.value.trim();
+  const note = document.getElementById('note-'+id)?.value.trim();
+  if (!resp) { toast('답변을 입력해주세요.', true); document.getElementById('resp-'+id)?.focus(); return; }
+  const btn = document.querySelector(`#card-${id} .btn-resolve`);
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  const { error } = await sb.rpc('admin_resolve_report', { report_id: id, response: resp, note: note || null });
+  if (error) { toast('처리 실패: ' + error.message, true); btn.disabled = false; btn.textContent = '처리 완료'; return; }
+  toast('처리 완료되었습니다.'); await loadReports();
+}
+
+async function reopenReport(id) {
+  const { error } = await sb.rpc('admin_reopen_report', { report_id: id });
+  if (error) { toast('실패: ' + error.message, true); return; }
+  toast('신고가 다시 열렸습니다.'); await loadReports();
+}
+
+// ═══ Admin Management ═══
+
+async function loadStats() {
+  const { data } = await sb.rpc('admin_get_stats');
+  adminStats = {};
+  (data||[]).forEach(s => { adminStats[s.admin_id] = s; });
+}
+
+async function loadAdmins() {
+  const el = document.getElementById('admin-list');
+  el.innerHTML = '<div class="loading-full"><div class="spinner"></div>불러오는 중...</div>';
+  const { data, error } = await sb.rpc('admin_list_users');
+  if (error) { el.innerHTML = `<div class="empty-state"><p style="color:var(--red)">${escHtml(error.message)}</p></div>`; return; }
+  allAdmins = data || [];
+  renderAdmins();
+  const pc = allAdmins.filter(a => a.status==='pending').length;
+  const badge = document.getElementById('admin-pending-count');
+  badge.textContent = pc; badge.style.display = pc > 0 ? '' : 'none';
+}
+
+function renderAdmins() {
+  const el = document.getElementById('admin-list');
+  if (!allAdmins.length) { el.innerHTML = '<div class="empty-state"><p>등록된 관리자가 없습니다.</p></div>'; return; }
+  el.innerHTML = allAdmins.map(adminCardHtml).join('');
+}
+
+function adminCardHtml(a) {
+  const initial = (a.name||a.email||'?').charAt(0).toUpperCase();
+  const stat = adminStats[a.id];
+  const statText = stat ? `처리 ${stat.total_resolved}건 &middot; 담당 ${stat.total_assigned}건` : '';
+  let badgeHtml = '', actionsHtml = '';
+  if (a.role === 'super_admin') { badgeHtml = '<span class="badge badge-super">SUPER ADMIN</span>'; }
+  else if (a.status === 'pending') { badgeHtml = '<span class="badge badge-pending">PENDING</span>'; actionsHtml = `<button class="btn btn-approve" onclick="approveAdmin('${a.id}')">승인</button><button class="btn btn-reject" onclick="rejectAdmin('${a.id}')">거절</button>`; }
+  else if (a.status === 'approved') { badgeHtml = '<span class="badge badge-resolved">APPROVED</span>'; actionsHtml = `<button class="btn btn-revoke" onclick="revokeAdmin('${a.id}')">권한 해제</button>`; }
+  else { badgeHtml = '<span class="badge badge-rejected">REJECTED</span>'; actionsHtml = `<button class="btn btn-approve" onclick="approveAdmin('${a.id}')">승인</button>`; }
+
+  return `<div class="user-card">
+    <div class="user-avatar">${initial}</div>
+    <div class="user-info">
+      <div class="user-name">${escHtml(a.name||'이름 없음')}</div>
+      <div class="user-email-small">${escHtml(a.email)} &middot; ${relativeTime(a.created_at)}</div>
+      ${statText ? `<div class="user-stat">${statText}</div>` : ''}
+    </div>
+    ${badgeHtml}
+    <div class="user-actions">${actionsHtml}</div>
+  </div>`;
+}
+
+async function approveAdmin(id) {
+  const { error } = await sb.rpc('admin_approve_user', { target_id: id });
+  if (error) { toast('승인 실패: '+error.message, true); return; }
+  toast('관리자가 승인되었습니다.'); await loadAdmins();
+}
+async function rejectAdmin(id) {
+  const { error } = await sb.rpc('admin_reject_user', { target_id: id });
+  if (error) { toast('거절 실패: '+error.message, true); return; }
+  toast('관리자 가입이 거절되었습니다.'); await loadAdmins();
+}
+async function revokeAdmin(id) {
+  const { error } = await sb.rpc('admin_revoke_user', { target_id: id });
+  if (error) { toast('해제 실패: '+error.message, true); return; }
+  toast('관리자 권한이 해제되었습니다.'); await loadAdmins();
+}
+
+// ═══ Init ═══
+checkSession();
+</script>
+</body>
+</html>
