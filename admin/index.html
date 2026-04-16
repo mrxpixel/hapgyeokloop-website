@@ -191,6 +191,33 @@
     .settings-section .field { max-width:360px; }
     .settings-section .btn-primary { max-width:360px; }
 
+    /* ── subject selector (Netflix-style) ── */
+    #subject-view { display:none; min-height:100dvh; background:var(--bg); }
+    .subject-header { text-align:center; padding:60px 24px 32px; }
+    .subject-header h1 { font-family:var(--mono); font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:4px; }
+    .subject-header .brand { font-size:22px; font-weight:700; color:var(--ink); margin-bottom:8px; }
+    .subject-header p { font-size:14px; color:var(--ink-dim); }
+    .subject-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px; max-width:720px; margin:0 auto; padding:0 24px 40px; }
+    .subject-card { background:var(--bg-raised); border:1px solid var(--border); border-radius:var(--radius); padding:28px 24px; cursor:pointer; transition:all .2s; position:relative; overflow:hidden; }
+    .subject-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.3); }
+    .subject-card .subject-name { font-size:18px; font-weight:700; margin-bottom:12px; }
+    .subject-card .subject-counts { display:flex; gap:16px; font-size:12px; font-family:var(--mono); color:var(--ink-dim); }
+    .subject-card .subject-counts .cnt { font-weight:600; }
+    .subject-card .subject-counts .cnt.amber { color:var(--amber); }
+    .subject-card .subject-counts .cnt.cyan { color:var(--cyan); }
+    .subject-card-add { border-style:dashed; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--ink-faint); min-height:120px; }
+    .subject-card-add:hover { color:var(--accent); border-color:var(--accent); }
+    .subject-actions { text-align:center; padding:0 24px 40px; }
+    .subject-back-btn { position:absolute; top:20px; right:20px; }
+
+    /* ── subject management in admin tab ── */
+    .subject-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+    .subject-tag { display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:12px; font-size:11px; font-family:var(--mono); font-weight:500; background:var(--accent); background:rgba(88,166,255,.12); color:var(--accent); }
+    .subject-tag .remove-tag { cursor:pointer; opacity:.6; font-size:14px; line-height:1; }
+    .subject-tag .remove-tag:hover { opacity:1; color:var(--red); }
+    .add-subject-form { display:flex; gap:8px; align-items:flex-end; margin-bottom:20px; }
+    .add-subject-form .field { margin-bottom:0; flex:1; }
+
     /* ── loading/empty/toast ── */
     .empty-state { text-align:center; padding:80px 20px; color:var(--ink-faint); }
     .empty-icon { font-size:48px; margin-bottom:16px; opacity:.3; }
@@ -213,6 +240,8 @@
       .user-actions { width:100%; justify-content:flex-end; }
       .topbar-email { display:none; }
       .tracking-strip { flex-direction:column; gap:6px; }
+      .subject-grid { grid-template-columns:1fr; }
+      .add-subject-form { flex-direction:column; }
     }
   </style>
 </head>
@@ -288,11 +317,26 @@
   </div>
 </div>
 
+<!-- ═══ SUBJECT SELECTOR ═══ -->
+<div id="subject-view">
+  <div class="subject-header">
+    <h1>Admin Console</h1>
+    <div class="brand">시험 선택</div>
+    <p>관리할 시험을 선택하세요</p>
+  </div>
+  <div class="subject-grid" id="subject-grid">
+    <div class="loading-full"><div class="spinner"></div>시험 목록을 불러오는 중...</div>
+  </div>
+  <div class="subject-actions">
+    <button class="btn btn-ghost" onclick="handleLogout()">로그아웃</button>
+  </div>
+</div>
+
 <!-- ═══ DASHBOARD ═══ -->
 <div id="dashboard-view">
   <nav class="topbar">
     <div class="topbar-left">
-      <span class="topbar-logo">ADMIN</span>
+      <span class="topbar-logo" id="topbar-subject" style="cursor:pointer" onclick="showSubjectSelector()">ADMIN</span>
       <span class="topbar-title" id="topbar-title">신고 관리</span>
     </div>
     <div class="topbar-right">
@@ -321,6 +365,18 @@
 
     <!-- tab: admin management -->
     <div class="tab-panel" id="panel-admins">
+      <!-- subject management (super admin) -->
+      <div class="settings-section" id="subject-mgmt" style="margin-bottom:24px">
+        <div class="settings-title">시험 과목 관리</div>
+        <div class="settings-desc">시험 과목을 추가/삭제하고, 관리자에게 담당 시험을 배정합니다.</div>
+        <div class="add-subject-form" id="add-subject-form">
+          <div class="field"><label>코드</label><input type="text" id="new-subject-code" placeholder="예: HSK" style="text-transform:uppercase"></div>
+          <div class="field"><label>시험명</label><input type="text" id="new-subject-name" placeholder="예: 한국사능력검정시험"></div>
+          <button class="btn btn-approve" onclick="addSubject()" style="height:40px">추가</button>
+        </div>
+        <div id="subject-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+      <!-- admin list -->
       <div id="admin-list" class="user-list"><div class="loading-full"><div class="spinner"></div>관리자 목록을 불러오는 중...</div></div>
     </div>
 
@@ -351,10 +407,13 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let allReports = [];
 let allAdmins = [];
+let allSubjects = [];
 let adminStats = {};
 let currentFilter = 'pending';
 let currentRole = '';
 let currentUserId = '';
+let currentSubject = null; // { code, name }
+let currentEmail = '';
 
 // ═══ Remember Email ═══
 (function() {
@@ -385,9 +444,11 @@ function hideMsg(id) { document.getElementById(id).style.display = 'none'; }
 function showView(name) {
   document.querySelectorAll('.auth-view').forEach(v => v.classList.remove('visible'));
   document.getElementById('dashboard-view').style.display = 'none';
+  document.getElementById('subject-view').style.display = 'none';
   const el = document.getElementById(name + '-view');
-  if (el) el.classList.add('visible');
+  if (el && el.classList.contains('auth-view')) el.classList.add('visible');
   if (name === 'dashboard') document.getElementById('dashboard-view').style.display = 'block';
+  if (name === 'subject') document.getElementById('subject-view').style.display = 'block';
 }
 
 // ═══ Auth ═══
@@ -481,19 +542,60 @@ sb.auth.onAuthStateChange((event) => {
   if (event === 'PASSWORD_RECOVERY') { showView('dashboard'); switchTab('settings'); toast('새 비밀번호를 설정하세요.'); }
 });
 
-async function handleLogout() { await sb.auth.signOut(); currentRole = ''; currentUserId = ''; showView('login'); }
+async function handleLogout() { await sb.auth.signOut(); currentRole = ''; currentUserId = ''; currentSubject = null; currentEmail = ''; showView('login'); }
 
 // ═══ Dashboard ═══
 
 function showDashboard(email, role) {
+  currentEmail = email;
+  // Load subjects and show selector
+  showSubjectSelector();
+}
+
+async function showSubjectSelector() {
+  showView('subject');
+  const grid = document.getElementById('subject-grid');
+  grid.innerHTML = '<div class="loading-full"><div class="spinner"></div>시험 목록을 불러오는 중...</div>';
+  const { data, error } = await sb.rpc('admin_get_subjects');
+  if (error) { grid.innerHTML = `<div class="empty-state"><p style="color:var(--red)">${escHtml(error.message)}</p></div>`; return; }
+  allSubjects = data || [];
+
+  if (!allSubjects.length && currentRole !== 'super_admin') {
+    grid.innerHTML = '<div class="empty-state"><p>배정된 시험이 없습니다.<br>최고 관리자에게 시험 배정을 요청하세요.</p></div>';
+    return;
+  }
+
+  let html = allSubjects.map(s => `
+    <div class="subject-card" onclick="enterDashboard('${escHtml(s.code)}','${escHtml(s.name)}')">
+      <div class="subject-name">${escHtml(s.name)}</div>
+      <div class="subject-counts">
+        <span>대기 <span class="cnt amber">${s.pending_count}</span></span>
+        <span>처리중 <span class="cnt cyan">${s.in_progress_count}</span></span>
+        <span>전체 <span class="cnt">${s.total_count}</span></span>
+      </div>
+    </div>`).join('');
+
+  if (currentRole === 'super_admin') {
+    html += `<div class="subject-card subject-card-add" onclick="enterDashboard(null,'전체')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      전체 보기
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function enterDashboard(subjectCode, subjectName) {
+  currentSubject = subjectCode ? { code: subjectCode, name: subjectName } : null;
   showView('dashboard');
-  document.getElementById('user-email').textContent = email;
+  document.getElementById('user-email').textContent = currentEmail;
   const roleEl = document.getElementById('topbar-role');
-  roleEl.textContent = role === 'super_admin' ? 'SUPER ADMIN' : 'ADMIN';
+  roleEl.textContent = currentRole === 'super_admin' ? 'SUPER ADMIN' : 'ADMIN';
   roleEl.style.display = '';
-  document.getElementById('tab-admins').style.display = role === 'super_admin' ? '' : 'none';
+  document.getElementById('topbar-subject').textContent = currentSubject ? currentSubject.name : '전체';
+  document.getElementById('topbar-subject').title = '클릭하여 시험 변경';
+  document.getElementById('tab-admins').style.display = currentRole === 'super_admin' ? '' : 'none';
   loadReports();
-  if (role === 'super_admin') { loadAdmins(); loadStats(); }
+  if (currentRole === 'super_admin') { loadAdmins(); loadStats(); loadSubjectList(); }
 }
 
 function switchTab(tab) {
@@ -508,7 +610,8 @@ function switchTab(tab) {
 async function loadReports() {
   const el = document.getElementById('report-list');
   el.innerHTML = '<div class="loading-full"><div class="spinner"></div>불러오는 중...</div>';
-  const { data, error } = await sb.rpc('admin_get_reports');
+  const params = currentSubject ? { filter_subject: currentSubject.code } : {};
+  const { data, error } = await sb.rpc('admin_get_reports', params);
   if (error) { el.innerHTML = `<div class="empty-state"><p style="color:var(--red)">${escHtml(error.message)}</p></div>`; return; }
   allReports = data || [];
   updateCounts(); renderReports();
@@ -664,6 +767,14 @@ async function loadAdmins() {
   const { data, error } = await sb.rpc('admin_list_users');
   if (error) { el.innerHTML = `<div class="empty-state"><p style="color:var(--red)">${escHtml(error.message)}</p></div>`; return; }
   allAdmins = data || [];
+  // Load subject assignments for each admin
+  for (const a of allAdmins) {
+    if (a.status === 'approved' || a.role === 'super_admin') {
+      a._subjects = await loadAdminSubjects(a.id);
+    } else {
+      a._subjects = [];
+    }
+  }
   renderAdmins();
   const pc = allAdmins.filter(a => a.status==='pending').length;
   const badge = document.getElementById('admin-pending-count');
@@ -686,12 +797,27 @@ function adminCardHtml(a) {
   else if (a.status === 'approved') { badgeHtml = '<span class="badge badge-resolved">APPROVED</span>'; actionsHtml = `<button class="btn btn-revoke" onclick="revokeAdmin('${a.id}')">권한 해제</button>`; }
   else { badgeHtml = '<span class="badge badge-rejected">REJECTED</span>'; actionsHtml = `<button class="btn btn-approve" onclick="approveAdmin('${a.id}')">승인</button>`; }
 
-  return `<div class="user-card">
+  // Subject assignment tags
+  const subs = a._subjects || [];
+  const assignedCodes = subs.map(s => s.subject_code);
+  let subjectHtml = '';
+  if (a.role === 'super_admin') {
+    subjectHtml = '<div class="subject-tags" style="margin-top:6px"><span class="subject-tag" style="background:var(--purple-bg);color:var(--purple)">전체 시험</span></div>';
+  } else if (a.status === 'approved') {
+    const tags = subs.map(s => `<span class="subject-tag">${escHtml(s.subject_name)} <span class="remove-tag" onclick="toggleSubjectAssign('${a.id}','${escHtml(s.subject_code)}',false)">&times;</span></span>`).join('');
+    // Unassigned subjects dropdown
+    const unassigned = allSubjects.filter(s => !assignedCodes.includes(s.code));
+    const addBtn = unassigned.length ? `<select onchange="if(this.value)toggleSubjectAssign('${a.id}',this.value,true)" style="padding:2px 6px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--accent);cursor:pointer"><option value="">+ 시험 배정</option>${unassigned.map(s=>`<option value="${escHtml(s.code)}">${escHtml(s.name)}</option>`).join('')}</select>` : '';
+    subjectHtml = `<div class="subject-tags" style="margin-top:6px">${tags}${addBtn}</div>`;
+  }
+
+  return `<div class="user-card" style="flex-wrap:wrap">
     <div class="user-avatar">${initial}</div>
     <div class="user-info">
       <div class="user-name">${escHtml(a.name||'이름 없음')}</div>
       <div class="user-email-small">${escHtml(a.email)} &middot; ${relativeTime(a.created_at)}</div>
       ${statText ? `<div class="user-stat">${statText}</div>` : ''}
+      ${subjectHtml}
     </div>
     ${badgeHtml}
     <div class="user-actions">${actionsHtml}</div>
@@ -712,6 +838,60 @@ async function revokeAdmin(id) {
   const { error } = await sb.rpc('admin_revoke_user', { target_id: id });
   if (error) { toast('해제 실패: '+error.message, true); return; }
   toast('관리자 권한이 해제되었습니다.'); await loadAdmins();
+}
+
+// ═══ Subject Management ═══
+
+async function loadSubjectList() {
+  const el = document.getElementById('subject-list');
+  const { data } = await sb.rpc('admin_get_subjects');
+  allSubjects = data || [];
+  el.innerHTML = allSubjects.map(s => `
+    <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);">
+      <strong style="font-family:var(--mono);font-size:12px">${escHtml(s.code)}</strong>
+      <span style="font-size:13px">${escHtml(s.name)}</span>
+      <span style="font-size:11px;color:var(--ink-faint)">(${s.total_count}건)</span>
+      <span onclick="removeSubject('${escHtml(s.code)}')" style="cursor:pointer;color:var(--ink-faint);font-size:16px;line-height:1" title="삭제">&times;</span>
+    </div>`).join('');
+}
+
+async function addSubject() {
+  const code = document.getElementById('new-subject-code').value.trim().toUpperCase();
+  const name = document.getElementById('new-subject-name').value.trim();
+  if (!code || !name) { toast('코드와 시험명을 입력하세요.', true); return; }
+  const { error } = await sb.rpc('admin_add_subject', { subject_code: code, subject_name: name });
+  if (error) { toast('추가 실패: ' + error.message, true); return; }
+  document.getElementById('new-subject-code').value = '';
+  document.getElementById('new-subject-name').value = '';
+  toast(name + ' 시험이 추가되었습니다.');
+  await loadSubjectList();
+}
+
+async function removeSubject(code) {
+  if (!confirm(`"${code}" 시험을 삭제하시겠습니까?`)) return;
+  const { error } = await sb.rpc('admin_remove_subject', { subject_code: code });
+  if (error) { toast('삭제 실패: ' + error.message, true); return; }
+  toast('시험이 삭제되었습니다.'); await loadSubjectList();
+}
+
+// ── Admin subject assignment ──
+
+async function loadAdminSubjects(adminId) {
+  const { data } = await sb.rpc('admin_get_user_subjects', { target_id: adminId });
+  return data || [];
+}
+
+async function toggleSubjectAssign(adminId, subjectCode, assign) {
+  if (assign) {
+    const { error } = await sb.rpc('admin_assign_subject', { target_id: adminId, subject_code: subjectCode });
+    if (error) { toast('배정 실패: ' + error.message, true); return; }
+    toast('시험이 배정되었습니다.');
+  } else {
+    const { error } = await sb.rpc('admin_unassign_subject', { target_id: adminId, subject_code: subjectCode });
+    if (error) { toast('해제 실패: ' + error.message, true); return; }
+    toast('시험 배정이 해제되었습니다.');
+  }
+  await loadAdmins();
 }
 
 // ═══ Init ═══
