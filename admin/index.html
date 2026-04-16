@@ -336,7 +336,10 @@
 <div id="dashboard-view">
   <nav class="topbar">
     <div class="topbar-left">
-      <span class="topbar-logo" id="topbar-subject" style="cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color=''" onclick="showSubjectSelector()">ADMIN</span>
+      <div style="position:relative" id="subject-dropdown-wrap">
+        <span class="topbar-logo" id="topbar-subject" style="cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color=''" onclick="toggleSubjectDropdown()">ADMIN</span>
+        <div id="subject-dropdown" style="display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:200px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow);z-index:60;overflow:hidden"></div>
+      </div>
       <span class="topbar-title" id="topbar-title">신고 관리</span>
     </div>
     <div class="topbar-right">
@@ -839,6 +842,44 @@ async function revokeAdmin(id) {
   if (error) { toast('해제 실패: '+error.message, true); return; }
   toast('관리자 권한이 해제되었습니다.'); await loadAdmins();
 }
+
+// ═══ Subject Dropdown (topbar) ═══
+
+function toggleSubjectDropdown() {
+  const dd = document.getElementById('subject-dropdown');
+  if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
+  let html = '';
+  allSubjects.forEach(s => {
+    const active = currentSubject && currentSubject.code === s.code;
+    html += `<div onclick="switchSubject('${escHtml(s.code)}','${escHtml(s.name)}')" style="padding:10px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:13px;transition:background .1s;${active?'color:var(--accent);font-weight:600':'color:var(--ink)'}" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+      <span>${escHtml(s.name)}</span>
+      <span style="font-size:11px;font-family:var(--mono);color:var(--amber)">${s.pending_count||''}</span>
+    </div>`;
+  });
+  if (currentRole === 'super_admin') {
+    const allActive = !currentSubject;
+    html += `<div style="border-top:1px solid var(--border)"></div>`;
+    html += `<div onclick="switchSubject(null,'전체')" style="padding:10px 16px;cursor:pointer;font-size:13px;transition:background .1s;${allActive?'color:var(--accent);font-weight:600':'color:var(--ink-dim)'}" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">전체 보기</div>`;
+    html += `<div onclick="document.getElementById('subject-dropdown').style.display='none';showSubjectSelector()" style="padding:10px 16px;cursor:pointer;font-size:12px;color:var(--ink-faint);border-top:1px solid var(--border);transition:background .1s" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">시험 관리 →</div>`;
+  }
+  dd.innerHTML = html;
+  dd.style.display = 'block';
+}
+
+function switchSubject(code, name) {
+  document.getElementById('subject-dropdown').style.display = 'none';
+  currentSubject = code ? { code, name } : null;
+  document.getElementById('topbar-subject').innerHTML = (currentSubject ? currentSubject.name : '전체') + ' <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle;opacity:.5"><path d="M4.427 7.427l3.396 3.396a.25.25 0 00.354 0l3.396-3.396A.25.25 0 0011.396 7H4.604a.25.25 0 00-.177.427z"/></svg>';
+  loadReports();
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('subject-dropdown-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('subject-dropdown').style.display = 'none';
+  }
+});
 
 // ═══ Subject Management ═══
 
