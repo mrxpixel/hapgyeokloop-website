@@ -1279,3 +1279,109 @@ h2 {
     align-items: stretch;
   }
 }
+
+/* ===== 지원 과목 섹션 (hub topic cluster) ===== */
+.subjects {
+  padding: 72px 0 64px;
+}
+.subjects-inner {
+  text-align: center;
+}
+.subjects-kicker {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--brand-green, #1f8f38);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 12px;
+}
+.subjects-heading {
+  font-size: clamp(28px, 4vw, 40px);
+  margin: 0 0 12px;
+  color: var(--ink, #132112);
+}
+.subjects-lead {
+  color: var(--muted, #445443);
+  margin: 0 auto 40px;
+  max-width: 560px;
+  line-height: 1.6;
+}
+.subjects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  text-align: left;
+  max-width: 880px;
+  margin: 0 auto;
+}
+.subject-card {
+  background: #f4f9ef;
+  border: 1px solid rgba(31, 143, 56, 0.12);
+  border-radius: 24px;
+  padding: 28px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.subject-card-live:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(20, 109, 41, 0.08);
+}
+.subject-card-body { flex: 1; }
+.subject-card-eyebrow {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--brand-green, #1f8f38);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+.subject-card h3 {
+  font-size: 22px;
+  margin: 0 0 12px;
+  color: var(--ink, #132112);
+}
+.subject-card p {
+  color: var(--muted, #445443);
+  line-height: 1.6;
+  margin: 0;
+  font-size: 15px;
+}
+.subject-card-cta {
+  font-weight: 650;
+  color: var(--brand-green, #1f8f38);
+  text-decoration: none;
+  align-self: flex-start;
+  font-size: 15px;
+  padding: 8px 0;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+.subject-card-cta:hover {
+  border-bottom-color: var(--brand-green, #1f8f38);
+}
+.subject-card-soon {
+  background: #fafafa;
+  border-color: rgba(0, 0, 0, 0.06);
+  opacity: 0.88;
+}
+.subject-card-soon .subject-card-eyebrow { color: var(--muted, #445443); }
+
+/* ===== story-subtext + inline link ===== */
+.story-subtext {
+  margin-top: 16px !important;
+  color: var(--muted, #445443);
+  font-size: 15px;
+  line-height: 1.7;
+}
+.story-inline-link {
+  color: var(--brand-green, #1f8f38);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+}
+.story-inline-link:hover {
+  text-decoration-thickness: 2.5px;
+}
