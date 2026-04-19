@@ -142,9 +142,26 @@ function QuickAction({ icon, color, title, sub, onClick }) {
 
 function BarChart({ data, color }) {
   const h = 220, pad = { l: 32, r: 10, t: 14, b: 22 }, w = 560;
+  const [hoverIdx, setHoverIdx] = useState(null);
   if (!data || data.length === 0) return <div style={{height:240, display:'grid', placeItems:'center', color:'var(--fg-faint)', fontSize:12}}>데이터 없음</div>;
   const max = Math.max(1, ...data.map(d => d.value)) * 1.15;
-  const bw = Math.max(1, (w - pad.l - pad.r) / data.length - 3);
+  const cellW = (w - pad.l - pad.r) / data.length;
+  const bw = Math.max(1, cellW - 3);
+  const fmtMMDD = (t) => {
+    const dt = new Date(t);
+    return String(dt.getMonth() + 1).padStart(2, '0') + '/' + String(dt.getDate()).padStart(2, '0');
+  };
+  let tip = null;
+  if (hoverIdx != null && data[hoverIdx]) {
+    const d = data[hoverIdx];
+    const cx = pad.l + hoverIdx * cellW + 1.5 + bw / 2;
+    const bh = (d.value / max) * (h - pad.t - pad.b);
+    const by = h - pad.b - bh;
+    const tipW = 72, tipH = 34;
+    const tx = Math.max(pad.l, Math.min(w - pad.r - tipW, cx - tipW / 2));
+    const ty = Math.max(0, by - tipH - 5);
+    tip = { x: tx, y: ty, w: tipW, h: tipH, date: fmtMMDD(d.date), value: d.value };
+  }
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{width:'100%', height:240}} preserveAspectRatio="none">
       {[0,1,2,3,4].map(i => {
@@ -156,14 +173,26 @@ function BarChart({ data, color }) {
         </g>;
       })}
       {data.map((d, i) => {
-        const x = pad.l + i*((w-pad.l-pad.r)/data.length) + 1.5;
+        const cellX = pad.l + i * cellW;
+        const x = cellX + 1.5;
         const bh = (d.value / max) * (h - pad.t - pad.b);
         const y = h - pad.b - bh;
-        return <g key={i}>
-          <rect x={x} y={y} width={bw} height={bh} fill={color} rx="1.5"/>
+        const isHover = hoverIdx === i;
+        return <g key={i} onMouseEnter={() => setHoverIdx(i)} onMouseLeave={() => setHoverIdx(null)}>
+          <rect x={cellX} y={pad.t} width={cellW} height={h - pad.t - pad.b} fill="transparent"/>
+          <rect x={x} y={y} width={bw} height={bh} fill={color} rx="1.5" opacity={hoverIdx != null && !isHover ? 0.45 : 1}>
+            <title>{fmtMMDD(d.date)}: {d.value}명</title>
+          </rect>
           {i % Math.ceil(data.length / 6) === 0 && <text x={x+bw/2} y={h-pad.b+14} textAnchor="middle" className="chart-axis">{new Date(d.date).getDate()}</text>}
         </g>;
       })}
+      {tip && (
+        <g pointerEvents="none">
+          <rect x={tip.x} y={tip.y} width={tip.w} height={tip.h} fill="var(--surface-2)" stroke="var(--border)" rx="4"/>
+          <text x={tip.x + tip.w/2} y={tip.y + 13} textAnchor="middle" style={{fontSize:10, fill:'var(--fg-subtle)', fontFamily:'var(--font-mono)'}}>{tip.date}</text>
+          <text x={tip.x + tip.w/2} y={tip.y + 27} textAnchor="middle" style={{fontSize:12, fontWeight:600, fill:'var(--fg)'}}>{tip.value}명</text>
+        </g>
+      )}
     </svg>
   );
 }
