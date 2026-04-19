@@ -2,290 +2,53 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>합격루프 OG Image — Final</title>
+<title>합격루프 OG — Loop Hero</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
 <style>
   html, body { margin: 0; padding: 0; background: #2a2a2a; }
-  #stage {
-    width: 100vw;
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    padding: 24px;
-    box-sizing: border-box;
-  }
+  #stage { width: 1200px; height: 630px; }
   #og {
-    width: 1600px;
-    height: 1280px;
-    transform-origin: center;
-    background: #fff;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+    width: 1200px; height: 630px;
+    background: #ffffff;
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 36px;
+    font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif;
   }
+  .loop {
+    width: 520px; height: auto;
+    display: block;
+  }
+  .wordmark {
+    font-family: 'Jua', 'Pretendard Variable', sans-serif;
+    font-size: 124px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: #0c2a26;
+    margin: 0;
+    line-height: 1;
+  }
+  .tagline {
+    font-size: 28px;
+    font-weight: 500;
+    color: #5a6b68;
+    margin: 0;
+    letter-spacing: -0.015em;
+  }
+  .tagline b { color: #1f786a; font-weight: 700; }
 </style>
 </head>
 <body>
 <div id="stage">
-  <div id="og"></div>
+  <div id="og">
+    <img class="loop" src="/previews/loop.png" alt="합격루프">
+    <h1 class="wordmark">합격루프</h1>
+    <p class="tagline">기억 과학 기반 <b>자격증 복습</b></p>
+  </div>
 </div>
-
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
-
-<script type="text/babel">
-const brand = {
-  green: '#1f8f38',
-  greenHi: '#8ce44f',
-  greenDk: '#146d29',
-  ink: '#132112',
-  muted: '#445443',
-  cream: '#FFF8E7',
-  white: '#ffffff',
-  softGreen: '#f6fff1',
-};
-
-function LoopMark({ size = 64, color = brand.green, stroke = 8 }) {
-  // Render an infinity glyph as text, guaranteed optically centered by the font.
-  // Adjust line-height and position to tune optical center.
-  return (
-    <div style={{
-      width: size, height: size,
-      display: 'grid', placeItems: 'center',
-      fontFamily: "'Space Grotesk', system-ui, sans-serif",
-      fontWeight: 700,
-      fontSize: size * 0.85,
-      lineHeight: 1,
-      color,
-      letterSpacing: 0,
-    }}>∞</div>
-  );
-}
-
-function OGSplit() {
-  const koFont = "'Pretendard Variable', 'Pretendard', system-ui, sans-serif";
-  const enFont = "'Space Grotesk', sans-serif";
-
-  return (
-    <div style={{
-      width: 1600, height: 1280,
-      background: brand.white,
-      position: 'relative',
-      overflow: 'hidden',
-      fontFamily: koFont,
-      display: 'flex',
-    }}>
-      {/* LEFT — the problem */}
-      <div style={{
-        flex: 1, background: brand.cream,
-        position: 'relative', padding: '88px 96px 88px 88px',
-        display: 'flex', flexDirection: 'column',
-      }}>
-        {/* Eyebrow */}
-        <div style={{
-          fontSize: 18, fontWeight: 800, color: brand.muted,
-          letterSpacing: '0.18em',
-          fontFamily: enFont,
-          display: 'flex', alignItems: 'center', gap: 14,
-        }}>
-          <span style={{ width: 32, height: 2, background: brand.muted, display: 'inline-block' }} />
-          BEFORE — 어제
-        </div>
-
-        {/* Faded problem card */}
-        <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: '40px 0' }}>
-          <div style={{
-            background: brand.white,
-            borderRadius: 28,
-            padding: '40px 44px',
-            border: '1.5px solid rgba(19,33,18,0.1)',
-            boxShadow: '0 24px 48px rgba(19,33,18,0.1)',
-            transform: 'rotate(-3.5deg)',
-            opacity: 0.58,
-            filter: 'blur(0.4px)',
-            width: 560,
-          }}>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              fontSize: 16, fontWeight: 700, marginBottom: 24,
-              whiteSpace: 'nowrap',
-            }}>
-              <span style={{ color: brand.green }}>2-1. 수급용역</span>
-              <span style={{ color: brand.muted }}>어제</span>
-            </div>
-            <p style={{
-              margin: '0 0 24px', fontSize: 28, fontWeight: 800,
-              color: brand.ink, lineHeight: 1.42,
-              wordBreak: 'keep-all',
-            }}>
-              공인중개사법상 수급용역의 범위에 해당하지&nbsp;<em style={{
-                fontStyle: 'normal',
-                textDecoration: 'underline',
-                textDecorationColor: brand.green,
-                textDecorationThickness: 3,
-                textUnderlineOffset: 4,
-              }}>않는</em>&nbsp;것은?
-            </p>
-            <ol style={{
-              margin: 0, padding: 0, listStyle: 'none',
-              display: 'grid', gap: 12,
-              fontSize: 21, color: brand.muted, lineHeight: 1.5,
-            }}>
-              <li>① 건축물의 분양대행</li>
-              <li>② 주거용 건축물의 관리대행</li>
-              <li>③ 매매·교환의 중개</li>
-              <li>④ 개발제한구역 내의 건축허가 대행</li>
-            </ol>
-          </div>
-        </div>
-
-        {/* Headline */}
-        <h2 style={{
-          margin: 0, fontSize: 68, fontWeight: 900,
-          lineHeight: 1.02, letterSpacing: '-0.04em',
-          color: brand.ink,
-          wordBreak: 'keep-all',
-        }}>
-          어제 풀었는데,<br />
-          오늘 또 틀려요.
-        </h2>
-      </div>
-
-      {/* Connecting disc in the middle — integrated, not floating */}
-      <div style={{
-        position: 'absolute', left: '50%', top: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 112, height: 112, borderRadius: '50%',
-        background: brand.ink,
-        display: 'grid', placeItems: 'center',
-        boxShadow: '0 0 0 14px rgba(19,33,18,0.06), 0 24px 48px rgba(0,0,0,0.3)',
-        zIndex: 5,
-      }}>
-        <svg width="48" height="48" viewBox="0 0 56 56" fill="none">
-          <path d="M10 28 L46 28 M30 14 L46 28 L30 42"
-            stroke={brand.greenHi} strokeWidth="5.5"
-            strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-
-      {/* RIGHT — the solution */}
-      <div style={{
-        flex: 1, background: brand.green,
-        position: 'relative', padding: '88px 88px 88px 96px',
-        color: brand.white,
-        display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
-      }}>
-        {/* subtle loop pattern bg */}
-        <svg style={{ position: 'absolute', inset: 0, opacity: 0.06, width: '100%', height: '100%' }} viewBox="0 0 800 1280" preserveAspectRatio="none">
-          <defs>
-            <pattern id="bgLoopPat" x="0" y="0" width="240" height="240" patternUnits="userSpaceOnUse">
-              <path d="M50 120 C50 88 72 68 98 78 C112 84 122 102 130 120 C138 138 148 156 162 162 C188 172 210 152 210 120 C210 88 188 68 162 78 C148 84 138 102 130 120"
-                fill="none" stroke={brand.white} strokeWidth="2.5" strokeLinecap="round" />
-            </pattern>
-          </defs>
-          <rect width="800" height="1280" fill="url(#bgLoopPat)" />
-        </svg>
-
-        {/* Top row: AFTER + brand lockup */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          position: 'relative', zIndex: 2,
-        }}>
-          <div style={{
-            fontSize: 18, fontWeight: 800, color: brand.greenHi,
-            letterSpacing: '0.18em',
-            fontFamily: enFont,
-            display: 'flex', alignItems: 'center', gap: 14,
-          }}>
-            AFTER — 합격루프
-            <span style={{ width: 32, height: 2, background: brand.greenHi, display: 'inline-block' }} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, whiteSpace: 'nowrap', flexShrink: 0 }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: 16,
-              background: 'rgba(255,255,255,0.14)',
-              border: '1.5px solid rgba(255,255,255,0.3)',
-              display: 'grid', placeItems: 'center',
-              flexShrink: 0,
-            }}>
-              <LoopMark size={34} color={brand.white} stroke={6} />
-            </div>
-            <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.02em' }}>합격루프</div>
-          </div>
-        </div>
-
-        {/* Notification card */}
-        <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: '40px 0', position: 'relative', zIndex: 2 }}>
-          <div style={{
-            background: brand.white, color: brand.ink,
-            borderRadius: 28, padding: 36,
-            display: 'grid', gap: 20,
-            boxShadow: '0 40px 80px rgba(0,0,0,0.28), 0 0 0 1px rgba(255,255,255,0.08)',
-            transform: 'rotate(2.5deg)',
-            width: 560,
-          }}>
-            {/* Notif banner */}
-            <div style={{
-              background: brand.green, color: brand.white,
-              borderRadius: 18, padding: '22px 26px',
-              display: 'flex', alignItems: 'center', gap: 18,
-            }}>
-              <div style={{
-                width: 58, height: 58, borderRadius: '50%',
-                background: 'rgba(255,255,255,0.22)',
-                display: 'grid', placeItems: 'center',
-                fontSize: 30, fontWeight: 900,
-                fontFamily: enFont,
-              }}>∞</div>
-              <div style={{ whiteSpace: 'nowrap' }}>
-                <div style={{ fontSize: 22, fontWeight: 900 }}>복습 시간이에요!</div>
-                <div style={{ fontSize: 16, fontWeight: 600, opacity: 0.92, marginTop: 2 }}>D+3 기출 · 수급용역 2-1</div>
-              </div>
-            </div>
-
-            {/* Queue */}
-            {[
-              { tag: 'D+1', text: '처음 틀린 문제' },
-              { tag: 'D+3', text: '헷갈린 선택지' },
-              { tag: 'D+7', text: '시험 전 핵심 루프' },
-            ].map((q, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center', gap: 16,
-                padding: '16px 20px',
-                background: brand.softGreen,
-                borderRadius: 16,
-              }}>
-                <div style={{
-                  padding: '8px 14px', borderRadius: 10,
-                  background: brand.greenHi, color: '#0b3f14',
-                  fontSize: 15, fontWeight: 900,
-                  fontFamily: enFont,
-                }}>{q.tag}</div>
-                <div style={{ fontSize: 19, fontWeight: 700, whiteSpace: 'nowrap' }}>{q.text}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Headline */}
-        <h2 style={{
-          margin: 0, fontSize: 68, fontWeight: 900,
-          lineHeight: 1.02, letterSpacing: '-0.04em',
-          color: brand.white,
-          position: 'relative', zIndex: 2,
-          wordBreak: 'keep-all',
-        }}>
-          과학이 정한<br />
-          그 타이밍에.
-        </h2>
-      </div>
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById('og')).render(<OGSplit />);
-</script>
 </body>
 </html>
