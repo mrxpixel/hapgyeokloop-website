@@ -224,7 +224,7 @@ function Analytics() {
         <div className="kpi"><div className="kpi-label">정답률</div><div className="kpi-value">{(ss.avg_correct_rate_pct ?? 0)}%</div></div>
       </div>
 
-      <div className="grid-2">
+      <div className="grid-2" style={{gridTemplateColumns:'1fr 1fr'}}>
         <div className="panel">
           <div className="panel-head"><div><div className="panel-title">DAU 추이</div><div className="panel-sub">{days}일</div></div></div>
           <div className="panel-body" style={{padding:'0 8px 8px'}}><BarChart data={active} color="var(--cyan)"/></div>
