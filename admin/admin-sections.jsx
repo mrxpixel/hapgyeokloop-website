@@ -295,9 +295,7 @@ function Reports({ pushToast }) {
   const [openId, setOpenId] = useState(null);
 
   const subjects = useAsync(() => rpc('admin_get_subjects'));
-  const reports = useAsync(() => rpc('admin_get_reports', {
-    filter_subject: subjectCode,
-  }), [subjectCode]);
+  const reports = useAsync(() => rpc('admin_get_reports'), [subjectCode]);
   const savedViews = useAsync(() => rpc('admin_get_saved_views', { p_scope: 'reports' }));
 
   const filtered = useMemo(() => {
@@ -316,7 +314,7 @@ function Reports({ pushToast }) {
   };
   const selectAllVisible = () => {
     if (selected.size === filtered.length) setSelected(new Set());
-    else setSelected(new Set(filtered.map(r => r.id)));
+    else setSelected(new Set(filtered.map(r => r.report_id)));
   };
 
   const bulkResolve = async () => {
@@ -391,8 +389,8 @@ function Reports({ pushToast }) {
         filtered.length === 0 ? <EmptyState icon="flag" title="신고가 없습니다" sub="현재 필터에 맞는 신고가 없어요."/> :
         <div className="item-list">
           {filtered.map(r => (
-            <ReportItem key={r.id} r={r} open={openId === r.id} onToggle={() => setOpenId(openId === r.id ? null : r.id)}
-              selected={selected.has(r.id)} onSelect={() => toggleSelect(r.id)}
+            <ReportItem key={r.report_id} r={r} open={openId === r.report_id} onToggle={() => setOpenId(openId === r.report_id ? null : r.report_id)}
+              selected={selected.has(r.report_id)} onSelect={() => toggleSelect(r.report_id)}
               onChanged={() => { reports.refetch(); }} pushToast={pushToast}/>
           ))}
         </div>
@@ -403,19 +401,45 @@ function Reports({ pushToast }) {
 
 function currentAdminId() { return window.__adminId; }
 
+const SUBJECT_SHORT = {
+  gaeron: '개론', minbeob: '민법', junggae: '중개사법',
+  gongbeob: '공법', gongsi: '공시법', sebeob: '세법',
+};
+function shortSubject(id) {
+  if (!id) return '—';
+  const suffix = id.split('_').pop();
+  return SUBJECT_SHORT[suffix] || id;
+}
+
 function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToast }) {
   const [editing, setEditing] = useState(false);
-  const q = r.question || {};
+  const [resolving, setResolving] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const q = r.question || {
+    id: r.question_id,
+    stem: r.q_stem,
+    choices: r.q_choices,
+    correct_index: r.q_correct_answer ? 'ABCDE'.indexOf(r.q_correct_answer) : 0,
+    explanation: r.q_explanation,
+    year_session: r.year_session,
+    question_number: r.question_number,
+  };
   const choices = Array.isArray(q.choices) ? q.choices : (q.choices?.options || []);
 
   const resolve = async () => {
-    try { await rpc('admin_resolve_report', { report_id: r.id, response: 'fixed', note: null }); pushToast('해결 처리되었습니다'); onChanged(); } catch (e) { pushToast(e.message, 'info'); }
+    try {
+      await rpc('admin_resolve_report', { report_id: r.report_id, response: replyText.trim() || null, note: null });
+      pushToast('해결 처리되었습니다');
+      setResolving(false);
+      setReplyText('');
+      onChanged();
+    } catch (e) { pushToast(e.message, 'info'); }
   };
   const assign = async () => {
-    try { await rpc('admin_assign_report', { report_id: r.id }); pushToast('내가 담당으로 배정됨'); onChanged(); } catch (e) { pushToast(e.message, 'info'); }
+    try { await rpc('admin_assign_report', { report_id: r.report_id }); pushToast('내가 담당으로 배정됨'); onChanged(); } catch (e) { pushToast(e.message, 'info'); }
   };
   const reopen = async () => {
-    try { await rpc('admin_reopen_report', { report_id: r.id }); pushToast('재오픈됨'); onChanged(); } catch (e) { pushToast(e.message, 'info'); }
+    try { await rpc('admin_reopen_report', { report_id: r.report_id }); pushToast('재오픈됨'); onChanged(); } catch (e) { pushToast(e.message, 'info'); }
   };
 
   return (
@@ -428,7 +452,7 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
         <div className="item-meta" onClick={onToggle}>
           <div className="item-title">{r.reason || '신고'}</div>
           <div className="item-sub">
-            <span style={{color:'var(--accent)'}}>{r.subject_id || r.subject_display_name || '—'}</span> · {r.year_session || q.year_session || '—'} · #{r.question_number || q.question_number || '—'} · {r.user_id ? (r.user_id + '').slice(0,8) : '익명'}
+            <span style={{color:'var(--accent)'}}>{shortSubject(r.subject_id)}</span> · {r.year_session || q.year_session || '—'} · #{r.question_number || q.question_number || '—'} · {r.user_id ? (r.user_id + '').slice(0,8) : '익명'}
           </div>
         </div>
         <div className="item-right">
@@ -456,9 +480,31 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
             <div className="tr-item"><Icon name="clock" size={11}/> 신고 {relativeTime(r.created_at)}</div>
             {r.resolved_at && <div className="tr-item"><Icon name="check" size={11}/> 해결 {relativeTime(r.resolved_at)}</div>}
           </div>
+          {resolving && (
+            <div className="det-section">
+              <div className="det-label">유저에게 전달할 답변 <span style={{fontWeight:400, opacity:.6}}>(선택)</span></div>
+              <textarea
+                className="field-input"
+                style={{width:'100%', minHeight:72, marginTop:6, fontSize:13}}
+                value={replyText}
+                onChange={e => setReplyText(e.target.value)}
+                placeholder="답변을 입력하세요. 비워두면 앱에 답변이 표시되지 않습니다."
+              />
+            </div>
+          )}
+          {r.status === 'resolved' && r.admin_response && (
+            <div className="det-section">
+              <div className="det-label">전달된 답변</div>
+              <div className="det-text" style={{color:'var(--success)'}}>{r.admin_response}</div>
+            </div>
+          )}
           <div className="form-actions" style={{marginTop:14}}>
-            {r.status !== 'resolved' && !r.assigned_name && <button className="btn btn-sm" onClick={assign}>내가 담당</button>}
-            {r.status !== 'resolved' && <button className="btn btn-sm btn-success" onClick={resolve}><Icon name="check" size={12}/> 해결 처리</button>}
+            {r.status !== 'resolved' && !r.assigned_name && !resolving && <button className="btn btn-sm" onClick={assign}>내가 담당</button>}
+            {r.status !== 'resolved' && !resolving && <button className="btn btn-sm btn-success" onClick={() => setResolving(true)}><Icon name="check" size={12}/> 해결 처리</button>}
+            {r.status !== 'resolved' && resolving && <>
+              <button className="btn btn-sm btn-success" onClick={resolve}><Icon name="check" size={12}/> 처리 완료</button>
+              <button className="btn btn-sm" onClick={() => { setResolving(false); setReplyText(''); }}>취소</button>
+            </>}
             {r.status === 'resolved' && <button className="btn btn-sm" onClick={reopen}>재오픈</button>}
           </div>
         </div>
@@ -484,7 +530,7 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
         p_id: q.id,
         p_stem: stem,
         p_choices: choices.map(c => c.text ? c : { text: String(c) }),
-        p_correct_index: correct,
+        p_correct_answer: String.fromCharCode(65 + correct),
         p_explanation: explanation,
       });
       onSaved();
@@ -505,7 +551,7 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
           ))}
         </div>
         <div className="field-label">해설</div>
-        <textarea value={explanation} onChange={e=>setExplanation(e.target.value)} style={{minHeight:50}}/>
+        <textarea value={explanation} onChange={e=>setExplanation(e.target.value)} style={{minHeight:160}}/>
         <div style={{display:'flex', gap:6, justifyContent:'flex-end', marginTop:10}}>
           <button className="btn btn-sm" onClick={() => setEditing(false)}>취소</button>
           <button className="btn btn-sm btn-primary" onClick={save} disabled={busy}>{busy ? '저장 중...' : '저장'}</button>

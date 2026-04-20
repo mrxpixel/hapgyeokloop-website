@@ -59,7 +59,7 @@ function Shell({ session, admin }) {
   const loadCounts = useCallbackApp(async () => {
     try {
       const [reps, users] = await Promise.all([
-        rpc('admin_get_reports', { filter_subject: null }).catch(() => []),
+        rpc('admin_get_reports').catch(() => []),
         admin?.role === 'super_admin' ? rpc('admin_list_users').catch(() => []) : Promise.resolve([]),
       ]);
       const pendingReports = (reps || []).filter(r => r.status === 'pending').length;
@@ -240,7 +240,7 @@ function Shell({ session, admin }) {
         </div>
 
         <div className="content">
-          <Body/>
+          {Body()}
         </div>
       </main>
 

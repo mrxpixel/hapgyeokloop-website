@@ -135,7 +135,8 @@ function AuthGate({ children }) {
 
   useEffect(() => {
     sb.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = sb.auth.onAuthStateChange((event, s) => {
+      if (event === 'TOKEN_REFRESHED') return;
       setSession(s);
       if (!s) setStatus(null);
     });
