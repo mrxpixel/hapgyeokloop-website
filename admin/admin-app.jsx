@@ -240,7 +240,9 @@ function Shell({ session, admin }) {
         </div>
 
         <div className="content">
-          {Body()}
+          <ErrorBoundary>
+            {Body()}
+          </ErrorBoundary>
         </div>
       </main>
 

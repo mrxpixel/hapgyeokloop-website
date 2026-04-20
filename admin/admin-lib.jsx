@@ -96,7 +96,6 @@ function Loader({ label = '불러오는 중...' }) {
         <path d="M12 3 a9 9 0 0 1 9 9" stroke="var(--accent)" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
       </svg>
       <div>{label}</div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
@@ -127,6 +126,25 @@ function EmptyState({ icon='info', title, sub, action }) {
   );
 }
 
+/* ─── Error Boundary ─── */
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(e) { return { err: e }; }
+  componentDidCatch(e, info) { console.error('[AdminErrorBoundary]', e, info); }
+  render() {
+    if (this.state.err) return (
+      <div style={{padding:40, textAlign:'center', background:'var(--bg)', minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
+        <div style={{fontSize:14, fontWeight:600, marginBottom:8, color:'#ef4444'}}>오류가 발생했습니다</div>
+        <div style={{fontSize:11.5, fontFamily:'monospace', color:'#ef4444', marginBottom:16, wordBreak:'break-all', maxWidth:480, padding:'8px 12px', background:'rgba(239,68,68,.15)', borderRadius:6}}>
+          {this.state.err.message || String(this.state.err)}
+        </div>
+        <button className="btn" onClick={() => this.setState({ err: null })}>다시 시도</button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
 /* ─── Auth Gate ─── */
 function AuthGate({ children }) {
   const [session, setSession] = useState(undefined); // undefined = loading
@@ -134,9 +152,12 @@ function AuthGate({ children }) {
   const [statusLoading, setStatusLoading] = useState(false);
 
   useEffect(() => {
-    sb.auth.getSession().then(({ data }) => setSession(data.session));
+    sb.auth.getSession().then(({ data }) => {
+      console.log('[Auth] getSession ->', data.session ? 'session found' : 'no session');
+      setSession(data.session);
+    });
     const { data: sub } = sb.auth.onAuthStateChange((event, s) => {
-      if (event === 'TOKEN_REFRESHED') return;
+      console.log('[Auth] event:', event, '| session:', s ? s.user?.email : 'null');
       setSession(s);
       if (!s) setStatus(null);
     });
@@ -149,10 +170,15 @@ function AuthGate({ children }) {
     rpc('admin_check_status').then(
       (d) => {
         const s = Array.isArray(d) ? d[0] : d;
+        console.log('[Auth] admin_check_status ->', s);
         setStatus({ ...(s || {}), email: session?.user?.email, id: session?.user?.id });
         setStatusLoading(false);
       },
-      () => { setStatus({ role: null, status: null, email: session?.user?.email, id: session?.user?.id }); setStatusLoading(false); }
+      (e) => {
+        console.error('[Auth] admin_check_status error:', e);
+        setStatus({ role: null, status: null, email: session?.user?.email, id: session?.user?.id });
+        setStatusLoading(false);
+      }
     );
   }, [session?.user?.id]);
 
@@ -165,7 +191,7 @@ function AuthGate({ children }) {
 
 function FullScreenLoader({ label = '불러오는 중...' }) {
   return (
-    <div style={{minHeight:'100dvh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)'}}>
+    <div style={{minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)'}}>
       <Loader label={label}/>
     </div>
   );
@@ -198,7 +224,7 @@ function LoginScreen() {
   };
 
   return (
-    <div style={{minHeight:'100dvh', display:'grid', placeItems:'center', padding:20, background:'var(--bg)'}}>
+    <div style={{minHeight:'100vh', display:'grid', placeItems:'center', padding:20, background:'var(--bg)'}}>
       <div style={{width:'100%', maxWidth:380, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r-lg)', padding:28, boxShadow:'var(--shadow)'}}>
         <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:6}}>
           <div className="brand-mark" style={{width:32, height:32, fontSize:14}}>합</div>
@@ -244,7 +270,7 @@ function LoginScreen() {
 
 function PendingScreen({ status, onSignOut }) {
   return (
-    <div style={{minHeight:'100dvh', display:'grid', placeItems:'center', padding:20, background:'var(--bg)'}}>
+    <div style={{minHeight:'100vh', display:'grid', placeItems:'center', padding:20, background:'var(--bg)'}}>
       <div style={{width:'100%', maxWidth:420, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r-lg)', padding:32, textAlign:'center', boxShadow:'var(--shadow)'}}>
         <div style={{width:56, height:56, borderRadius:'50%', background:'var(--warning-soft)', color:'var(--warning)', display:'inline-flex', alignItems:'center', justifyContent:'center', marginBottom:14}}>
           <Icon name="clock" size={24}/>
@@ -270,5 +296,5 @@ function PendingScreen({ status, onSignOut }) {
 
 Object.assign(window, {
   sb, rpc, Icon, useAsync, relativeTime, fmtNum,
-  Loader, ErrorBox, EmptyState, AuthGate,
+  Loader, ErrorBox, EmptyState, ErrorBoundary, AuthGate,
 });

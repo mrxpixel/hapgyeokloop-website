@@ -69,7 +69,8 @@
     --shadow-lg: 0 20px 60px rgba(0,0,0,.1);
   }
   * { box-sizing: border-box; margin:0; padding:0; }
-  html, body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); font-size: 13.5px; line-height: 1.55; min-height: 100dvh; -webkit-font-smoothing: antialiased; transition: background .2s, color .2s; }
+  html, body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); font-size: 13.5px; line-height: 1.55; min-height: 100vh; -webkit-font-smoothing: antialiased; transition: background .2s, color .2s; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   a { color: var(--accent); text-decoration: none; cursor: pointer; }
   button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
   input, textarea, select { font: inherit; color: inherit; }
@@ -78,10 +79,10 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
-  .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100dvh; }
+  .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
 
   /* sidebar */
-  .sidebar { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100dvh; position: sticky; top: 0; overflow: hidden; }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; overflow: hidden; }
   .sb-brand { padding: 18px 18px 14px; border-bottom: 1px solid var(--border); }
   .brand-row { display: flex; align-items: center; gap: 10px; }
   .brand-mark { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--violet)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; box-shadow: 0 2px 8px rgba(99,102,241,.4); }
@@ -378,7 +379,7 @@
 </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="root"><div style="color:#fff;padding:20px;font-family:sans-serif;font-size:13px">스크립트 로딩 중...</div></div>
 
 <script src="vendor/supabase.js"></script>
 <script src="vendor/react.production.min.js"></script>
