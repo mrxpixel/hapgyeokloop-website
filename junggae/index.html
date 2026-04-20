@@ -1040,52 +1040,6 @@
       color: var(--muted);
     }
 
-    .pricing-wrap {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 18px;
-    }
-
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 18px;
-    }
-
-    .pricing-card {
-      padding: 24px;
-      min-height: 100%;
-    }
-
-    .pricing-card.highlight {
-      background:
-        linear-gradient(180deg, rgba(140, 228, 79, 0.2), rgba(255, 255, 255, 0.96)),
-        rgba(255, 255, 255, 0.96);
-      border-color: rgba(31, 143, 56, 0.18);
-      transform: translateY(-12px);
-    }
-
-    .plan-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: start;
-      gap: 12px;
-    }
-
-    .pricing-card h3 {
-      font-size: 26px;
-      letter-spacing: -0.04em;
-    }
-
-    .tag {
-      padding: 8px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--lime-deep);
-      background: rgba(140, 228, 79, 0.18);
-    }
-
     .price {
       margin-top: 18px;
       display: flex;
@@ -1106,51 +1060,6 @@
       letter-spacing: -0.02em;
     }
 
-    .plan-note {
-      margin-top: 10px;
-      color: var(--muted);
-      line-height: 1.65;
-      min-height: 78px;
-    }
-
-    .plan-list {
-      display: grid;
-      gap: 10px;
-      margin-top: 18px;
-      list-style: none;
-      color: #30422f;
-    }
-
-    .plan-list li {
-      position: relative;
-      padding-left: 24px;
-      line-height: 1.55;
-    }
-
-    .plan-list li::before {
-      content: "●";
-      position: absolute;
-      left: 0;
-      top: 0;
-      color: var(--lime-deep);
-      font-size: 12px;
-    }
-
-    .plan-foot {
-      margin-top: 22px;
-      padding-top: 18px;
-      border-top: 1px solid var(--line);
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    .compare-panel {
-      padding: 26px;
-    }
-
-    .compare-panel h3,
-    .faq-card h3,
     .cta-panel .cta-heading,
     .cta-panel h3 {
       font-size: 28px;
@@ -1158,69 +1067,9 @@
       margin-bottom: 10px;
     }
 
-    .compare-panel p,
-    .faq-item p,
     .cta-panel p {
       color: var(--muted);
       line-height: 1.7;
-    }
-
-    .compare-list {
-      display: grid;
-      gap: 12px;
-      margin-top: 18px;
-      list-style: none;
-    }
-
-    .compare-list li {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: center;
-      padding: 14px 16px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.88);
-      border: 1px solid rgba(19, 33, 18, 0.06);
-    }
-
-    .compare-list strong {
-      letter-spacing: -0.02em;
-    }
-
-    .compare-list span {
-      color: var(--lime-deep);
-      font-weight: 700;
-      font-size: 13px;
-      white-space: nowrap;
-    }
-
-    .proof-strip {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
-      margin-top: 18px;
-    }
-
-    .proof-card {
-      padding: 20px;
-      border-radius: 24px;
-      background: rgba(255, 255, 255, 0.72);
-      border: 1px solid rgba(19, 33, 18, 0.08);
-      box-shadow: 0 16px 30px rgba(19, 33, 18, 0.06);
-    }
-
-    .proof-card strong {
-      display: block;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 36px;
-      letter-spacing: -0.05em;
-    }
-
-    .proof-card span {
-      display: block;
-      margin-top: 8px;
-      color: var(--muted);
-      line-height: 1.55;
     }
 
     .app-screenshots {
@@ -1250,27 +1099,6 @@
       color: var(--muted);
     }
 
-    .faq-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-    }
-
-    .faq-card {
-      padding: 24px;
-    }
-
-    .faq-item + .faq-item {
-      margin-top: 18px;
-      padding-top: 18px;
-      border-top: 1px solid var(--line);
-    }
-
-    .faq-item h3 {
-      font-size: 18px;
-      letter-spacing: -0.03em;
-      margin-bottom: 8px;
-    }
 
     .cta-panel {
       margin-top: 22px;
@@ -1356,11 +1184,7 @@
 
     @media (max-width: 1080px) {
       .hero,
-      .pricing-wrap,
-      .feature-grid,
-      .proof-strip,
-      .faq-grid,
-      .pricing-grid {
+      .feature-grid {
         grid-template-columns: 1fr;
       }
 
@@ -1371,14 +1195,6 @@
       .hero-visual {
         min-height: 540px;
         order: -1;
-      }
-
-      .pricing-card.highlight {
-        transform: none;
-      }
-
-      .proof-card strong {
-        font-size: 28px;
       }
     }
 
@@ -1476,9 +1292,6 @@
       }
 
       .feature-card,
-      .pricing-card,
-      .faq-card,
-      .compare-panel,
       .cta-panel {
         border-radius: 24px;
       }
