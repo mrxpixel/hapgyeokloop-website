@@ -152,12 +152,8 @@ function AuthGate({ children }) {
   const [statusLoading, setStatusLoading] = useState(false);
 
   useEffect(() => {
-    sb.auth.getSession().then(({ data }) => {
-      console.log('[Auth] getSession ->', data.session ? 'session found' : 'no session');
-      setSession(data.session);
-    });
+    sb.auth.getSession().then(({ data }) => setSession(data.session));
     const { data: sub } = sb.auth.onAuthStateChange((event, s) => {
-      console.log('[Auth] event:', event, '| session:', s ? s.user?.email : 'null');
       setSession(s);
       if (!s) setStatus(null);
     });
@@ -170,15 +166,10 @@ function AuthGate({ children }) {
     rpc('admin_check_status').then(
       (d) => {
         const s = Array.isArray(d) ? d[0] : d;
-        console.log('[Auth] admin_check_status ->', s);
         setStatus({ ...(s || {}), email: session?.user?.email, id: session?.user?.id });
         setStatusLoading(false);
       },
-      (e) => {
-        console.error('[Auth] admin_check_status error:', e);
-        setStatus({ role: null, status: null, email: session?.user?.email, id: session?.user?.id });
-        setStatusLoading(false);
-      }
+      () => { setStatus({ role: null, status: null, email: session?.user?.email, id: session?.user?.id }); setStatusLoading(false); }
     );
   }, [session?.user?.id]);
 
