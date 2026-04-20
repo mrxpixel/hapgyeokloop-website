@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; connect-src 'self' https://fulgfanxrcjtsyzfrtjl.supabase.co wss://fulgfanxrcjtsyzfrtjl.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;">
 <title>합격루프 Admin · Redesign</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -380,14 +379,32 @@
 </style>
 </head>
 <body>
-<div id="root"><div style="color:#fff;padding:20px;font-family:sans-serif;font-size:13px">스크립트 로딩 중...</div></div>
+<div id="root"></div>
+
+<script>
+// Intercept SecurityError (e.g. WebSocket blocked by CSP) before React sees it.
+// Without this, Safari throws synchronously into React's commit phase → black screen.
+window.addEventListener('error', function(e) {
+  if (e.error && e.error.name === 'SecurityError') {
+    console.warn('[Global] SecurityError suppressed (CSP/WebSocket):', e.message);
+    e.preventDefault();
+    return true;
+  }
+}, true);
+window.addEventListener('unhandledrejection', function(e) {
+  if (e.reason && e.reason.name === 'SecurityError') {
+    console.warn('[Global] Unhandled SecurityError suppressed:', e.reason.message);
+    e.preventDefault();
+  }
+});
+</script>
 
 <script src="vendor/supabase.js"></script>
 <script src="vendor/react.production.min.js"></script>
 <script src="vendor/react-dom.production.min.js"></script>
 <script src="vendor/babel.min.js"></script>
-<script type="text/babel" data-presets="react" src="admin-lib.jsx"></script>
-<script type="text/babel" data-presets="react" src="admin-sections.jsx"></script>
-<script type="text/babel" data-presets="react" src="admin-app.jsx"></script>
+<script type="text/babel" data-presets="react" src="admin-lib.jsx?v=3"></script>
+<script type="text/babel" data-presets="react" src="admin-sections.jsx?v=3"></script>
+<script type="text/babel" data-presets="react" src="admin-app.jsx?v=3"></script>
 </body>
 </html>
