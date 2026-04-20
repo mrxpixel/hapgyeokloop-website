@@ -76,13 +76,20 @@ function Shell({ session, admin }) {
   useEffectApp(() => { refreshNotifCount(); const h = setInterval(refreshNotifCount, 45_000); return () => clearInterval(h); }, [refreshNotifCount]);
 
   // realtime subscription for reports + notifications
+  // wrapped in try-catch: Safari CSP may block wss:// → SecurityError crashes React without this
   useEffectApp(() => {
-    const ch = sb.channel('admin-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'question_reports' }, () => { loadCounts(); })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'question_reports' }, () => { loadCounts(); })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_notifications' }, () => { refreshNotifCount(); })
-      .subscribe((status) => { setRealtimeOk(status === 'SUBSCRIBED'); });
-    return () => { sb.removeChannel(ch); };
+    let ch = null;
+    try {
+      ch = sb.channel('admin-realtime')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'question_reports' }, () => { loadCounts(); })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'question_reports' }, () => { loadCounts(); })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_notifications' }, () => { refreshNotifCount(); })
+        .subscribe((status) => { setRealtimeOk(status === 'SUBSCRIBED'); });
+    } catch (e) {
+      console.warn('[Realtime] blocked (CSP?):', e.message);
+      setRealtimeOk(false);
+    }
+    return () => { if (ch) try { sb.removeChannel(ch); } catch (e) {} };
   }, [loadCounts, refreshNotifCount]);
 
   // push-style toast
