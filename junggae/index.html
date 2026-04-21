@@ -59,7 +59,7 @@
     "description": "공인중개사 기출문제 10개년을 반복 복습으로 합격까지 이어주는 학습 앱. 민법, 부동산학개론, 공법, 중개사법, 부동산공시법 과목별 오답 복습과 기억 루프.",
     "url": "https://hapgyeokloop.com/junggae/",
     "applicationCategory": "EducationalApplication",
-    "operatingSystem": "iOS",
+    "operatingSystem": ["iOS", "iPadOS"],
     "downloadUrl": "https://apps.apple.com/kr/app/id6762024496",
     "featureList": ["10개년 기출문제 전체 무료", "과목별 오답 복습", "기억 루프 반복학습", "비슷한 문제 연결", "학습 통계"],
     "offers": [
@@ -113,6 +113,8 @@
     "isPartOf": {
       "@id": "https://hapgyeokloop.com/#website"
     },
+    "datePublished": "2025-01-01",
+    "dateModified": "2026-04-21",
     "inLanguage": "ko",
     "publisher": {
       "@id": "https://hapgyeokloop.com/#organization"
@@ -125,7 +127,7 @@
   {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "@id": "https://hapgyeokloop.com/#faq",
+    "@id": "https://hapgyeokloop.com/junggae/#faq",
     "dateModified": "2026-04-20",
     "mainEntity": [
       {
@@ -211,7 +213,7 @@
     "@type": "WebSite",
     "@id": "https://hapgyeokloop.com/#website",
     "name": "합격루프",
-    "url": "https://hapgyeokloop.com/junggae/",
+    "url": "https://hapgyeokloop.com/",
     "description": "공인중개사 기출문제 10개년 반복학습 앱 합격루프 공식 사이트",
     "inLanguage": "ko",
     "publisher": {
@@ -270,9 +272,19 @@
   <link rel="preload" href="https://cdn.jsdelivr.net/npm/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.min.css" as="style" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" as="style" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap">
   <link rel="stylesheet" href="/styles.css">
   <style>
+    @font-face {
+      font-family: 'Pretendard Variable';
+      font-display: swap;
+      src: local('Pretendard Variable');
+    }
+    @font-face {
+      font-family: 'Space Grotesk';
+      font-display: swap;
+      src: local('Space Grotesk');
+    }
     .nav-cta { padding: 10px 18px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; white-space: nowrap; }
     .hero-eyebrow {
       display: inline-flex;
@@ -430,6 +442,15 @@
         border-top: 1px solid rgba(19, 33, 18, 0.08);
       }
     }
+    .hero-grid .reveal-block {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .reveal-block {
+      opacity: 1;
+      transform: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
   </style>
 </head>
 <body>
@@ -449,7 +470,7 @@
         <a class="nav-link" href="#subjects">과목</a>
         <a class="nav-link" href="/">합격루프 소개 →</a>
       </nav>
-      <a class="nav-cta" href="https://apps.apple.com/kr/app/%ED%95%A9%EA%B2%A9%EB%A3%A8%ED%94%84-%EA%B3%B5%EC%9D%B8%EC%A4%91%EA%B0%9C%EC%82%AC-%EC%8B%9C%ED%97%98-%EC%A4%80%EB%B9%84/id6762024496" target="_blank" rel="noopener">무료 다운로드</a>
+      <a class="nav-cta" href="#download">무료 다운로드</a>
       <button class="mobile-menu-btn" id="mobile-menu" aria-label="메뉴 열기" aria-expanded="false">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
@@ -463,12 +484,16 @@
           <div class="hero-eyebrow">공인중개사(공중사) 기출 학습 앱 · 10개년</div>
           <h1>공인중개사 기출문제,<br>푸는 앱이 아니라<br>합격 루틴을 만드는 앱</h1>
           <p class="lead">합격루프는 문제를 한 번 보여주고 끝내지 않습니다. <strong>틀린 문제, 헷갈린 개념, 다시 볼 타이밍</strong>을 한 화면에서 이어 붙여서 공인중개사 공부를 매일 굴러가게 만듭니다.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="/">합격루프가 어떤 앱인지 먼저 보기 →</a>
+            <a class="btn btn-secondary" href="#study-system">기능 살펴보기</a>
+          </div>
         </div>
       </div>
     </section>
 
     <div class="brand-nudge">
-      합격루프가 처음이신가요? <a href="/">합격루프가 어떤 앱인지 먼저 보기 →</a>
+      합격루프가 처음이신가요? <a href="/">공인중개사 기출문제 앱 합격루프 소개 →</a>
     </div>
 
     <section class="section-cream section" id="features" data-reveal>
@@ -537,7 +562,7 @@
     <section class="section-white section" id="subjects" data-reveal>
       <div class="shell">
         <div class="section-head reveal-block">
-          <h2>공인중개사 6과목, 어디서 막히는지 알고 시작하세요.</h2>
+          <h2>공인중개사(공중사) 6과목 기출, 어디서 막히는지 알고 시작하세요.</h2>
           <p>1차 2과목과 2차 4과목으로 구성됩니다. 합격루프는 전 과목 기출문제를 과목별로 루프에 올려서 약한 과목을 먼저 잡아줍니다.</p>
         </div>
 
@@ -617,8 +642,53 @@
       </div>
     </section>
 
+    <!-- 복습 엔진 섹션 -->
+    <section class="section-cream section" id="study-system" data-reveal>
+      <div class="shell">
+        <div class="section-head reveal-block">
+          <h2>문제별 복습 타이밍, 감이 아니라 데이터로 계산합니다.</h2>
+          <p>합격루프는 누적 20억 건 이상의 학습 이력 데이터를 기반으로 문제마다 최적 복습 주기를 자동 계산합니다. 매일 복습 문제만 꾸준히 풀어가면 평균 암기율 90% 이상을 기대할 수 있습니다. 공인중개사 시험 준비는 새로운 내용을 쌓는 것보다, 한 번 배운 것을 잊기 전에 다시 잡는 것이 핵심입니다.</p>
+        </div>
 
-    <section class="final-cta" data-reveal>
+        <div class="feature-grid reveal-block">
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">◎</div>
+            <h3>기출이 곧 시험입니다</h3>
+            <p>공인중개사 시험은 새로운 유형이 거의 없습니다. 과목별로 반복 출제되는 핵심 조문과 계산 패턴이 정해져 있고, 이걸 기출문제로 반복 훈련하는 것이 가장 빠른 준비법입니다. 합격루프는 그 기출을 루프로 돌려 완전히 내 것으로 만드는 공인중개사 앱입니다.</p>
+            <div class="mini-board">
+              <div class="mini-row"><b>민법</b><span>사례형 · 법조문 예외 반복 훈련</span></div>
+              <div class="mini-row"><b>부동산공법</b><span>용도지역·건폐율 계산 패턴 집중</span></div>
+              <div class="mini-row"><b>부동산세법</b><span>세율 계산 · 비과세 요건 반복</span></div>
+            </div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">⇌</div>
+            <h3>어느 기기에서 열어도 이어서 공부됩니다</h3>
+            <p>출퇴근길에 폰으로 풀고, 집에서 태블릿으로 이어서 풀어도 학습 기록, 오답 목록, 복습 예정 문제가 모두 연결됩니다. 로그인 하나로 내 진도와 약점 데이터가 어느 기기에서나 그대로 유지됩니다. 폰을 바꾸거나 앱을 지웠다 다시 깔아도 복습 이력은 사라지지 않습니다.</p>
+            <div class="chip-list">
+              <span>기기 간 연동</span>
+              <span>학습 기록 유지</span>
+              <span>오답 동기화</span>
+              <span>기기 교체 후에도 유지</span>
+            </div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">✎</div>
+            <h3>강사 개념노트 · 예상문제도 내 복습 큐에</h3>
+            <p>수강 중인 강사의 개념노트를 약점노트에 직접 추가할 수 있습니다. 강사별 예상문제는 스캔해서 합격루프의 복습 큐에 올려두면, 기출문제와 같은 방식으로 복습 주기가 잡힙니다. 어떤 강사를 쓰든, 합격루프 하나로 기출+강사 자료를 한 흐름에서 관리하세요.</p>
+            <div class="chip-list">
+              <span>강사 개념노트 등록</span>
+              <span>예상문제 스캔 추가</span>
+              <span>복습 큐 통합 관리</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="final-cta" id="download" data-reveal>
       <div class="shell final-inner reveal-block">
         <p class="section-kicker">합격루프</p>
         <h2>공인중개사 기출문제 10개년,<br>지금 바로 무료로 시작하세요.</h2>
@@ -692,5 +762,6 @@
     });
   }
   </script>
+  <noscript><style>.reveal-block { opacity: 1 !important; transform: none !important; }</style></noscript>
 </body>
 </html>
