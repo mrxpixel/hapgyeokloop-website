@@ -8,6 +8,7 @@ const SECTIONS = [
   ]},
   { group: '운영', items: [
     { key: 'reports',       label: '신고 관리',      icon: 'flag' },
+    { key: 'question-inspector', label: '문제 전수조사', icon: 'edit' },
     { key: 'announcements', label: '공지 · 업데이트', icon: 'megaphone' },
     { key: 'subjects',      label: '시험 과목',      icon: 'book' },
     { key: 'app-version',   label: '앱 버전',        icon: 'phone' },
@@ -25,6 +26,7 @@ const SECTION_TITLES = {
   'overview':     ['개요', '오늘 팀이 봐야 할 것'],
   'analytics':    ['분석', 'DAU · 리텐션 · 학습 세션'],
   'reports':      ['신고 관리', '유저가 제출한 문제 신고'],
+  'question-inspector': ['문제 전수조사', '과목·회차별 문항 검수 및 Gemini 프롬프트 생성'],
   'announcements':['공지 · 업데이트', '앱에 발행되는 공지 관리'],
   'subjects':     ['시험 과목', '제공 중인 시험 관리'],
   'app-version':  ['앱 버전', '강제 업데이트 및 최소 버전 설정'],
@@ -113,7 +115,7 @@ function Shell({ session, admin }) {
         gMode = true; clearTimeout(gTimer); gTimer = setTimeout(() => { gMode = false; }, 1200); return;
       }
       if (gMode) {
-        const map = { o: 'overview', a: 'analytics', r: 'reports', n: 'announcements', u: 'audit-log', s: 'settings' };
+        const map = { o: 'overview', a: 'analytics', r: 'reports', i: 'question-inspector', n: 'announcements', u: 'audit-log', s: 'settings' };
         const k = e.key.toLowerCase();
         if (map[k]) { e.preventDefault(); setSection(map[k]); gMode = false; }
       }
@@ -129,6 +131,7 @@ function Shell({ session, admin }) {
       case 'overview':      return <Overview goto={setSection}/>;
       case 'analytics':     return <Analytics/>;
       case 'reports':       return <Reports pushToast={pushToast}/>;
+      case 'question-inspector': return <QuestionInspector pushToast={pushToast}/>;
       case 'announcements': return <Announcements pushToast={pushToast}/>;
       case 'subjects':      return <Subjects pushToast={pushToast}/>;
       case 'app-version':   return <AppVersion pushToast={pushToast}/>;

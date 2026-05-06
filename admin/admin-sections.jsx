@@ -664,52 +664,865 @@ function Announcements({ pushToast }) {
 }
 
 /* ─── Subjects ─── */
+function normalizeExamIdPrefix(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z_]/g, '');
+}
+
 function Subjects({ pushToast }) {
-  const subjects = useAsync(() => rpc('admin_get_subjects'));
-  const mappings = useAsync(() => rpc('admin_get_subject_mappings', { p_exam_code: null }).catch(() => []));
+  const exams = useAsync(() => rpc('admin_get_exams'));
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
+  const [examIdPrefix, setExamIdPrefix] = useState('');
+  const [openCode, setOpenCode] = useState(null);
 
   const add = async () => {
-    if (!code || !name) { pushToast('코드와 이름을 입력하세요', 'info'); return; }
-    try { await rpc('admin_add_subject', { subject_code: code.toUpperCase(), subject_name: name, subject_desc: null }); setCode(''); setName(''); pushToast('시험 추가됨'); subjects.refetch(); } catch (e) { pushToast(e.message, 'info'); }
+    const cleanCode = code.trim().toUpperCase();
+    const cleanName = name.trim();
+    const cleanPrefix = normalizeExamIdPrefix(examIdPrefix.trim());
+    if (!cleanCode || !cleanName || !cleanPrefix) { pushToast('코드, 이름, 시험 ID prefix를 입력하세요', 'info'); return; }
+    if (!/^[A-Z]+$/.test(cleanCode)) { pushToast('코드는 대문자 영문만 사용할 수 있습니다', 'info'); return; }
+    if (!/^[a-z_]+$/.test(cleanPrefix)) { pushToast('시험 ID prefix는 소문자 영문과 underscore만 사용할 수 있습니다', 'info'); return; }
+    try {
+      await rpc('admin_add_subject', {
+        subject_code: cleanCode,
+        subject_name: cleanName,
+        subject_desc: null,
+        exam_id_prefix: cleanPrefix,
+      });
+      setCode('');
+      setName('');
+      setExamIdPrefix('');
+      pushToast('시험 추가됨');
+      exams.refetch();
+    } catch (e) { pushToast(e.message, 'info'); }
   };
+
   const remove = async (c) => {
     if (!confirm(c + ' 시험을 삭제하시겠습니까?')) return;
-    try { await rpc('admin_remove_subject', { subject_code: c }); pushToast('삭제됨'); subjects.refetch(); } catch (e) { pushToast(e.message, 'info'); }
+    try {
+      await rpc('admin_remove_subject', { subject_code: c });
+      pushToast('삭제됨');
+      setOpenCode(v => v === c ? null : v);
+      exams.refetch();
+    } catch (e) { pushToast(e.message, 'info'); }
   };
 
   return (
     <>
       <div className="panel">
-        <div className="panel-head"><div><div className="panel-title">시험 추가</div><div className="panel-sub">코드는 대문자 영문</div></div></div>
+        <div className="panel-head"><div><div className="panel-title">시험 추가</div><div className="panel-sub">코드는 대문자 영문, ID prefix는 소문자 영문과 underscore</div></div></div>
         <div className="panel-body" style={{display:'flex', gap:8, alignItems:'flex-end', flexWrap:'wrap'}}>
-          <div style={{width:140}}><div className="field-label">코드</div><input className="field-input" placeholder="HSK" style={{width:'100%', textTransform:'uppercase'}} value={code} onChange={e => setCode(e.target.value)}/></div>
+          <div style={{width:140}}><div className="field-label">코드</div><input className="field-input" placeholder="HSK" style={{width:'100%', textTransform:'uppercase'}} value={code} onChange={e => setCode(e.target.value.toUpperCase())}/></div>
           <div style={{flex:1, minWidth:180}}><div className="field-label">시험명</div><input className="field-input" placeholder="한국사능력검정시험" style={{width:'100%'}} value={name} onChange={e => setName(e.target.value)}/></div>
+          <div style={{width:220}}><div className="field-label">ID prefix</div><input className="field-input" placeholder="gongjungaesa, gampyeongsa, jutaek..." style={{width:'100%', fontFamily:'var(--font-mono)'}} value={examIdPrefix} onChange={e => setExamIdPrefix(normalizeExamIdPrefix(e.target.value))}/></div>
           <button className="btn btn-primary" onClick={add}><Icon name="plus" size={12}/> 추가</button>
         </div>
       </div>
 
       <div className="panel">
-        <div className="panel-head"><div><div className="panel-title">등록된 시험</div><div className="panel-sub">{(subjects.data || []).length}개</div></div></div>
+        <div className="panel-head"><div><div className="panel-title">등록된 시험</div><div className="panel-sub">{(exams.data || []).length}개</div></div></div>
         <div className="panel-body">
-          {subjects.loading ? <Loader/> : subjects.error ? <ErrorBox error={subjects.error} retry={subjects.refetch}/> :
-            <div className="subj-grid">
-              {(subjects.data || []).map(s => (
-                <div key={s.code} className="subj-card">
-                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
-                    <div className="code">{s.code}</div>
-                    <button className="btn btn-xs btn-danger" onClick={() => remove(s.code)}><Icon name="trash" size={10}/></button>
+          {exams.loading ? <Loader/> : exams.error ? <ErrorBox error={exams.error} retry={exams.refetch}/> :
+            (exams.data || []).length === 0 ? <EmptyState icon="book" title="등록된 시험이 없습니다"/> :
+            <div className="exam-list">
+              {(exams.data || []).map(exam => {
+                const subjectCount = Number(exam.subject_count ?? exam.total_count ?? 0);
+                const open = openCode === exam.code;
+                return (
+                  <div key={exam.code} className={"exam-card " + (open ? 'open' : '')}>
+                    <div className="exam-card-head" onClick={() => setOpenCode(open ? null : exam.code)}>
+                      <div className="exam-card-main">
+                        <span className="exam-chev">›</span>
+                        <span className="exam-code">{exam.code}</span>
+                        <div className="exam-title">
+                          <div className="exam-name">{exam.name}</div>
+                          {exam.description && <div className="exam-desc">{exam.description}</div>}
+                        </div>
+                      </div>
+                      <div className="exam-actions">
+                        {exam.exam_id_prefix ? <span className="badge badge-neutral">{exam.exam_id_prefix}</span> : <span className="badge badge-warning">prefix 없음</span>}
+                        <span className="badge badge-info">{fmtNum(subjectCount)} 과목</span>
+                        <button className="btn btn-xs btn-danger" onClick={e => { e.stopPropagation(); remove(exam.code); }}><Icon name="trash" size={10}/></button>
+                      </div>
+                    </div>
+                    {open && (
+                      <ExamSubjectsList
+                        exam={exam}
+                        examId={exam.exam_id_prefix}
+                        pushToast={pushToast}
+                        onChange={() => { exams.refetch(); }}
+                      />
+                    )}
                   </div>
-                  <div className="nm">{s.name}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           }
         </div>
       </div>
     </>
   );
+}
+
+function ExamSubjectsList({ exam, examId, pushToast, onChange }) {
+  const activeExamId = String(examId || '').trim();
+  const [form, setForm] = useState({ code: '', name: '', level: '1', sort_order: '', file_code: '' });
+  const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const subjects = useAsync(
+    () => activeExamId ? rpc('admin_get_inspection_subjects', { p_exam_id: activeExamId }) : Promise.resolve([]),
+    [activeExamId]
+  );
+
+  const rows = useMemo(() => {
+    return [...(subjects.data || [])].sort((a, b) => {
+      const ao = a.sort_order ?? 9999;
+      const bo = b.sort_order ?? 9999;
+      if (ao !== bo) return ao - bo;
+      if (Number(a.level) !== Number(b.level)) return Number(a.level) - Number(b.level);
+      return String(a.code || '').localeCompare(String(b.code || ''));
+    });
+  }, [subjects.data]);
+
+  const setField = (key, value) => {
+    setForm(f => ({ ...f, [key]: value }));
+  };
+
+  const addSubject = async () => {
+    const sortOrder = parseOptionalNumber(form.sort_order);
+    const payload = {
+      p_exam_id: activeExamId,
+      p_code: form.code.trim(),
+      p_name: form.name.trim(),
+      p_level: Number(form.level),
+      p_sort_order: sortOrder,
+      p_file_code: nullableText(form.file_code),
+      p_gemini_prompt_template: null,
+    };
+    if (!payload.p_exam_id) { pushToast('시험 ID prefix가 없어 과목을 추가할 수 없습니다', 'info'); return; }
+    if (!payload.p_code || !payload.p_name || !payload.p_level) { pushToast('코드, 이름, 차수를 입력하세요', 'info'); return; }
+    if (Number.isNaN(sortOrder)) { pushToast('정렬 순서는 숫자로 입력하세요', 'info'); return; }
+
+    setBusy(true);
+    try {
+      await rpc('admin_add_subject_to_exam', payload);
+      setForm({ code: '', name: '', level: '1', sort_order: '', file_code: '' });
+      pushToast('과목 추가됨');
+      subjects.refetch();
+      onChange?.();
+    } catch (e) { pushToast(subjectRpcMessage(e, 'add'), 'info'); }
+    finally { setBusy(false); }
+  };
+
+  const removeSubject = async (subject) => {
+    if (!confirm(subject.code + ' 과목을 삭제하시겠습니까?')) return;
+    try {
+      await rpc('admin_remove_subject_from_exam', { p_id: subject.id });
+      pushToast('과목 삭제됨');
+      subjects.refetch();
+      onChange?.();
+    } catch (e) { pushToast(subjectRpcMessage(e, 'remove'), 'info'); }
+  };
+
+  return (
+    <div className="exam-card-body">
+      <div className="subj-id-bar">
+        <div className="subj-id-field">
+          <div className="field-label">시험 ID prefix</div>
+          <input
+            className="field-input"
+            style={{width:'100%', fontFamily:'var(--font-mono)'}}
+            value={activeExamId}
+            readOnly
+            placeholder="prefix 없음"
+          />
+        </div>
+        {!activeExamId && (
+          <div className="subj-warning">
+            <Icon name="info" size={14}/>
+            이 시험의 ID prefix가 없습니다. 시험 추가 시 ID prefix(소문자 영문)를 입력하세요.
+          </div>
+        )}
+      </div>
+
+      {!activeExamId ? null :
+       subjects.loading ? <Loader label="과목 불러오는 중..."/> :
+       subjects.error ? <ErrorBox error={subjects.error} retry={subjects.refetch}/> :
+        <div className="subj-row-list">
+          {rows.length === 0 ? <EmptyState icon="book" title="등록된 과목이 없습니다"/> :
+            rows.map(subject => (
+              <SubjectRow
+                key={subject.id || `${subject.exam_id}-${subject.level}-${subject.code}`}
+                subject={subject}
+                onEdit={() => setEditing(subject)}
+                onRemove={() => removeSubject(subject)}
+              />
+            ))
+          }
+        </div>
+      }
+
+      <div className="subj-add-box">
+        <div className="subj-add-title"><Icon name="plus" size={12}/> 과목 추가</div>
+        <div className="subj-form-grid">
+          <div>
+            <div className="field-label">코드</div>
+            <input className="field-input" value={form.code} onChange={e => setField('code', e.target.value)} placeholder="gaeron" disabled={!activeExamId}/>
+          </div>
+          <div>
+            <div className="field-label">과목명</div>
+            <input className="field-input" value={form.name} onChange={e => setField('name', e.target.value)} placeholder="부동산학개론" disabled={!activeExamId}/>
+          </div>
+          <div>
+            <div className="field-label">차수</div>
+            <select className="field-input" value={form.level} onChange={e => setField('level', e.target.value)} disabled={!activeExamId}>
+              <option value="1">1차</option>
+              <option value="2">2차</option>
+            </select>
+          </div>
+          <div>
+            <div className="field-label">정렬</div>
+            <input className="field-input" type="number" value={form.sort_order} onChange={e => setField('sort_order', e.target.value)} placeholder="10" disabled={!activeExamId}/>
+          </div>
+          <div>
+            <div className="field-label">파일 코드</div>
+            <input className="field-input" value={form.file_code} onChange={e => setField('file_code', e.target.value.toUpperCase())} placeholder="GR/M/CG/GB/GS/SB..." disabled={!activeExamId}/>
+          </div>
+          <div className="subj-form-actions">
+            <button className="btn btn-sm btn-primary" onClick={addSubject} disabled={busy || !activeExamId}>
+              {busy ? '추가 중...' : '추가'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {editing && (
+        <SubjectEditModal
+          subject={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); subjects.refetch(); onChange?.(); }}
+          pushToast={pushToast}
+        />
+      )}
+    </div>
+  );
+}
+
+function SubjectRow({ subject, onEdit, onRemove }) {
+  return (
+    <div className="subj-row">
+      <div className="subj-row-main">
+        <span className="subj-row-code">{subject.code}</span>
+        <span className="subj-row-name">{subject.name}</span>
+        <span className="badge badge-neutral">{formatSubjectLevel(subject.level)}</span>
+        <span className="subj-row-file">{subject.file_code || 'file_code —'}</span>
+        {subject.sort_order != null && <span className="subj-row-sort">#{subject.sort_order}</span>}
+      </div>
+      <div className="subj-row-actions">
+        <button className="btn btn-xs" onClick={onEdit}><Icon name="edit" size={10}/> 편집</button>
+        <button className="btn btn-xs btn-danger" onClick={onRemove}><Icon name="trash" size={10}/></button>
+      </div>
+    </div>
+  );
+}
+
+function SubjectEditModal({ subject, onClose, onSaved, pushToast }) {
+  const [name, setName] = useState(subject.name || '');
+  const [sortOrder, setSortOrder] = useState(subject.sort_order ?? '');
+  const [fileCode, setFileCode] = useState(subject.file_code || '');
+  const [template, setTemplate] = useState(subject.gemini_prompt_template || '');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setName(subject.name || '');
+    setSortOrder(subject.sort_order ?? '');
+    setFileCode(subject.file_code || '');
+    setTemplate(subject.gemini_prompt_template || '');
+  }, [subject.id]);
+
+  const save = async () => {
+    const cleanName = name.trim();
+    const parsedSort = parseOptionalNumber(sortOrder);
+    if (!cleanName) { pushToast('과목명을 입력하세요', 'info'); return; }
+    if (Number.isNaN(parsedSort)) { pushToast('정렬 순서는 숫자로 입력하세요', 'info'); return; }
+
+    setBusy(true);
+    try {
+      await rpc('admin_update_subject_full', {
+        p_id: subject.id,
+        p_name: cleanName,
+        p_sort_order: parsedSort,
+        p_file_code: nullableText(fileCode),
+        p_gemini_prompt_template: nullableText(template),
+      });
+      pushToast('과목 수정됨');
+      onSaved?.();
+    } catch (e) { pushToast(subjectRpcMessage(e, 'update'), 'info'); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="palette-backdrop" onClick={onClose}>
+      <div className="subject-edit-modal" onClick={e => e.stopPropagation()}>
+        <div className="subject-edit-head">
+          <div>
+            <div className="panel-title">과목 편집</div>
+            <div className="panel-sub">{subject.exam_id} · {subject.code} · {formatSubjectLevel(subject.level)}</div>
+          </div>
+          <button onClick={onClose} style={{color:'var(--fg-subtle)', padding:4}}><Icon name="x" size={16}/></button>
+        </div>
+        <div className="subject-edit-body">
+          <div className="subject-edit-grid">
+            <div>
+              <div className="field-label">과목명</div>
+              <input className="field-input" style={{width:'100%'}} value={name} onChange={e => setName(e.target.value)}/>
+            </div>
+            <div>
+              <div className="field-label">정렬</div>
+              <input className="field-input" type="number" style={{width:'100%'}} value={sortOrder} onChange={e => setSortOrder(e.target.value)}/>
+            </div>
+            <div>
+              <div className="field-label">파일 코드</div>
+              <input className="field-input" style={{width:'100%', fontFamily:'var(--font-mono)'}} value={fileCode} onChange={e => setFileCode(e.target.value.toUpperCase())} placeholder="GR/M/CG/GB/GS/SB..."/>
+            </div>
+          </div>
+          <div style={{marginTop:14}}>
+            <div className="field-label">Gemini 프롬프트 템플릿</div>
+            <textarea
+              className="subj-template-textarea"
+              value={template}
+              onChange={e => setTemplate(e.target.value)}
+              placeholder="{round} {number} {stem} {choices} {correct} {explanation}"
+            />
+          </div>
+          <div className="form-actions">
+            <button className="btn btn-sm" onClick={onClose}>취소</button>
+            <button className="btn btn-sm btn-primary" onClick={save} disabled={busy}>{busy ? '저장 중...' : '저장'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatSubjectLevel(level) {
+  const n = Number(level);
+  if (n === 1) return '1차';
+  if (n === 2) return '2차';
+  return level || '—';
+}
+
+function parseOptionalNumber(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function nullableText(value) {
+  const text = String(value ?? '').trim();
+  return text ? text : null;
+}
+
+function subjectRpcMessage(error, action) {
+  const msg = error?.message || String(error || '');
+  if (error?.code === '23505' || /duplicate key|unique/i.test(msg)) return '같은 시험에 이미 등록된 과목 코드입니다';
+  if (error?.code === '23503' || /foreign key/i.test(msg)) return '연결된 문항이 있어 삭제할 수 없습니다';
+  if (action === 'add') return msg || '과목 추가에 실패했습니다';
+  if (action === 'update') return msg || '과목 수정에 실패했습니다';
+  if (action === 'remove') return msg || '과목 삭제에 실패했습니다';
+  return msg || '요청을 처리하지 못했습니다';
+}
+
+/* ─── Question Inspector ─── */
+function QuestionInspector({ pushToast }) {
+  const exams = useAsync(() => rpc('admin_get_exams'));
+  const [examCode, setExamCode] = useState(localStorage.getItem('qi.examCode') || null);
+  const [subjectCode, setSubjectCode] = useState(localStorage.getItem('qi.subjectCode') || null);
+  const [yearSession, setYearSession] = useState(null);
+  const [openId, setOpenId] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsCode, setSettingsCode] = useState(null);
+  const [activeTabPerCard, setActiveTabPerCard] = useState({});
+
+  const sortedExams = useMemo(() => {
+    return [...(exams.data || [])];
+  }, [exams.data]);
+  const currentExam = useMemo(() => {
+    return sortedExams.find(e => e.code === examCode) || sortedExams[0] || null;
+  }, [sortedExams, examCode]);
+  const currentExamId = currentExam?.exam_id_prefix || null;
+  const subjects = useAsync(
+    () => currentExamId ? rpc('admin_get_inspection_subjects', { p_exam_id: currentExamId }) : Promise.resolve([]),
+    [currentExamId]
+  );
+  const sortedSubjects = useMemo(() => {
+    return [...(subjects.data || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  }, [subjects.data]);
+  const selectedSubject = useMemo(() => sortedSubjects.find(s => s.code === subjectCode), [sortedSubjects, subjectCode]);
+  const selectedSubjectId = selectedSubject ? selectedSubject.id : null;
+
+  const sessions = useAsync(
+    () => selectedSubjectId ? rpc('admin_get_question_year_sessions', { p_subject_id: selectedSubjectId }) : Promise.resolve([]),
+    [selectedSubjectId]
+  );
+
+  const selectedSession = useMemo(() => {
+    return (sessions.data || []).find(s => Number(s.year_session) === Number(yearSession));
+  }, [sessions.data, yearSession]);
+
+  const questions = useAsync(
+    () => (selectedSubjectId && yearSession) ? rpc('admin_get_questions_for_inspection', { p_subject_id: selectedSubjectId, p_year_session: yearSession }) : Promise.resolve([]),
+    [selectedSubjectId, yearSession]
+  );
+
+  useEffect(() => {
+    if (examCode) localStorage.setItem('qi.examCode', examCode);
+  }, [examCode]);
+
+  useEffect(() => {
+    if (subjectCode) localStorage.setItem('qi.subjectCode', subjectCode);
+  }, [subjectCode]);
+
+  useEffect(() => {
+    if (!sortedExams.length) return;
+    const hasExam = sortedExams.some(e => e.code === examCode);
+    if (!examCode || !hasExam) {
+      setExamCode(sortedExams[0].code);
+    }
+  }, [sortedExams, examCode]);
+
+  useEffect(() => {
+    if (!sortedSubjects.length) {
+      if (!subjects.loading) {
+        if (subjectCode) setSubjectCode(null);
+        if (settingsCode) setSettingsCode(null);
+      }
+      return;
+    }
+    const hasSubject = sortedSubjects.some(s => s.code === subjectCode);
+    const hasSettings = sortedSubjects.some(s => s.code === settingsCode);
+    const nextCode = hasSubject ? subjectCode : sortedSubjects[0].code;
+    if (!subjectCode || !hasSubject) {
+      setSubjectCode(nextCode);
+    }
+    if (!settingsCode || !hasSettings) {
+      setSettingsCode(nextCode);
+    }
+  }, [sortedSubjects, subjects.loading, subjectCode, settingsCode]);
+
+  useEffect(() => {
+    setSubjectCode(null);
+    setSettingsCode(null);
+    setYearSession(null);
+    setOpenId(null);
+    setActiveTabPerCard({});
+  }, [currentExamId]);
+
+  useEffect(() => {
+    setYearSession(null);
+    setOpenId(null);
+    setActiveTabPerCard({});
+  }, [selectedSubjectId]);
+
+  useEffect(() => {
+    if (!sessions.data || sessions.data.length === 0) return;
+    const hasCurrent = sessions.data.some(s => Number(s.year_session) === Number(yearSession));
+    if (!yearSession || !hasCurrent) {
+      setYearSession(sessions.data[0].year_session);
+    }
+  }, [sessions.data, yearSession]);
+
+  const setCardTab = (questionId, tab) => {
+    setActiveTabPerCard(m => ({ ...m, [questionId]: tab }));
+  };
+
+  const handleExamSelect = (code) => {
+    if (code === examCode) return;
+    setExamCode(code);
+    setSubjectCode(null);
+    setSettingsCode(null);
+    setYearSession(null);
+    setOpenId(null);
+    setActiveTabPerCard({});
+  };
+
+  const handleSubjectSelect = (code) => {
+    setSubjectCode(code);
+    setYearSession(null);
+    setOpenId(null);
+    setActiveTabPerCard({});
+    setSettingsCode(c => c || code);
+  };
+
+  const handleQuestionsChanged = () => {
+    questions.refetch();
+    sessions.refetch();
+  };
+
+  const total = Number(selectedSession?.total_count) || 0;
+  const checked = Number(selectedSession?.checked_count) || 0;
+  const stale = Number(selectedSession?.stale_count) || 0;
+  const unchecked = Number(selectedSession?.unchecked_count) || 0;
+  const checkedPct = total ? (checked / total) * 100 : 0;
+  const stalePct = total ? (stale / total) * 100 : 0;
+
+  return (
+    <>
+      <div className="toolbar qi-exam-tabs">
+        {exams.loading ? <span style={{fontSize:12, color:'var(--fg-subtle)'}}>시험 불러오는 중...</span> :
+          sortedExams.map(exam => (
+            <div
+              key={exam.code}
+              className={"filter-chip " + (currentExam?.code === exam.code ? 'active' : '')}
+              onClick={() => handleExamSelect(exam.code)}
+              title={exam.exam_id_prefix || 'ID prefix 없음'}
+            >
+              {exam.name || exam.code}
+            </div>
+          ))
+        }
+        <div style={{flex:1}}/>
+        <button className="btn btn-sm" onClick={() => setShowSettings(v => !v)}>
+          🤖 프롬프트 템플릿 설정
+        </button>
+        <button className="icon-btn" onClick={() => { exams.refetch(); subjects.refetch(); sessions.refetch(); questions.refetch(); }} title="새로고침"><Icon name="refresh"/></button>
+      </div>
+
+      {exams.error && <ErrorBox error={exams.error} retry={exams.refetch}/>}
+
+      {currentExam && !currentExamId && (
+        <div className="subj-warning qi-warning">
+          <Icon name="info" size={14}/>
+          선택한 시험의 ID prefix가 없어 과목을 불러올 수 없습니다.
+        </div>
+      )}
+
+      <div className="toolbar qi-subject-tabs">
+        {subjects.loading ? <span style={{fontSize:12, color:'var(--fg-subtle)'}}>과목 불러오는 중...</span> :
+          sortedSubjects.length === 0 ? <span style={{fontSize:12, color:'var(--fg-subtle)'}}>표시할 과목이 없습니다</span> :
+          sortedSubjects.map(s => (
+            <div
+              key={s.id || s.code}
+              className={"filter-chip " + (subjectCode === s.code ? 'active' : '')}
+              onClick={() => handleSubjectSelect(s.code)}
+              title={s.name || s.code}
+            >
+              {s.name || SUBJECT_SHORT[s.code] || s.code}
+            </div>
+          ))
+        }
+      </div>
+
+      {subjects.error && <ErrorBox error={subjects.error} retry={subjects.refetch}/>}
+
+      {showSettings && (
+        <QuestionInspectorSettings
+          key={currentExam?.code || 'no-exam'}
+          subjects={sortedSubjects}
+          activeCode={settingsCode || subjectCode}
+          setActiveCode={setSettingsCode}
+          onSaved={subjects.refetch}
+          pushToast={pushToast}
+        />
+      )}
+
+      <div className="toolbar" style={{alignItems:'center'}}>
+        <select
+          className="field-input"
+          style={{minWidth:150, padding:'6px 10px', fontSize:12}}
+          value={yearSession || ''}
+          onChange={e => { setYearSession(e.target.value ? Number(e.target.value) : null); setOpenId(null); }}
+          disabled={!selectedSubjectId || sessions.loading}
+        >
+          <option value="">{sessions.loading ? '회차 불러오는 중...' : '회차 선택'}</option>
+          {(sessions.data || []).map(s => (
+            <option key={s.year_session} value={s.year_session}>{s.year_session}회</option>
+          ))}
+        </select>
+        <div className="qi-progress" style={{flex:1}}>
+          <div className="qi-stat"><span>총</span><strong>{fmtNum(total)}</strong><span>문항</span></div>
+          <div className="qi-stat checked"><span>검수</span><strong>{fmtNum(checked)}</strong></div>
+          <div className="qi-stat stale"><span>재검수</span><strong>{fmtNum(stale)}</strong></div>
+          <div className="qi-stat unchecked"><span>미검수</span><strong>{fmtNum(unchecked)}</strong></div>
+          <div className="qi-progress-bar" aria-label="검수 진행률">
+            <span className="seg seg-checked" style={{width: checkedPct + '%'}}/>
+            <span className="seg seg-stale" style={{width: stalePct + '%'}}/>
+          </div>
+        </div>
+      </div>
+
+      {sessions.error ? <ErrorBox error={sessions.error} retry={sessions.refetch}/> :
+       !selectedSubjectId ? <EmptyState icon="book" title="과목을 선택하세요"/> :
+       sessions.loading && !(sessions.data || []).length ? <Loader/> :
+       !yearSession ? <EmptyState icon="edit" title="회차가 없습니다" sub="선택한 과목에 등록된 문항 회차가 없습니다."/> :
+       questions.loading ? <Loader label="문항 불러오는 중..."/> :
+       questions.error ? <ErrorBox error={questions.error} retry={questions.refetch}/> :
+       (questions.data || []).length === 0 ? <EmptyState icon="edit" title="문항이 없습니다" sub="선택한 회차에 검수할 문항이 없습니다."/> :
+        <div className="item-list">
+          {(questions.data || []).map(q => (
+            <QuestionInspectionItem
+              key={q.id}
+              question={q}
+              subject={selectedSubject}
+              exam={currentExam}
+              open={openId === q.id}
+              onToggle={() => setOpenId(openId === q.id ? null : q.id)}
+              activeTab={activeTabPerCard[q.id] || 'edit'}
+              setActiveTab={(tab) => setCardTab(q.id, tab)}
+              onChanged={handleQuestionsChanged}
+              pushToast={pushToast}
+            />
+          ))}
+        </div>
+      }
+    </>
+  );
+}
+
+function QuestionInspectorSettings({ subjects, activeCode, setActiveCode, onSaved, pushToast }) {
+  const activeSubject = subjects.find(s => s.code === activeCode) || subjects[0];
+  const [fileCode, setFileCode] = useState('');
+  const [template, setTemplate] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!activeSubject) return;
+    setFileCode(activeSubject.file_code || '');
+    setTemplate(activeSubject.gemini_prompt_template || '');
+  }, [activeSubject?.id, activeSubject?.code, activeSubject?.file_code, activeSubject?.gemini_prompt_template]);
+
+  const save = async () => {
+    if (!activeSubject) return;
+    setBusy(true);
+    try {
+      await rpc('admin_update_subject_full', {
+        p_id: activeSubject.id,
+        p_name: activeSubject.name,
+        p_sort_order: activeSubject.sort_order ?? null,
+        p_file_code: nullableText(fileCode),
+        p_gemini_prompt_template: nullableText(template),
+      });
+      pushToast('프롬프트 템플릿 저장됨');
+      onSaved?.();
+    } catch (e) { pushToast(e.message, 'info'); }
+    finally { setBusy(false); }
+  };
+
+  if (!activeSubject) return null;
+
+  return (
+    <div className="qi-tpl-panel">
+      <div className="qi-tpl-tabs">
+        {subjects.map(s => (
+          <div
+            key={s.id || s.code}
+            className={"filter-chip " + (activeSubject.code === s.code ? 'active' : '')}
+            onClick={() => setActiveCode(s.code)}
+          >
+            {s.name || SUBJECT_SHORT[s.code] || s.code}
+          </div>
+        ))}
+      </div>
+      <div className="panel-body">
+        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:12, alignItems:'end', marginBottom:12}}>
+          <div>
+            <div className="field-label">파일 코드</div>
+            <input
+              className="field-input"
+              style={{width:'100%', fontFamily:'var(--font-mono)'}}
+              value={fileCode}
+              onChange={e => setFileCode(e.target.value)}
+              placeholder={activeSubject.code}
+            />
+          </div>
+          <div className="qi-tpl-vars">
+            변수: {'{round}'} {'{number}'} {'{stem}'} {'{choices}'} {'{correct}'} {'{explanation}'}
+          </div>
+        </div>
+        <div className="field-label">Gemini 프롬프트 템플릿</div>
+        <textarea
+          className="qi-tpl-textarea"
+          value={template}
+          onChange={e => setTemplate(e.target.value)}
+          placeholder="{round}회 {number}번&#10;&#10;{stem}&#10;&#10;{choices}&#10;&#10;정답: {correct}&#10;&#10;해설: {explanation}"
+        />
+        <div className="form-actions">
+          <button className="btn btn-sm btn-primary" onClick={save} disabled={busy}>
+            {busy ? '저장 중...' : '저장'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuestionInspectionItem({ question, subject, exam, open, onToggle, activeTab, setActiveTab, onChanged, pushToast }) {
+  const [editing, setEditing] = useState(false);
+  const q = normalizeInspectionQuestion(question);
+  const choices = questionChoices(q);
+  const correctIdx = 'ABCDE'.indexOf(q.correct_answer || '');
+  const status = q.check_status || 'unchecked';
+  const statusMeta = {
+    unchecked: ['badge-neutral', '미검수', 'var(--fg-faint)'],
+    checked: ['badge-success', '검수 완료', 'var(--success)'],
+    stale: ['badge-warning', '재검수', 'var(--warning)'],
+  }[status] || ['badge-neutral', status, 'var(--fg-faint)'];
+
+  const copyGeminiPrompt = async () => {
+    const text = buildGeminiPrompt(subject, q);
+    try {
+      await navigator.clipboard.writeText(text);
+      pushToast('🤖 Gemini 프롬프트 복사됨');
+    } catch (e) {
+      fallbackCopyText(text);
+      pushToast('🤖 Gemini 프롬프트 복사됨');
+    }
+  };
+
+  const toggleCheck = async () => {
+    const isChecked = q.check_status !== 'unchecked';
+    try {
+      if (isChecked) {
+        await rpc('admin_unmark_question_checked', { p_question_id: q.id });
+        pushToast('검수 해제됨');
+      } else {
+        await rpc('admin_mark_question_checked', { p_question_id: q.id });
+        pushToast('검수 완료');
+      }
+      onChanged();
+    } catch (e) { pushToast(e.message, 'info'); }
+  };
+
+  const stemLine = firstLine(q.stem || '(문제 지문 없음)');
+
+  return (
+    <div className={"item " + (open ? 'open' : '')}>
+      <div className="item-head" onClick={onToggle}>
+        <div className="dot" style={{background: statusMeta[2]}}/>
+        <div className="item-meta">
+          <div className="item-title">{q.question_number}번 · {stemLine}</div>
+          <div className="item-sub">
+            {q.year_session}회 · v{q.version || 1} · 수정 {relativeTime(q.updated_at)}
+          </div>
+        </div>
+        <div className="item-right">
+          <span className={"badge " + statusMeta[0]}>{statusMeta[1]}</span>
+          <span className="item-time">#{(q.id || '').toString().slice(0,8)}</span>
+          <span className="chev">›</span>
+        </div>
+      </div>
+      {open && (
+        <div className="item-body">
+          <div className="qi-tabs">
+            <div className={"qi-tab " + (activeTab === 'edit' ? 'active' : '')} onClick={() => setActiveTab('edit')}>편집</div>
+            <div className={"qi-tab " + (activeTab === 'preview' ? 'active' : '')} onClick={() => setActiveTab('preview')}>미리보기</div>
+          </div>
+
+          {activeTab === 'edit' ? (
+            <QuestionBlock
+              q={q}
+              editing={editing}
+              setEditing={setEditing}
+              onSaved={() => { setEditing(false); onChanged(); pushToast('문항이 수정되었습니다'); }}
+              pushToast={pushToast}
+            />
+          ) : (
+            <div className="q-box">
+              <div className="q-stem">{q.stem}</div>
+              <ul className="choices-list">
+                {choices.map((c, i) => {
+                  const text = typeof c === 'string' ? c : (c.text || '');
+                  return (
+                    <li key={i} className={"choice-item " + (i === correctIdx ? 'correct' : '')}>
+                      <span className="choice-id">{'①②③④⑤'[i]}</span> {text}
+                      {i === correctIdx && <span style={{marginLeft:'auto', fontSize:10}}>정답</span>}
+                    </li>
+                  );
+                })}
+              </ul>
+              {q.explanation && <div className="exp-box">{q.explanation}</div>}
+              <div className="qi-actions">
+                <button className="btn btn-sm btn-gemini" onClick={copyGeminiPrompt}>🤖 Gemini에 보내기</button>
+                <button className="btn btn-sm" onClick={() => { downloadMd(subject, q, exam); pushToast('.md 다운로드 생성됨'); }}>💾 .md 다운로드</button>
+                <button className={"btn btn-sm " + (status === 'unchecked' ? 'btn-success' : '')} onClick={toggleCheck}>
+                  {status === 'unchecked' ? '✓ 검수 완료' : '검수 해제'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function normalizeInspectionQuestion(question) {
+  const correctIndex = 'ABCDE'.indexOf(question.correct_answer || '');
+  return {
+    ...question,
+    correct_index: correctIndex >= 0 ? correctIndex : 0,
+    choices: questionChoices(question),
+  };
+}
+
+function questionChoices(question) {
+  return Array.isArray(question.choices) ? question.choices : (question.choices?.options || []);
+}
+
+function firstLine(text) {
+  return String(text || '').split(/\r?\n/).find(Boolean) || String(text || '');
+}
+
+function buildGeminiPrompt(subject, question) {
+  const template = subject?.gemini_prompt_template || '';
+  const correctIdx = 'ABCDE'.indexOf(question.correct_answer);
+  const choicesArr = Array.isArray(question.choices) ? question.choices : (question.choices?.options || []);
+  const choicesText = choicesArr.map((c, i) => {
+    const t = typeof c === 'string' ? c : (c.text || '');
+    return `${'①②③④⑤'[i]} ${t}`;
+  }).join('\n\n');
+  const correctText = (() => {
+    const c = choicesArr[correctIdx];
+    const t = typeof c === 'string' ? c : (c?.text || '');
+    return `${'①②③④⑤'[correctIdx] || '?'} ${t}`;
+  })();
+
+  return template
+    .replace(/\{round\}/g, String(question.year_session))
+    .replace(/\{number\}/g, String(question.question_number))
+    .replace(/\{stem\}/g, question.stem || '')
+    .replace(/\{choices\}/g, choicesText)
+    .replace(/\{correct\}/g, correctText)
+    .replace(/\{explanation\}/g, question.explanation || '(없음)');
+}
+
+function downloadMd(subject, question, exam) {
+  const text = buildGeminiPrompt(subject, question);
+  const fileCode = subject?.file_code || subject?.code || 'subject';
+  const examCode = exam?.code || subject?.exam_code || 'EXAM';
+  const filename = `${examCode}_${subject?.level || ''}_${fileCode}_${question.year_session}_${question.question_number}.md`;
+  const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function fallbackCopyText(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
 }
 
 /* ─── App Version ─── */
@@ -993,6 +1806,7 @@ function CommandPalette({ onClose, setSection }) {
       { label: '개요', icon:'home', action: () => setSection('overview') },
       { label: '분석', icon:'chart', action: () => setSection('analytics') },
       { label: '신고 관리', icon:'flag', action: () => setSection('reports') },
+      { label: '문제 전수조사', icon:'edit', action: () => setSection('question-inspector') },
       { label: '공지 · 업데이트', icon:'megaphone', action: () => setSection('announcements') },
       { label: '시험 과목', icon:'book', action: () => setSection('subjects') },
       { label: '앱 버전', icon:'phone', action: () => setSection('app-version') },
@@ -1049,7 +1863,8 @@ function ShortcutsModal({ onClose }) {
   const shortcuts = [
     ['명령 팔레트', ['⌘', 'K']], ['단축키 도움말', ['?']],
     ['개요로 이동', ['G', 'O']], ['분석으로 이동', ['G', 'A']],
-    ['신고 관리로 이동', ['G', 'R']], ['공지사항으로 이동', ['G', 'N']],
+    ['신고 관리로 이동', ['G', 'R']], ['문제 전수조사로 이동', ['G', 'I']],
+    ['공지사항으로 이동', ['G', 'N']],
     ['감사 로그로 이동', ['G', 'U']], ['설정으로 이동', ['G', 'S']],
     ['모달/패널 닫기', ['ESC']],
   ];
@@ -1114,7 +1929,7 @@ function NotifPanel({ onClose, onBadgeChange }) {
 }
 
 Object.assign(window, {
-  Overview, Analytics, Reports, Announcements, Subjects,
+  Overview, Analytics, Reports, QuestionInspector, Announcements, Subjects,
   AppVersion, Admins, AuditLog, Settings,
   CommandPalette, ShortcutsModal, NotifPanel,
   actionLabel,
