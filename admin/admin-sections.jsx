@@ -541,17 +541,17 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
   if (editing) {
     return (
       <div className="q-box">
-        <textarea value={stem} onChange={e=>setStem(e.target.value)} style={{marginBottom:10, minHeight:54}}/>
-        <div style={{display:'flex', flexDirection:'column', gap:5, marginBottom:10}}>
+        <textarea value={stem} onChange={e=>setStem(e.target.value)} style={{marginBottom:14, minHeight:150}}/>
+        <div style={{display:'flex', flexDirection:'column', gap:8, marginBottom:14}}>
           {choices.map((c, i) => (
-            <div key={i} style={{display:'flex', gap:7, alignItems:'center'}}>
+            <div key={i} style={{display:'flex', gap:10, alignItems:'center'}}>
               <input type="radio" name="correct-q" checked={correct === i} onChange={() => setCorrect(i)}/>
-              <input className="field-input" style={{flex:1, padding:'5px 8px', fontSize:12}} value={c.text || ''} onChange={e => setChoices(cs => cs.map((x, j) => j === i ? { ...x, text: e.target.value } : x))}/>
+              <input className="field-input" style={{flex:1, padding:'9px 11px', fontSize:14}} value={c.text || ''} onChange={e => setChoices(cs => cs.map((x, j) => j === i ? { ...x, text: e.target.value } : x))}/>
             </div>
           ))}
         </div>
         <div className="field-label">해설</div>
-        <textarea value={explanation} onChange={e=>setExplanation(e.target.value)} style={{minHeight:160}}/>
+        <textarea value={explanation} onChange={e=>setExplanation(e.target.value)} style={{minHeight:220}}/>
         <div style={{display:'flex', gap:6, justifyContent:'flex-end', marginTop:10}}>
           <button className="btn btn-sm" onClick={() => setEditing(false)}>취소</button>
           <button className="btn btn-sm btn-primary" onClick={save} disabled={busy}>{busy ? '저장 중...' : '저장'}</button>

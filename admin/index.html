@@ -236,14 +236,16 @@
   .det-section:last-child { margin-bottom: 0; }
   .det-label { font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-faint); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
   .det-text { font-size: 13px; line-height: 1.65; color: var(--fg); white-space: pre-wrap; }
-  .q-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 14px 16px; position: relative; }
+  .q-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 20px 22px; position: relative; }
   .q-box .q-edit { position: absolute; top: 10px; right: 10px; padding: 3px 8px; font-size: 10.5px; font-family: var(--font-mono); }
-  .q-stem { font-size: 13px; font-weight: 500; line-height: 1.65; margin-bottom: 12px; padding-right: 50px; }
-  .choices-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-  .choice-item { font-size: 12px; line-height: 1.55; padding: 7px 11px; border-radius: var(--r-sm); color: var(--fg-muted); background: var(--surface-2); display: flex; gap: 8px; }
+  .q-stem { font-size: 16px; font-weight: 500; line-height: 1.8; margin-bottom: 16px; padding-right: 58px; white-space: pre-wrap; }
+  .choices-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .choice-item { font-size: 14px; line-height: 1.7; padding: 11px 14px; border-radius: var(--r-sm); color: var(--fg-muted); background: var(--surface-2); display: flex; gap: 10px; }
   .choice-item.correct { background: var(--success-soft); color: var(--success); font-weight: 500; }
   .choice-item .choice-id { font-family: var(--font-mono); font-weight: 600; }
-  .exp-box { margin-top: 12px; padding: 12px 14px; background: var(--accent-soft); border-left: 2px solid var(--accent); border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 12px; line-height: 1.7; color: var(--fg-muted); }
+  .exp-box { margin-top: 16px; padding: 14px 16px; background: var(--accent-soft); border-left: 2px solid var(--accent); border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 14px; line-height: 1.75; color: var(--fg-muted); white-space: pre-wrap; }
+  .q-box textarea { min-height: 140px; font-size: 15px; line-height: 1.7; padding: 12px 14px; }
+  .q-box .field-input { font-size: 14px; line-height: 1.6; padding: 9px 11px; }
 
   textarea { width: 100%; min-height: 80px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--fg); font-size: 13px; line-height: 1.55; resize: vertical; outline: none; transition: all .15s; font-family: inherit; }
   textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
@@ -478,7 +480,7 @@ window.addEventListener('unhandledrejection', function(e) {
 <script src="vendor/react-dom.production.min.js"></script>
 <script src="vendor/babel.min.js"></script>
 <script type="text/babel" data-presets="react" src="admin-lib.jsx?v=5"></script>
-<script type="text/babel" data-presets="react" src="admin-sections.jsx?v=5"></script>
+<script type="text/babel" data-presets="react" src="admin-sections.jsx?v=6"></script>
 <script type="text/babel" data-presets="react" src="admin-app.jsx?v=5"></script>
 </body>
 </html>
