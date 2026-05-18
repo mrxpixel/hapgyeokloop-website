@@ -57,18 +57,17 @@ function Shell({ session, admin }) {
     localStorage.setItem('admin.theme', theme);
   }, [theme]);
 
-  // load sidebar badge counts (pending reports + pending admin signups)
+  // load sidebar badge counts without pulling full report/user lists
   const loadCounts = useCallbackApp(async () => {
     try {
-      const [reps, users] = await Promise.all([
-        rpc('admin_get_reports').catch(() => []),
-        admin?.role === 'super_admin' ? rpc('admin_list_users').catch(() => []) : Promise.resolve([]),
-      ]);
-      const pendingReports = (reps || []).filter(r => r.status === 'pending').length;
-      const pendingAdmins = (users || []).filter(u => u.status === 'pending').length;
-      setPendingCounts({ reports: pendingReports, admins: pendingAdmins });
+      const counts = await rpc('admin_get_sidebar_counts');
+      const row = Array.isArray(counts) ? counts[0] : counts;
+      setPendingCounts({
+        reports: Number(row?.pending_reports) || 0,
+        admins: Number(row?.pending_admins) || 0,
+      });
     } catch (e) { /* ignore */ }
-  }, [admin?.role]);
+  }, []);
   useEffectApp(() => { loadCounts(); const h = setInterval(loadCounts, 60_000); return () => clearInterval(h); }, [loadCounts]);
 
   // notification count poll
