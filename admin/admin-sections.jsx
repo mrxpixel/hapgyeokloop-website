@@ -1525,6 +1525,142 @@ function fallbackCopyText(text) {
   document.body.removeChild(ta);
 }
 
+/* ─── Exam Dates ─── */
+function ddayText(dateStr) {
+  if (!dateStr) return { text: '—', kind: 'muted' };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr + 'T00:00:00');
+  const diff = Math.round((target - today) / 86400000);
+  if (diff > 0) return { text: 'D-' + diff, kind: 'future' };
+  if (diff === 0) return { text: 'D-DAY', kind: 'today' };
+  return { text: 'D+' + Math.abs(diff), kind: 'past' };
+}
+
+function formatExamDate(dateStr) {
+  if (!dateStr) return '미설정';
+  const d = new Date(dateStr + 'T00:00:00');
+  const weekday = ['일','월','화','수','목','금','토'][d.getDay()];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day} (${weekday})`;
+}
+
+function ExamDates({ pushToast }) {
+  const list = useAsync(async () => {
+    const [examsRes, datesRes] = await Promise.all([
+      sb.from('exams').select('id, name, is_active').order('id'),
+      sb.from('exam_dates').select('exam_id, next_exam_date, exam_name_ko, updated_at'),
+    ]);
+    if (examsRes.error) throw examsRes.error;
+    if (datesRes.error) throw datesRes.error;
+    const byId = new Map((datesRes.data || []).map(d => [d.exam_id, d]));
+    return (examsRes.data || []).map(e => ({ ...e, exam_date: byId.get(e.id) || null }));
+  });
+  const [editingId, setEditingId] = useState(null);
+  const exams = (list.data || []).filter(exam => exam.is_active !== false);
+
+  return (
+    <>
+      <div style={{padding:'12px 16px', background:'var(--accent-soft)', border:'1px solid var(--border)', borderRadius:'var(--r)', marginBottom:16, display:'flex', gap:10, alignItems:'flex-start', fontSize:12, color:'var(--fg-muted)', lineHeight:1.65}}>
+        <Icon name="info" size={15} style={{color:'var(--accent)', flexShrink:0, marginTop:2}}/>
+        <div>D-day 및 모바일 앱 회차 표시는 이 값으로 갱신됩니다. 저장 즉시 적용.</div>
+      </div>
+      <div className="panel">
+        <div className="panel-head">
+          <div><div className="panel-title">시험별 회차·일자</div><div className="panel-sub">{exams.length}개</div></div>
+          <button className="icon-btn" onClick={list.refetch} title="새로고침"><Icon name="refresh"/></button>
+        </div>
+        <div className="panel-body">
+          {list.loading ? <Loader/> : list.error ? <ErrorBox error={list.error} retry={list.refetch}/> :
+            exams.length === 0 ? <EmptyState icon="calendar" title="표시할 시험이 없습니다"/> :
+            <div className="plat-grid">
+              {exams.map(exam => (
+                <ExamDateCard
+                  key={exam.id}
+                  exam={exam}
+                  onSave={() => { list.refetch(); pushToast(`${exam.name} 시험 일자 저장됨`); }}
+                  editing={editingId === exam.id}
+                  setEditing={(v) => setEditingId(v ? exam.id : null)}
+                  pushToast={pushToast}
+                />
+              ))}
+            </div>
+          }
+        </div>
+      </div>
+    </>
+  );
+}
+
+function ExamDateCard({ exam, onSave, editing, setEditing, pushToast }) {
+  const examDate = exam.exam_date || null;
+  const currentForm = () => ({
+    exam_date: examDate?.next_exam_date || '',
+    exam_name_ko: examDate?.exam_name_ko || '',
+  });
+  const [form, setForm] = useState(currentForm);
+  const [busy, setBusy] = useState(false);
+  const dday = ddayText(examDate?.next_exam_date);
+  const ddayColor = dday.kind === 'future' ? 'var(--fg-muted)'
+    : dday.kind === 'today' ? 'var(--success)'
+    : dday.kind === 'past' ? 'var(--danger)'
+    : 'var(--fg-faint)';
+
+  const save = async () => {
+    if (!form.exam_date) { pushToast('시험일을 선택하세요', 'info'); return; }
+    if (!form.exam_name_ko.trim()) { pushToast('회차 명칭을 입력하세요', 'info'); return; }
+    setBusy(true);
+    try {
+      await rpc('admin_upsert_exam_date', {
+        p_exam_id: exam.id,
+        p_exam_date: form.exam_date,
+        p_exam_name_ko: form.exam_name_ko.trim(),
+      });
+      setEditing(false);
+      onSave();
+    } catch (e) {
+      pushToast(e.message || String(e), 'info');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const startEditing = () => {
+    setForm(currentForm());
+    setEditing(true);
+  };
+
+  return (
+    <div className="plat-card">
+      <div className="plat-head">
+        <div className="plat-ic">{(exam.id || '?').slice(0, 2).toUpperCase()}</div>
+        <div><div className="plat-name">{exam.name}</div><div className="plat-updated">마지막 업데이트 {relativeTime(examDate?.updated_at) || '없음'}</div></div>
+      </div>
+      {editing ? (
+        <div style={{display:'flex', flexDirection:'column', gap:8}}>
+          <div><div className="field-label">다음 시험일</div><input type="date" className="field-input" style={{width:'100%'}} value={form.exam_date} onChange={e => setForm(f => ({ ...f, exam_date: e.target.value }))}/></div>
+          <div><div className="field-label">회차 명칭</div><input type="text" className="field-input" placeholder="예: 제38회 감정평가사 1차" style={{width:'100%'}} value={form.exam_name_ko} onChange={e => setForm(f => ({ ...f, exam_name_ko: e.target.value }))}/></div>
+          <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
+            <button className="btn btn-sm" onClick={() => setEditing(false)} disabled={busy}>취소</button>
+            <button className="btn btn-sm btn-primary" onClick={save} disabled={busy}>{busy ? '저장 중...' : '저장'}</button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <dl>
+            <dt>다음 시험일</dt><dd style={!examDate?.next_exam_date ? {color:'var(--fg-faint)'} : undefined}>{formatExamDate(examDate?.next_exam_date)}</dd>
+            <dt>회차 명칭</dt><dd style={!examDate?.exam_name_ko ? {color:'var(--fg-faint)'} : undefined}>{examDate?.exam_name_ko || '미설정'}</dd>
+            <dt>남은 기간</dt><dd style={{color:ddayColor, fontWeight:600}}>{dday.text}</dd>
+          </dl>
+          <button className="btn btn-sm" onClick={startEditing}>설정 편집</button>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─── App Version ─── */
 function AppVersion({ pushToast }) {
   const cfg = useAsync(async () => {
@@ -1930,7 +2066,7 @@ function NotifPanel({ onClose, onBadgeChange }) {
 
 Object.assign(window, {
   Overview, Analytics, Reports, QuestionInspector, Announcements, Subjects,
-  AppVersion, Admins, AuditLog, Settings,
+  ExamDates, AppVersion, Admins, AuditLog, Settings,
   CommandPalette, ShortcutsModal, NotifPanel,
   actionLabel,
 });
