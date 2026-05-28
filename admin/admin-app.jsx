@@ -11,6 +11,7 @@ const SECTIONS = [
     { key: 'question-inspector', label: '문제 전수조사', icon: 'edit' },
     { key: 'announcements', label: '공지 · 업데이트', icon: 'megaphone' },
     { key: 'subjects',      label: '시험 과목',      icon: 'book' },
+    { key: 'exams',         label: '시험 관리',      icon: 'database' },
     { key: 'exam-dates',    label: '시험 일자',      icon: 'calendar' },
     { key: 'app-version',   label: '앱 버전',        icon: 'phone' },
   ]},
@@ -30,6 +31,7 @@ const SECTION_TITLES = {
   'question-inspector': ['문제 전수조사', '과목·회차별 문항 검수 및 Gemini 프롬프트 생성'],
   'announcements':['공지 · 업데이트', '앱에 발행되는 공지 관리'],
   'subjects':     ['시험 과목', '제공 중인 시험 관리'],
+  'exams':        ['시험 관리', 'exams 테이블 직접 관리 · 새 시험 추가'],
   'exam-dates':   ['시험 일자 설정', '시험별 다음 회차 시험일·회차 명칭 관리'],
   'app-version':  ['앱 버전', '강제 업데이트 및 최소 버전 설정'],
   'admins':       ['관리자 관리', '팀 초대 · 권한 · 시험 배정'],
@@ -135,6 +137,7 @@ function Shell({ session, admin }) {
       case 'question-inspector': return <QuestionInspector pushToast={pushToast}/>;
       case 'announcements': return <Announcements pushToast={pushToast}/>;
       case 'subjects':      return <Subjects pushToast={pushToast}/>;
+      case 'exams':         return <Exams pushToast={pushToast}/>;
       case 'exam-dates':    return <ExamDates pushToast={pushToast}/>;
       case 'app-version':   return <AppVersion pushToast={pushToast}/>;
       case 'admins':        return admin.role === 'super_admin' ? <Admins pushToast={pushToast}/> : <NotAllowed/>;
