@@ -1547,6 +1547,237 @@ function formatExamDate(dateStr) {
   return `${y}-${m}-${day} (${weekday})`;
 }
 
+/* ─── Exam Management (exams 테이블 직접 관리) ─── */
+//
+// 필요한 Supabase RPC (사용자가 Supabase SQL Editor에서 직접 실행):
+//
+//   CREATE OR REPLACE FUNCTION public.admin_upsert_exam(
+//     p_id text, p_name text, p_is_active boolean
+//   ) RETURNS void
+//   LANGUAGE plpgsql SECURITY DEFINER
+//   SET search_path = public AS $$
+//   BEGIN
+//     IF NOT EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid() AND status = 'approved') THEN
+//       RAISE EXCEPTION 'Forbidden';
+//     END IF;
+//     INSERT INTO public.exams (id, name, is_active, created_at)
+//     VALUES (p_id, p_name, p_is_active, now())
+//     ON CONFLICT (id) DO UPDATE SET
+//       name = EXCLUDED.name,
+//       is_active = EXCLUDED.is_active;
+//   END; $$;
+//
+//   GRANT EXECUTE ON FUNCTION public.admin_upsert_exam(text, text, boolean) TO authenticated;
+//
+function Exams({ pushToast }) {
+  const list = useAsync(async () => {
+    const { data, error } = await sb.from('exams').select('id, name, is_active, description, total_questions').order('id');
+    if (error) throw error;
+    return data || [];
+  });
+  const [editingId, setEditingId] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const exams = list.data || [];
+
+  return (
+    <>
+      <div style={{padding:'12px 16px', background:'var(--accent-soft)', border:'1px solid var(--border)', borderRadius:'var(--r)', marginBottom:16, display:'flex', gap:10, alignItems:'flex-start', fontSize:12, color:'var(--fg-muted)', lineHeight:1.65}}>
+        <Icon name="info" size={15} style={{color:'var(--accent)', flexShrink:0, marginTop:2}}/>
+        <div>여기서 추가/수정한 시험은 모바일 앱과 웹사이트 양쪽에 즉시 반영됩니다. 시험 일자는 별도 페이지(<strong style={{color:'var(--fg)'}}>시험 일자 설정</strong>)에서 등록하세요.</div>
+      </div>
+      <div className="panel">
+        <div className="panel-head">
+          <div><div className="panel-title">등록된 시험</div><div className="panel-sub">{exams.length}개</div></div>
+          <div style={{display:'flex', gap:6}}>
+            <button className="icon-btn" onClick={list.refetch} title="새로고침"><Icon name="refresh"/></button>
+            <button className="btn btn-sm btn-primary" onClick={() => setShowAddModal(true)}><Icon name="plus" size={12}/> 새 시험 추가</button>
+          </div>
+        </div>
+        <div className="panel-body">
+          {list.loading ? <Loader/> : list.error ? <ErrorBox error={list.error} retry={list.refetch}/> :
+            exams.length === 0 ? <EmptyState icon="database" title="등록된 시험이 없습니다"/> :
+            <div className="plat-grid">
+              {exams.map(exam => (
+                <ExamCard
+                  key={exam.id}
+                  exam={exam}
+                  onSave={() => { list.refetch(); pushToast(`${exam.name} 저장됨`); }}
+                  editing={editingId === exam.id}
+                  setEditing={(v) => setEditingId(v ? exam.id : null)}
+                  pushToast={pushToast}
+                />
+              ))}
+            </div>
+          }
+        </div>
+      </div>
+      {showAddModal && (
+        <NewExamModal
+          existingIds={exams.map(e => e.id)}
+          onClose={() => setShowAddModal(false)}
+          onCreated={() => { setShowAddModal(false); list.refetch(); pushToast('새 시험이 추가됨'); }}
+          pushToast={pushToast}
+        />
+      )}
+    </>
+  );
+}
+
+function ExamCard({ exam, onSave, editing, setEditing, pushToast }) {
+  const currentForm = () => ({
+    name: exam.name || '',
+    is_active: exam.is_active !== false,
+  });
+  const [form, setForm] = useState(currentForm);
+  const [busy, setBusy] = useState(false);
+
+  const save = async (overrides) => {
+    const next = { ...form, ...(overrides || {}) };
+    if (!next.name.trim()) { pushToast('시험명을 입력하세요', 'info'); return; }
+    setBusy(true);
+    try {
+      await rpc('admin_upsert_exam', {
+        p_id: exam.id,
+        p_name: next.name.trim(),
+        p_is_active: !!next.is_active,
+      });
+      setEditing(false);
+      onSave();
+    } catch (e) {
+      pushToast(e.message || String(e), 'info');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // 인라인 토글 (VersionCard 패턴): 편집 중이 아닐 때 클릭하면 곧바로 저장
+  const toggleActive = async () => {
+    if (busy) return;
+    const next = !form.is_active;
+    setForm(f => ({ ...f, is_active: next }));
+    await save({ is_active: next });
+  };
+
+  const startEditing = () => {
+    setForm(currentForm());
+    setEditing(true);
+  };
+
+  return (
+    <div className="plat-card">
+      <div className="plat-head">
+        <div className="plat-ic">{(exam.id || '?').slice(0, 2).toUpperCase()}</div>
+        <div>
+          <div className="plat-name">{exam.name}</div>
+          <div className="plat-updated" style={{fontFamily:'var(--font-mono)', fontSize:10.5}}>{exam.id}</div>
+        </div>
+        <div style={{marginLeft:'auto'}}>
+          <label className={"toggle " + (form.is_active ? 'on' : '')} onClick={editing ? () => setForm(f => ({ ...f, is_active: !f.is_active })) : toggleActive}>
+            <span className="toggle-track"/>
+            <span style={{fontSize:11, fontFamily:'var(--font-mono)', color: form.is_active ? 'var(--success)' : 'var(--fg-subtle)', fontWeight:600}}>{form.is_active ? 'ACTIVE' : 'INACTIVE'}</span>
+          </label>
+        </div>
+      </div>
+      {editing ? (
+        <div style={{display:'flex', flexDirection:'column', gap:8}}>
+          <div><div className="field-label">시험명</div><input type="text" className="field-input" placeholder="예: 변호사" style={{width:'100%'}} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}/></div>
+          <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
+            <button className="btn btn-sm" onClick={() => setEditing(false)} disabled={busy}>취소</button>
+            <button className="btn btn-sm btn-primary" onClick={() => save()} disabled={busy}>{busy ? '저장 중...' : '저장'}</button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <dl>
+            <dt>시험명</dt><dd>{exam.name}</dd>
+            <dt>설명</dt><dd style={!exam.description ? {color:'var(--fg-faint)'} : undefined}>{exam.description || '미설정'}</dd>
+            <dt>문제 수</dt><dd style={{fontFamily:'var(--font-mono)'}}>{exam.total_questions != null ? fmtNum(exam.total_questions) + '개' : '—'}</dd>
+            <dt>상태</dt><dd style={{color: exam.is_active ? 'var(--success)' : 'var(--fg-faint)', fontWeight:600}}>{exam.is_active ? 'ACTIVE' : 'INACTIVE'}</dd>
+          </dl>
+          <button className="btn btn-sm" onClick={startEditing}>설정 편집</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function NewExamModal({ existingIds, onClose, onCreated, pushToast }) {
+  const [form, setForm] = useState({ id: '', name: '', is_active: true });
+  const [busy, setBusy] = useState(false);
+  const idValid = /^[a-z_]+$/.test(form.id) && form.id.length >= 2;
+  const idDuplicate = existingIds.includes(form.id);
+
+  const submit = async () => {
+    const cleanId = form.id.trim();
+    const cleanName = form.name.trim();
+    if (!cleanId || !cleanName) { pushToast('id와 시험명을 입력하세요', 'info'); return; }
+    if (!/^[a-z_]+$/.test(cleanId)) { pushToast('id는 소문자 영문과 underscore만 사용할 수 있습니다', 'info'); return; }
+    if (existingIds.includes(cleanId)) { pushToast('이미 존재하는 id 입니다', 'info'); return; }
+    setBusy(true);
+    try {
+      await rpc('admin_upsert_exam', {
+        p_id: cleanId,
+        p_name: cleanName,
+        p_is_active: !!form.is_active,
+      });
+      onCreated();
+    } catch (e) {
+      pushToast(e.message || String(e), 'info');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="palette-backdrop" onClick={onClose}>
+      <div className="palette" style={{maxWidth:480}} onClick={e => e.stopPropagation()}>
+        <div style={{padding:'16px 18px', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+          <div><div style={{fontSize:14, fontWeight:600}}>새 시험 추가</div><div style={{fontSize:11, color:'var(--fg-subtle)', fontFamily:'var(--font-mono)', marginTop:2}}>exams 테이블에 신규 행 등록</div></div>
+          <button onClick={onClose} style={{color:'var(--fg-subtle)', padding:4}}><Icon name="x" size={16}/></button>
+        </div>
+        <div style={{padding:'16px 18px', display:'flex', flexDirection:'column', gap:12}}>
+          <div>
+            <div className="field-label">id <span style={{color:'var(--fg-faint)', fontWeight:400}}>(소문자 영문 + underscore)</span></div>
+            <input
+              type="text"
+              className="field-input"
+              placeholder="예: byeonhosa"
+              style={{width:'100%', fontFamily:'var(--font-mono)'}}
+              value={form.id}
+              onChange={e => setForm(f => ({ ...f, id: e.target.value.toLowerCase().replace(/[^a-z_]/g, '') }))}
+              autoFocus
+            />
+            {form.id && !idValid && <div style={{fontSize:11, color:'var(--danger)', marginTop:4}}>id는 소문자 영문과 _ 만, 2자 이상</div>}
+            {idValid && idDuplicate && <div style={{fontSize:11, color:'var(--danger)', marginTop:4}}>이미 존재하는 id 입니다</div>}
+          </div>
+          <div>
+            <div className="field-label">시험명 (한국어)</div>
+            <input
+              type="text"
+              className="field-input"
+              placeholder="예: 변호사"
+              style={{width:'100%'}}
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            />
+          </div>
+          <div style={{display:'flex', alignItems:'center', gap:10}}>
+            <label className={"toggle " + (form.is_active ? 'on' : '')} onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}>
+              <span className="toggle-track"/>
+              <span style={{fontSize:11, fontFamily:'var(--font-mono)', color: form.is_active ? 'var(--success)' : 'var(--fg-subtle)', fontWeight:600}}>{form.is_active ? 'ACTIVE' : 'INACTIVE'}</span>
+            </label>
+            <span style={{fontSize:12, color:'var(--fg-muted)'}}>활성 상태로 등록할까요?</span>
+          </div>
+        </div>
+        <div style={{padding:'12px 18px', borderTop:'1px solid var(--border)', display:'flex', gap:6, justifyContent:'flex-end'}}>
+          <button className="btn btn-sm" onClick={onClose} disabled={busy}>취소</button>
+          <button className="btn btn-sm btn-primary" onClick={submit} disabled={busy || !idValid || idDuplicate || !form.name.trim()}>{busy ? '추가 중...' : '추가'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ExamDates({ pushToast }) {
   const list = useAsync(async () => {
     const [examsRes, datesRes] = await Promise.all([
@@ -2066,7 +2297,7 @@ function NotifPanel({ onClose, onBadgeChange }) {
 
 Object.assign(window, {
   Overview, Analytics, Reports, QuestionInspector, Announcements, Subjects,
-  ExamDates, AppVersion, Admins, AuditLog, Settings,
+  Exams, ExamDates, AppVersion, Admins, AuditLog, Settings,
   CommandPalette, ShortcutsModal, NotifPanel,
   actionLabel,
 });
