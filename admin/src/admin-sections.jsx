@@ -1,4 +1,7 @@
 /* ─── Section components ─── */
+import React from 'react'
+const { useState, useEffect, useMemo, useRef } = React
+import { sb, rpc, Icon, useAsync, relativeTime, fmtNum, Loader, ErrorBox, EmptyState } from './admin-lib.jsx'
 
 /* ─── Overview ─── */
 function Overview({ goto }) {
@@ -2295,9 +2298,9 @@ function NotifPanel({ onClose, onBadgeChange }) {
   );
 }
 
-Object.assign(window, {
+export {
   Overview, Analytics, Reports, QuestionInspector, Announcements, Subjects,
   Exams, ExamDates, AppVersion, Admins, AuditLog, Settings,
   CommandPalette, ShortcutsModal, NotifPanel,
   actionLabel,
-});
+}

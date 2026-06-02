@@ -1,9 +1,11 @@
 /* ─── Supabase client + RPC helpers + Icons + Hooks + Auth Gate ─── */
-const { useState, useEffect, useMemo, useRef, useCallback } = React;
+import React from 'react'
+import { createClient } from '@supabase/supabase-js'
+const { useState, useEffect, useMemo, useRef, useCallback } = React
 
 const SUPABASE_URL = 'https://fulgfanxrcjtsyzfrtjl.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_eOk3axdqIq7U4ccasRFXsw_HNQpvPpo';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+const sb = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
 });
 
@@ -286,7 +288,4 @@ function PendingScreen({ status, onSignOut }) {
   );
 }
 
-Object.assign(window, {
-  sb, rpc, Icon, useAsync, relativeTime, fmtNum,
-  Loader, ErrorBox, EmptyState, ErrorBoundary, AuthGate,
-});
+export { sb, rpc, Icon, useAsync, relativeTime, fmtNum, Loader, ErrorBox, EmptyState, ErrorBoundary, AuthGate }

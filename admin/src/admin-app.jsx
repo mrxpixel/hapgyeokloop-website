@@ -1,5 +1,13 @@
 /* ─── Admin Shell (App root) ─── */
-const { useState: useStateApp, useEffect: useEffectApp, useCallback: useCallbackApp, useRef: useRefApp } = React;
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+const { useState: useStateApp, useEffect: useEffectApp, useCallback: useCallbackApp, useRef: useRefApp } = React
+import { sb, rpc, Icon, ErrorBoundary, EmptyState, AuthGate } from './admin-lib.jsx'
+import {
+  Overview, Analytics, Reports, QuestionInspector, Announcements, Subjects,
+  Exams, ExamDates, AppVersion, Admins, AuditLog, Settings,
+  CommandPalette, ShortcutsModal, NotifPanel,
+} from './admin-sections.jsx'
 
 const SECTIONS = [
   { group: 'Insights', items: [
@@ -291,7 +299,7 @@ const rootEl = document.getElementById('root') || (() => {
   const d = document.createElement('div'); d.id = 'root'; document.body.appendChild(d); return d;
 })();
 
-ReactDOM.createRoot(rootEl).render(
+createRoot(rootEl).render(
   <AuthGate>
     {({ session, admin }) => <Shell session={session} admin={admin}/>}
   </AuthGate>
