@@ -2,6 +2,7 @@
 import React from 'react'
 const { useState, useEffect, useMemo, useRef } = React
 import { sb, rpc, Icon, useAsync, relativeTime, fmtNum, Loader, ErrorBox, EmptyState } from './admin-lib.jsx'
+import MarkdownEditor from './components/MarkdownEditor.jsx'
 
 /* ─── Overview ─── */
 function Overview({ goto }) {
@@ -486,11 +487,10 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
           {resolving && (
             <div className="det-section">
               <div className="det-label">유저에게 전달할 답변 <span style={{fontWeight:400, opacity:.6}}>(선택)</span></div>
-              <textarea
-                className="field-input"
-                style={{width:'100%', minHeight:72, marginTop:6, fontSize:13}}
+              <MarkdownEditor
+                compact
                 value={replyText}
-                onChange={e => setReplyText(e.target.value)}
+                onChange={md => setReplyText(md)}
                 placeholder="답변을 입력하세요. 비워두면 앱에 답변이 표시되지 않습니다."
               />
             </div>
@@ -620,7 +620,7 @@ function Announcements({ pushToast }) {
         <div className="ann-form">
           <div className="ann-left">
             <div><div className="field-label">제목</div><input className="field-input" style={{width:'100%'}} value={title} onChange={e=>setTitle(e.target.value)}/></div>
-            <div><div className="field-label">내용</div><textarea placeholder="마크다운 지원" value={body} onChange={e=>setBody(e.target.value)} style={{minHeight:140}}/></div>
+            <div><div className="field-label">내용</div><MarkdownEditor value={body} onChange={md => setBody(md)} placeholder="마크다운 지원" /></div>
           </div>
           <div className="ann-right">
             <div>
