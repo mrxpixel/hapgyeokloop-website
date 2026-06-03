@@ -516,6 +516,33 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
   );
 }
 
+function normalizeGivens(sg) {
+  if (!Array.isArray(sg)) return [];
+  return sg.map(b => ({
+    label: typeof b?.label === 'string' ? b.label : '',
+    markdown_enabled: !!b?.markdown_enabled,
+    items: Array.isArray(b?.items)
+      ? b.items.map(it => ({ key: String(it?.key ?? ''), text: String(it?.text ?? '') }))
+      : [],
+  }));
+}
+
+// Returns { payload } (bare Box[] or null) or { error } if validation fails.
+function serializeGivens(boxes) {
+  const out = [];
+  for (const b of boxes) {
+    const items = (b.items || [])
+      .map(it => ({ key: (it.key || '').trim(), text: (it.text || '').trim() }))
+      .filter(it => it.key !== '' || it.text !== '');
+    if (items.length === 0) continue;
+    if (items.some(it => it.key === '' || it.text === '')) {
+      return { error: '보기 항목의 키와 내용을 모두 입력하세요.' };
+    }
+    out.push({ label: (b.label || '').trim() || '보기', markdown_enabled: !!b.markdown_enabled, items });
+  }
+  return { payload: out.length ? out : null };
+}
+
 function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
   const [stem, setStem] = useState(q.stem || '');
   const [choices, setChoices] = useState(() => {
@@ -525,17 +552,39 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
   const [correct, setCorrect] = useState(q.correct_index ?? 0);
   const [explanation, setExplanation] = useState(q.explanation || '');
   const [busy, setBusy] = useState(false);
+  // Inspection RPC returns stem_givens (so it's defined here); the Reports path does not
+  // (q built from report fields → undefined). Only enable the givens editor + v2 RPC when loaded.
+  const hasGivensField = q.stem_givens !== undefined;
+  const [boxes, setBoxes] = useState(() => normalizeGivens(q.stem_givens));
+
+  const updateBox  = (bi, fn) => setBoxes(bs => bs.map((b, i) => i === bi ? fn(b) : b));
+  const updateItem = (bi, ii, fn) => updateBox(bi, b => ({ ...b, items: b.items.map((x, j) => j === ii ? fn(x) : x) }));
+  const addBox     = () => setBoxes(bs => [...bs, { label: '', markdown_enabled: false, items: [{ key: '', text: '' }] }]);
+  const addItem    = (bi) => updateBox(bi, b => ({ ...b, items: [...(b.items || []), { key: '', text: '' }] }));
+  const removeItem = (bi, ii) => updateBox(bi, b => ({ ...b, items: b.items.filter((_, j) => j !== ii) }));
+  const removeBox  = (bi) => setBoxes(bs => bs.filter((_, i) => i !== bi));
+  const moveBox    = (bi, dir) => setBoxes(bs => {
+    const j = bi + dir; if (j < 0 || j >= bs.length) return bs;
+    const c = [...bs]; [c[bi], c[j]] = [c[j], c[bi]]; return c;
+  });
 
   const save = async () => {
     setBusy(true);
     try {
-      await rpc('admin_update_question', {
-        p_id: q.id,
-        p_stem: stem,
-        p_choices: choices.map(c => c.text ? c : { text: String(c) }),
-        p_correct_answer: String.fromCharCode(65 + correct),
-        p_explanation: explanation,
-      });
+      const p_choices = choices.map(c => c.text ? c : { text: String(c) });
+      const p_correct_answer = String.fromCharCode(65 + correct);
+      if (hasGivensField) {
+        const { payload, error } = serializeGivens(boxes);
+        if (error) { pushToast(error, 'info'); return; }
+        await rpc('admin_update_question_v2', {
+          p_id: q.id, p_stem: stem, p_stem_givens: payload,
+          p_choices, p_correct_answer, p_explanation: explanation,
+        });
+      } else {
+        await rpc('admin_update_question', {
+          p_id: q.id, p_stem: stem, p_choices, p_correct_answer, p_explanation: explanation,
+        });
+      }
       onSaved();
     } catch (e) { pushToast(e.message, 'info'); }
     finally { setBusy(false); }
@@ -545,6 +594,51 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
     return (
       <div className="q-box">
         <textarea value={stem} onChange={e=>setStem(e.target.value)} style={{marginBottom:14, minHeight:150}}/>
+        {hasGivensField && (
+          <div style={{ marginBottom: 14 }}>
+            <div className="field-label">보기 박스 (stem_givens)</div>
+            {boxes.length === 0 && (
+              <div style={{ fontSize: 12, color: 'var(--fg-subtle)', padding: '6px 0' }}>
+                보기 박스가 필요한 문제면 <b>＋ 보기 박스 추가</b>를 누르세요.
+              </div>
+            )}
+            {boxes.map((box, bi) => (
+              <div key={bi} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', marginBottom: 8, background: 'var(--surface)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid var(--border)' }}>
+                  <input className="field-input" style={{ width: 120, padding: '5px 8px', fontSize: 12 }} placeholder="보기"
+                    value={box.label} onChange={e => updateBox(bi, b => ({ ...b, label: e.target.value }))} />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--fg-muted)' }}>
+                    <input type="checkbox" checked={box.markdown_enabled}
+                      onChange={e => updateBox(bi, b => ({ ...b, markdown_enabled: e.target.checked }))} />
+                    마크다운
+                  </label>
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+                    <button className="btn btn-xs" disabled={bi === 0} onClick={() => moveBox(bi, -1)} title="위로">▲</button>
+                    <button className="btn btn-xs" disabled={bi === boxes.length - 1} onClick={() => moveBox(bi, 1)} title="아래로">▼</button>
+                    <button className="btn btn-xs btn-danger" onClick={() => removeBox(bi)} title="박스 삭제"><Icon name="trash" size={11} /></button>
+                  </div>
+                </div>
+                <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {(box.items || []).map((it, ii) => (
+                    <div key={ii} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                      <input className="field-input" style={{ width: 48, padding: '7px 6px', textAlign: 'center', fontSize: 13 }} placeholder="ㄱ"
+                        value={it.key} onChange={e => updateItem(bi, ii, x => ({ ...x, key: e.target.value }))} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {box.markdown_enabled
+                          ? <MarkdownEditor compact value={it.text} onChange={md => updateItem(bi, ii, x => ({ ...x, text: md }))} placeholder="항목 내용 (마크다운)" />
+                          : <input className="field-input" style={{ width: '100%', padding: '7px 9px', fontSize: 14 }}
+                              value={it.text} onChange={e => updateItem(bi, ii, x => ({ ...x, text: e.target.value }))} placeholder="항목 내용" />}
+                      </div>
+                      <button className="btn btn-xs" onClick={() => removeItem(bi, ii)} title="항목 삭제"><Icon name="x" size={11} /></button>
+                    </div>
+                  ))}
+                  <button className="btn btn-xs" style={{ alignSelf: 'flex-start' }} onClick={() => addItem(bi)}>＋ 항목 추가</button>
+                </div>
+              </div>
+            ))}
+            <button className="btn btn-sm" onClick={addBox}><Icon name="plus" size={12} /> 보기 박스 추가</button>
+          </div>
+        )}
         <div style={{display:'flex', flexDirection:'column', gap:8, marginBottom:14}}>
           {choices.map((c, i) => (
             <div key={i} style={{display:'flex', gap:10, alignItems:'center'}}>
@@ -566,6 +660,18 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
     <div className="q-box">
       <button className="btn btn-xs q-edit" onClick={() => setEditing(true)}><Icon name="edit" size={10}/> 편집</button>
       <div className="q-stem">{q.stem}</div>
+      {Array.isArray(q.stem_givens) && q.stem_givens.length > 0 && (
+        <div style={{ margin: '8px 0 14px' }}>
+          {q.stem_givens.map((box, bi) => (
+            <div key={bi} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px', marginBottom: 6, background: 'var(--surface-2)' }}>
+              <div style={{ fontSize: 11, color: 'var(--fg-subtle)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>〈{box.label || '보기'}〉</div>
+              {(box.items || []).map((it, ii) => (
+                <div key={ii} style={{ fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}><b>{it.key}.</b> {it.text}</div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
       <ul className="choices-list">
         {choices.map((c, i) => {
           const text = typeof c === 'string' ? c : (c.text || '');

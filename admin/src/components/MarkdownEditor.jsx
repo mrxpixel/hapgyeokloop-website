@@ -246,6 +246,11 @@ function TiptapMarkdownEditor({ value, onChange, placeholder, compact }) {
                   onChange={e => setTableCols(e.target.value)}
                 />
               </label>
+              {Number(tableCols) >= 5 && (
+                <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--warning, #a9781f)', marginTop: 4 }}>
+                  ⚠ 표가 넓어요 — 폰에서 잘릴 수 있어요. 4칸 이하 권장.
+                </div>
+              )}
               <button type="button" className="btn btn-xs btn-primary" onClick={insertTable}>
                 삽입
               </button>
