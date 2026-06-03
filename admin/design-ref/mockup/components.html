@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>컴포넌트 라이브러리 · 합격루프 어드민 v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Serif+KR:wght@500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  .lib-sec { margin-bottom: var(--sp-8); }
+  .lib-sec > h2 { font-family: var(--font-serif); font-size: var(--fs-xl); font-weight: 600; letter-spacing: -.01em; margin-bottom: 4px; }
+  .lib-sec > .lib-desc { font-size: var(--fs-sm); color: var(--fg-subtle); font-family: var(--font-mono); margin-bottom: 16px; }
+  .specimen { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 22px; margin-bottom: 12px; }
+  .specimen .row, .specimen .wrap { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .sub-label { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-faint); margin: 4px 0 10px; }
+  .sub-label:not(:first-child) { margin-top: 22px; }
+</style>
+</head>
+<body data-page="components">
+<div class="app">
+  <aside class="sidebar" data-shell-sidebar></aside>
+  <main>
+    <div class="mobile-topbar" data-shell-mobiletop></div>
+    <div class="topbar" data-shell-topbar data-title="컴포넌트 라이브러리" data-sub="Proof Sheet × Data Console · 모든 상태"></div>
+    <div class="content">
+
+      <!-- BUTTONS -->
+      <section class="lib-sec">
+        <h2>버튼</h2>
+        <div class="lib-desc">primary · secondary · danger · ghost · link · sizes</div>
+        <div class="specimen">
+          <div class="sub-label">variants</div>
+          <div class="wrap">
+            <button class="btn btn-primary">Primary</button>
+            <button class="btn btn-secondary">Secondary</button>
+            <button class="btn">Default</button>
+            <button class="btn btn-danger">Danger</button>
+            <button class="btn btn-ghost">Ghost</button>
+            <button class="btn-link">Link →</button>
+          </div>
+          <div class="sub-label">sizes</div>
+          <div class="wrap">
+            <button class="btn btn-primary">Default 38px</button>
+            <button class="btn btn-primary btn-sm">Small 30px</button>
+            <button class="btn btn-primary btn-xs">XS 25px</button>
+            <button class="btn btn-primary" disabled>Disabled</button>
+          </div>
+          <div class="sub-label">with icons</div>
+          <div class="wrap">
+            <button class="btn btn-primary" data-ic="plus">보기 박스 추가</button>
+            <button class="btn" data-ic="download">.md 다운로드</button>
+            <button class="btn btn-danger" data-ic="trash">삭제</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- BADGES -->
+      <section class="lib-sec">
+        <h2>뱃지 &amp; 태그</h2>
+        <div class="lib-desc">status (의미색) · category · tag</div>
+        <div class="specimen">
+          <div class="sub-label">status</div>
+          <div class="wrap">
+            <span class="badge badge-success"><span class="bdot"></span>검수 완료</span>
+            <span class="badge badge-warning"><span class="bdot"></span>대기</span>
+            <span class="badge badge-danger"><span class="bdot"></span>신고</span>
+            <span class="badge badge-accent"><span class="bdot"></span>활성</span>
+            <span class="badge badge-info"><span class="bdot"></span>정보</span>
+            <span class="badge badge-neutral">미검수</span>
+          </div>
+          <div class="sub-label">category (보조색 — 카테고리 전용)</div>
+          <div class="wrap">
+            <span class="tag-cat blue">공인중개사</span>
+            <span class="tag-cat teal">감정평가사</span>
+            <span class="tag-cat plum">주택관리사</span>
+            <span class="tag-cat">중립 태그</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- FORMS -->
+      <section class="lib-sec">
+        <h2>폼 컨트롤</h2>
+        <div class="lib-desc">input · textarea · select · switch · checkbox · radio</div>
+        <div class="specimen">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px">
+            <div><label class="field-label">기본 입력</label><input class="input" placeholder="플레이스홀더"></div>
+            <div><label class="field-label">포커스 (always)</label><input class="input" value="포커스 링" style="border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)"></div>
+            <div><label class="field-label">모노 입력</label><input class="input mono" value="gongjungaesa"></div>
+            <div><label class="field-label">셀렉트</label><select class="select"><option>제38회 (2024)</option><option>제37회 (2023)</option></select></div>
+          </div>
+          <div style="margin-top:16px"><label class="field-label">텍스트영역</label><textarea class="textarea" placeholder="여러 줄 입력">경기변동과 부동산시장에 관한 설명…</textarea></div>
+          <div class="sub-label">switch · checkbox · radio</div>
+          <div class="wrap" style="gap:26px">
+            <span class="switch on" data-toggle><span class="switch-track"></span><span class="switch-label">마크다운</span></span>
+            <span class="switch" data-toggle><span class="switch-track"></span><span class="switch-label">예약 발행</span></span>
+            <label class="row" style="gap:8px;cursor:pointer"><span class="check checked" data-toggle></span><span>첫 행을 헤더로</span></label>
+            <label class="row" style="gap:8px;cursor:pointer"><span class="check" data-toggle></span><span>미선택</span></label>
+            <span class="row" style="gap:8px"><span class="radio on"></span><span>정답 ②</span></span>
+            <span class="row" style="gap:8px"><span class="radio"></span><span>오답</span></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODALS -->
+      <section class="lib-sec">
+        <h2>모달</h2>
+        <div class="lib-desc">compact 360 · medium 480 · large 720 · fullscreen</div>
+        <div class="specimen">
+          <div class="wrap">
+            <button class="btn" data-modal="compact">Compact 360</button>
+            <button class="btn" data-modal="medium">Medium 480</button>
+            <button class="btn" data-modal="large">Large 720</button>
+            <button class="btn" data-modal="fullscreen">Fullscreen</button>
+            <button class="btn btn-primary" data-modal="table">표 삽입 다이얼로그</button>
+            <button class="btn" data-act="palette">⌘K 팔레트</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TABLE -->
+      <section class="lib-sec">
+        <h2>데이터 테이블</h2>
+        <div class="lib-desc">C 밀도 · sticky header · sort · 빈 상태 · 로딩</div>
+        <div class="specimen" style="padding:0;overflow:hidden">
+          <div class="dtable-wrap" style="border:0;border-radius:0">
+            <table class="dtable">
+              <thead><tr>
+                <th class="sortable">과목 <span class="sort-ar">↕</span></th>
+                <th class="sortable">문항 ID <span class="sort-ar">↕</span></th>
+                <th class="sortable sorted sorted-desc">신고 <span class="sort-ar">↓</span></th>
+                <th class="sortable">상태 <span class="sort-ar">↕</span></th>
+              </tr></thead>
+              <tbody>
+                <tr><td class="accent">개론</td><td class="muted">#a1b2c3d4</td><td class="num" data-sort="14">14</td><td><span class="badge badge-warning">대기</span></td></tr>
+                <tr><td class="accent">민법</td><td class="muted">#7c2e9f10</td><td class="num" data-sort="11">11</td><td><span class="badge badge-info">처리중</span></td></tr>
+                <tr><td class="accent">공법</td><td class="muted">#31aa77bd</td><td class="num" data-sort="9">9</td><td><span class="badge badge-success">해결</span></td></tr>
+              </tbody>
+            </table>
+            <div class="dtable-foot"><span>총 138건</span><div class="pager"><button>‹</button><button class="on">1</button><button>2</button><button>3</button><button>›</button></div></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="specimen"><div class="sub-label">빈 상태</div><div class="empty"><span class="ei" id="emptyic"></span><div class="et">신고가 없습니다</div><div class="es">현재 필터에 맞는 신고가 없어요.</div></div></div>
+          <div class="specimen"><div class="sub-label">로딩</div><div style="display:flex;flex-direction:column;gap:10px;padding:8px 0"><div class="skel" style="width:80%"></div><div class="skel" style="width:95%"></div><div class="skel" style="width:60%"></div><div class="skel" style="width:88%"></div></div></div>
+        </div>
+      </section>
+
+      <!-- TOAST -->
+      <section class="lib-sec">
+        <h2>토스트</h2>
+        <div class="lib-desc">success · info · danger</div>
+        <div class="specimen"><div class="wrap">
+          <button class="btn" data-toast="success">성공 토스트</button>
+          <button class="btn" data-toast="info">정보 토스트</button>
+          <button class="btn" data-toast="danger">위험 토스트</button>
+        </div></div>
+      </section>
+
+      <!-- TIPTAP -->
+      <section class="lib-sec">
+        <h2>Tiptap 툴바</h2>
+        <div class="lib-desc">헤더 · 강조 · 리스트 · 표 다이얼로그 · 링크 — 헤어라인 미학</div>
+        <div class="specimen">
+          <div class="tt-bar">
+            <button class="tt-btn" data-tt="h">H1</button>
+            <button class="tt-btn" data-tt="h2">H2</button>
+            <button class="tt-btn" data-tt="h3">H3</button>
+            <span class="tt-sep"></span>
+            <button class="tt-btn on" data-tt="b">B</button>
+            <button class="tt-btn" data-tt="i">I</button>
+            <button class="tt-btn" data-tt="s">S</button>
+            <button class="tt-btn" data-tt="code">&lt;/&gt;</button>
+            <span class="tt-sep"></span>
+            <button class="tt-btn" data-tt="ul">•</button>
+            <button class="tt-btn" data-tt="ol">1.</button>
+            <button class="tt-btn" data-tt="quote">"</button>
+            <span class="tt-sep"></span>
+            <button class="tt-btn tbl" data-modal="table" data-fill="table"></button>
+            <button class="tt-btn" data-tt="link" data-fill="link"></button>
+            <span class="tt-sep"></span>
+            <button class="tt-btn" data-tt="undo">↶</button>
+            <button class="tt-btn" data-tt="redo">↷</button>
+          </div>
+          <div class="tt-editor" contenteditable="true" spellcheck="false"><h2>해설 예시</h2><p><b>ㄱ.</b> 경기침체로 수요가 감소하면 가격은 하락 압력을 받는다.</p><table class="md"><thead><tr><th>구분</th><th>방향</th></tr></thead><tbody><tr><td>수요</td><td>감소</td></tr></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- 보기 박스 -->
+      <section class="lib-sec">
+        <h2>보기 박스 카드</h2>
+        <div class="lib-desc">라벨 · 마크다운 토글 · 항목 N개 · 삭제 · 순서변경 (신 기능)</div>
+        <div class="specimen">
+          <div class="givens" style="max-width:620px">
+            <div class="gv-card">
+              <div class="gv-head"><span class="gv-drag" data-fill="grip"></span><input class="gv-label-input" value="보기 1"><span class="sp"></span><span class="switch" data-toggle><span class="switch-track"></span><span class="switch-label">마크다운</span></span><span class="gv-del" data-fill="trash"></span></div>
+              <div class="gv-items">
+                <div class="gv-item"><span class="gv-key">ㄱ</span><input class="input" value="경기침체로 부동산 수요가 감소한다"></div>
+                <div class="gv-item"><span class="gv-key">ㄴ</span><input class="input" value="차입자에게 유리한 금리가 적용된다"></div>
+                <button class="gv-additem">＋ 항목 추가</button>
+              </div>
+            </div>
+            <div class="gv-card">
+              <div class="gv-head"><span class="gv-drag" data-fill="grip"></span><input class="gv-label-input" value="보기 2"><span class="sp"></span><span class="switch on" data-toggle><span class="switch-track"></span><span class="switch-label">마크다운</span></span><span class="gv-del" data-fill="trash"></span></div>
+              <div class="tt-bar attached"><button class="tt-btn" data-tt="h">H</button><button class="tt-btn" data-tt="b">B</button><span class="tt-sep"></span><button class="tt-btn tbl" data-modal="table" data-fill="table"></button></div>
+              <div class="gv-items"><div class="gv-item"><span class="gv-key">ㄱ</span><textarea class="textarea mono" style="min-height:auto" rows="2">| 구분 | A형 | B형 |
+|---|---|---|</textarea></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+  <div class="sb-backdrop"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function () {
+  const I = window.adminIcon;
+  document.querySelectorAll('[data-ic]').forEach(function (b) { b.insertAdjacentHTML('afterbegin', I(b.getAttribute('data-ic'), 15)); });
+  document.querySelectorAll('[data-fill="table"]').forEach(function (b) { b.innerHTML = I('table', 15); });
+  document.querySelectorAll('[data-fill="link"]').forEach(function (b) { b.innerHTML = I('link', 15); });
+  document.querySelectorAll('[data-fill="grip"]').forEach(function (b) { b.innerHTML = I('grip', 15); });
+  document.querySelectorAll('[data-fill="trash"]').forEach(function (b) { b.innerHTML = I('trash', 15); });
+  document.getElementById('emptyic').innerHTML = I('flag', 20);
+
+  const bodies = {
+    compact: '확인이 필요한 짧은 작업이나 위험 작업 확인에 사용합니다.',
+    medium: '폼 입력이 있는 일반 다이얼로그. 시험 배정, 표 삽입 등.',
+    large: '긴 폼·템플릿 편집. Gemini 프롬프트 템플릿 등 720px 폭.',
+  };
+  document.addEventListener('click', function (e) {
+    const tt = e.target.closest('.tt-btn[data-tt]'); if (tt) { tt.classList.toggle('on'); return; }
+    const m = e.target.closest('[data-modal]');
+    if (m) {
+      const size = m.getAttribute('data-modal');
+      if (size === 'table') return openTable();
+      if (size === 'fullscreen') return window.openModal({ size: 'fullscreen', title: '풀스크린 모달', sub: '복잡한 편집·미리보기', body: '<div class="empty"><div class="et">풀스크린 작업 영역</div><div class="es">긴 콘텐츠 편집·대량 미리보기에 사용합니다.</div></div>' });
+      return window.openModal({ size: size, title: size.charAt(0).toUpperCase() + size.slice(1) + ' 모달', sub: 'modal-' + size, body: bodies[size] });
+    }
+    const t = e.target.closest('[data-toast]');
+    if (t) window.toast(t.getAttribute('data-toast') === 'danger' ? '삭제할 수 없습니다 — 연결된 문항 존재' : t.getAttribute('data-toast') === 'info' ? '변경사항이 저장되지 않았습니다' : '저장되었습니다', t.getAttribute('data-toast'));
+  });
+  function openTable() {
+    window.openModal({ size: 'medium', title: '표 삽입', sub: 'Markdown 표 · 컬럼 수 자유 지정', body:
+      '<div class="row" style="gap:16px;align-items:flex-end"><div style="width:120px"><label class="field-label">행</label><input class="input" type="number" id="tr" value="3"></div>' +
+      '<div style="width:120px"><label class="field-label">열</label><input class="input" type="number" id="tc" value="3"></div>' +
+      '<label class="row" style="gap:8px;height:38px;cursor:pointer"><span class="check checked" data-toggle>' + I('check', 11) + '</span><span style="font-size:var(--fs-sm)">첫 행을 헤더로</span></label></div>' +
+      '<label class="field-label" style="margin-top:14px">미리보기</label><div class="grid-preview" id="gp" style="grid-template-columns:repeat(3,1fr)"></div>',
+      foot: '<button class="btn btn-sm" data-close>취소</button><button class="btn btn-sm btn-primary" data-close>삽입</button>',
+      onMount: function (bd) { let c = ''; for (var i = 0; i < 9; i++) c += '<div class="gc' + (i < 3 ? ' head' : '') + '"></div>'; bd.querySelector('#gp').innerHTML = c; }
+    });
+  }
+})();
+</script>
+</body>
+</html>

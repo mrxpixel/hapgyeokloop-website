@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>관리자 관리 · 합격루프 어드민 v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Serif+KR:wght@500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  .urow { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--rule); }
+  .urow:last-child { border-bottom: 0; }
+  .uav { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-serif); font-weight: 600; font-size: 16px; }
+  .uinfo { flex: 1; min-width: 0; }
+  .uname-line { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .uname { font-size: var(--fs-base); font-weight: 600; }
+  .uemail { font-size: var(--fs-xs); color: var(--fg-subtle); font-family: var(--font-mono); }
+  .ustat { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--fg-faint); margin-top: 4px; display: flex; gap: 14px; }
+  .utags { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+  .perm-legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: var(--fs-xs); color: var(--fg-muted); margin-top: 4px; }
+  .perm-legend .pi { display: flex; align-items: center; gap: 6px; }
+</style>
+</head>
+<body data-page="admins">
+<div class="app">
+  <aside class="sidebar" data-shell-sidebar></aside>
+  <main>
+    <div class="mobile-topbar" data-shell-mobiletop></div>
+    <div class="topbar" data-shell-topbar data-title="관리자 관리" data-sub="팀 초대 · 권한 · 시험 배정"></div>
+    <div class="content">
+
+      <!-- pending approvals -->
+      <div class="sheet marked" style="margin-bottom:var(--sp-4);border-color:var(--accent-border)">
+        <div class="sheet-head" style="background:var(--accent-soft)">
+          <div><div class="sheet-title" style="color:var(--accent)">승인 대기 2명</div><div class="sheet-sub">가입 신청 검토</div></div>
+        </div>
+        <div class="sheet-body flush" id="pending"></div>
+      </div>
+
+      <!-- admin list -->
+      <div class="sheet" style="margin:0">
+        <div class="sheet-head">
+          <div><div class="sheet-title">관리자 목록</div><div class="sheet-sub">4명 활성</div></div>
+          <div class="perm-legend">
+            <div class="pi"><span class="badge badge-accent">SUPER</span> 전체 권한</div>
+            <div class="pi"><span class="badge badge-info">ADMIN</span> 배정 시험</div>
+          </div>
+        </div>
+        <div class="sheet-body flush" id="admins"></div>
+      </div>
+
+    </div>
+  </main>
+  <div class="sb-backdrop"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function () {
+  const I = window.adminIcon;
+  const ALL_EXAMS = ['공인중개사 1차', '공인중개사 2차', '감정평가사 1차', '감정평가사 2차', '주택관리사'];
+
+  const pending = [
+    { init: 'M', name: '김민호', email: 'minho@hapgyeokloop.kr', t: '2시간 전' },
+    { init: 'Y', name: '이연수', email: 'yeonsoo@hapgyeokloop.kr', t: '어제' },
+  ];
+  document.getElementById('pending').innerHTML = pending.map(function (u) {
+    return '<div class="urow"><div class="uav" style="background:var(--surface-3);color:var(--fg-muted);border:1px solid var(--border-strong)">' + u.init + '</div>' +
+      '<div class="uinfo"><div class="uname-line"><span class="uname">' + u.name + '</span><span class="uemail">' + u.email + '</span></div>' +
+      '<div class="ustat">신청 ' + u.t + '</div></div>' +
+      '<button class="btn btn-sm btn-danger" data-act="reject">거절</button>' +
+      '<button class="btn btn-sm btn-primary" data-act="approve">✓ 승인</button></div>';
+  }).join('');
+
+  const admins = [
+    { init: '로', name: 'Logan', email: 'logan@hapgyeokloop.kr', role: 'SUPER', av: 'var(--accent)', resolved: 312, assigned: 4, subs: ['공인중개사 1차', '공인중개사 2차', '감정평가사 1차'] },
+    { init: 'J', name: 'Jin', email: 'jin@hapgyeokloop.kr', role: 'ADMIN', av: 'var(--cat-blue)', resolved: 148, assigned: 7, subs: ['공인중개사 1차', '공인중개사 2차'] },
+    { init: 'S', name: 'Soo', email: 'soo@hapgyeokloop.kr', role: 'ADMIN', av: 'var(--cat-teal)', resolved: 96, assigned: 2, subs: ['감정평가사 1차', '감정평가사 2차'] },
+    { init: 'H', name: 'Hana', email: 'hana@hapgyeokloop.kr', role: 'ADMIN', av: 'var(--cat-plum)', resolved: 41, assigned: 0, subs: ['주택관리사'] },
+  ];
+  function roleBadge(r) { return r === 'SUPER' ? '<span class="badge badge-accent">SUPER ADMIN</span>' : '<span class="badge badge-info">ADMIN</span>'; }
+  function render() {
+    document.getElementById('admins').innerHTML = admins.map(function (u, ui) {
+      const tags = u.subs.map(function (s) { return '<span class="tag-cat blue">' + s + ' <span data-rm="' + ui + '" data-sub="' + s + '" style="cursor:pointer;color:var(--fg-faint)">✕</span></span>'; }).join('');
+      return '<div class="urow"><div class="uav" style="background:' + u.av + ';color:#fff">' + u.init + '</div>' +
+        '<div class="uinfo"><div class="uname-line"><span class="uname">' + u.name + '</span>' + roleBadge(u.role) + '<span class="uemail">' + u.email + '</span></div>' +
+        '<div class="ustat"><span>해결 ' + u.resolved + '건</span><span>담당중 ' + u.assigned + '건</span></div>' +
+        '<div class="utags">' + tags + '<button class="tag-cat" data-assign="' + ui + '" style="border-style:dashed;cursor:pointer">＋ 시험 배정</button></div></div>' +
+        (u.role !== 'SUPER' ? '<button class="btn btn-sm btn-danger" data-revoke="' + ui + '">권한 해제</button>' : '<span class="badge badge-neutral">본인</span>') +
+        '</div>';
+    }).join('');
+  }
+  render();
+
+  document.getElementById('admins').addEventListener('click', function (e) {
+    const as = e.target.closest('[data-assign]');
+    if (as) { openAssign(+as.getAttribute('data-assign')); return; }
+    const rm = e.target.closest('[data-rm]');
+    if (rm) { const ui = +rm.getAttribute('data-rm'); admins[ui].subs = admins[ui].subs.filter(function (s) { return s !== rm.getAttribute('data-sub'); }); render(); window.toast('시험 배정 해제됨', 'info'); return; }
+    const rv = e.target.closest('[data-revoke]');
+    if (rv) { window.openModal({ size: 'compact', title: '권한 해제', body: admins[+rv.getAttribute('data-revoke')].name + ' 님의 관리자 권한을 해제하시겠습니까?', foot: '<button class="btn btn-sm" data-close>취소</button><button class="btn btn-sm btn-danger" data-close>해제</button>' }); }
+  });
+
+  function openAssign(ui) {
+    const u = admins[ui];
+    const rows = ALL_EXAMS.map(function (ex) {
+      const on = u.subs.indexOf(ex) >= 0;
+      return '<label class="row" style="gap:11px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;justify-content:space-between" data-ex="' + ex + '">' +
+        '<span style="font-size:var(--fs-base)">' + ex + '</span>' +
+        '<span class="check' + (on ? ' checked' : '') + '" data-toggle>' + (on ? I('check', 11) : '') + '</span></label>';
+    }).join('');
+    window.openModal({
+      size: 'medium', title: '시험 배정', sub: u.name + ' · 담당 시험 선택',
+      body: '<div class="col">' + rows + '</div>',
+      foot: '<button class="btn btn-sm" data-close>취소</button><button class="btn btn-sm btn-primary" id="asave">저장</button>',
+      onMount: function (bd) {
+        bd.querySelector('#asave').addEventListener('click', function () {
+          const next = [];
+          bd.querySelectorAll('[data-ex]').forEach(function (l) { if (l.querySelector('.check').classList.contains('checked')) next.push(l.getAttribute('data-ex')); });
+          admins[ui].subs = next; render(); window.closeModal(); window.toast(u.name + ' 시험 배정 저장됨');
+        });
+      }
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    const act = e.target.closest('[data-act]'); if (!act) return;
+    const a = act.getAttribute('data-act');
+    if (a === 'approve') window.toast('관리자 승인됨');
+    else if (a === 'reject') window.toast('가입 거절됨', 'info');
+  });
+})();
+</script>
+</body>
+</html>

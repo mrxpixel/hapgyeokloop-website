@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>신고 관리 · 합격루프 어드민 v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Serif+KR:wght@500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  .bulk-bar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--accent-soft); border: 1px solid var(--accent-border); border-radius: var(--r); margin-bottom: var(--sp-3); font-size: var(--fs-sm); }
+  .bulk-bar .cnt { font-weight: 600; color: var(--accent); font-family: var(--font-mono); }
+  .tracking { display: flex; flex-wrap: wrap; gap: 16px; padding: 10px 13px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--fg-subtle); }
+  .tracking .tr { display: flex; align-items: center; gap: 6px; }
+  .tracking .tr svg { width: 13px; height: 13px; color: var(--fg-faint); }
+</style>
+</head>
+<body data-page="reports">
+<div class="app">
+  <aside class="sidebar" data-shell-sidebar></aside>
+  <main>
+    <div class="mobile-topbar" data-shell-mobiletop></div>
+    <div class="topbar" data-shell-topbar data-title="신고 관리" data-sub="유저가 제출한 문제 신고 · 7건 대기"></div>
+    <div class="content">
+
+      <div class="toolbar">
+        <div class="chip active">대기 <span class="ct">7</span></div>
+        <div class="chip">처리중 <span class="ct">3</span></div>
+        <div class="chip">해결 <span class="ct">128</span></div>
+        <div class="chip">내 담당 <span class="ct">2</span></div>
+        <div class="chip">전체 <span class="ct">138</span></div>
+        <div style="width:4px"></div>
+        <select class="select input-sm" style="width:130px"><option>전체 시험</option><option>공인중개사</option><option>감정평가사</option></select>
+        <div class="saved-view"><span style="color:var(--warning)">★</span> 내 대기건</div>
+        <div class="saved-view">＋ 뷰 저장</div>
+        <div class="spacer"></div>
+        <input class="input input-sm" style="max-width:220px" placeholder="검색…">
+        <button class="icon-btn" title="새로고침">↻</button>
+      </div>
+
+      <div class="bulk-bar" id="bulkbar" hidden>
+        <span class="cnt" id="bulkcnt">0개 선택됨</span>
+        <button class="btn btn-sm">화면 전체 선택</button>
+        <button class="btn btn-sm" data-act="bulk-assign">내가 담당</button>
+        <button class="btn btn-sm btn-primary" data-act="bulk-resolve">✓ 일괄 해결</button>
+        <div class="spacer"></div>
+        <button class="btn btn-sm btn-ghost" id="bulkcancel">취소</button>
+      </div>
+
+      <div class="hint-bar" style="margin-bottom:12px">
+        <div class="h"><span class="kbd">J</span><span class="kbd">K</span> 다음/이전 신고</div>
+        <div class="h"><span class="kbd">↵</span> 전개</div>
+        <div class="h"><span class="kbd">E</span> 해결 처리</div>
+      </div>
+
+      <div class="sheet" style="margin:0">
+        <div class="item-list" data-rownav>
+          <!-- items injected -->
+        </div>
+      </div>
+    </div>
+  </main>
+  <div class="sb-backdrop"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function () {
+  const I = window.adminIcon;
+  const list = document.querySelector('.item-list');
+  const data = [
+    { n: 1, status: 'pending', reason: '정답이 틀린 것 같습니다', subj: '개론', meta: '38회 · 12번 · u_8f3a', t: '8분 전', assignee: '', cur: true,
+      detail: '② ㄱ,ㄷ 가 정답으로 표시되는데, 해설을 보면 ㄴ도 옳은 것 같습니다. 다시 확인 부탁드려요.' },
+    { n: 2, status: 'pending', reason: '오타가 있어요 (가격탄력성→가격탄성)', subj: '개론', meta: '38회 · 12번 · u_1c2d', t: '22분 전', assignee: '' },
+    { n: 3, status: 'in_progress', reason: '보기 ㄷ 지문이 잘렸어요', subj: '민법', meta: '37회 · 28번 · u_44ab', t: '1시간 전', assignee: 'Jin' },
+    { n: 4, status: 'pending', reason: '해설에 표가 깨져서 나옵니다', subj: '공법', meta: '38회 · 31번 · u_7b91', t: '2시간 전', assignee: '' },
+    { n: 5, status: 'resolved', reason: '이미지가 안 보여요', subj: '세법', meta: '36회 · 5번 · u_2e7c', t: '어제', assignee: 'Logan' },
+  ];
+  function badge(s) {
+    if (s === 'pending') return '<span class="badge badge-warning"><span class="bdot"></span>대기</span>';
+    if (s === 'in_progress') return '<span class="badge badge-info"><span class="bdot"></span>처리중</span>';
+    return '<span class="badge badge-success"><span class="bdot"></span>해결</span>';
+  }
+  function row(r) {
+    const open = r.cur;
+    return '<div class="item' + (open ? ' open cur' : '') + '" data-row data-n="' + r.n + '">' +
+      '<div class="item-head">' +
+        '<span class="check" data-toggle></span>' +
+        '<span class="dot ' + r.status + '"></span>' +
+        '<div class="item-meta"><div class="item-title">' + r.reason + '</div>' +
+        '<div class="item-sub"><span style="color:var(--accent)">' + r.subj + '</span> · ' + r.meta + '</div></div>' +
+        '<div class="item-right">' + (r.assignee ? '<span class="tag-cat blue">' + r.assignee + '</span>' : '') + badge(r.status) +
+        '<span class="item-time">' + r.t + '</span><span class="item-chev">' + I('flag', 0) + '›</span></div>' +
+      '</div>' +
+      '<div class="item-body">' + bodyHtml(r) + '</div></div>';
+  }
+  function bodyHtml(r) {
+    return '<div class="det-section"><div class="det-label">신고 상세 사유</div><div class="det-text">' + (r.detail || '(상세 없음)') + '</div></div>' +
+      '<div class="det-section"><div class="det-label">문제 원문 · 인라인 편집</div>' +
+        '<div class="q-box">' +
+          '<div class="q-stem" style="display:flex;justify-content:space-between;gap:12px"><span>경기변동과 부동산시장에 관한 설명으로 옳은 것을 모두 고른 것은?</span>' +
+          '<button class="btn btn-xs" data-act="q-edit" style="flex-shrink:0">' + I('edit', 12) + ' 편집</button></div>' +
+          '<ul class="choices">' +
+            '<li class="choice"><span class="cid">①</span> ㄱ</li>' +
+            '<li class="choice correct"><span class="cid">②</span> ㄱ, ㄷ <span class="ctag">정답</span></li>' +
+            '<li class="choice"><span class="cid">③</span> ㄴ, ㄷ</li>' +
+          '</ul>' +
+          '<div class="exp-box">경기침체 시 수요 감소(ㄱ), 공급 탄력성 고려 시 ㄱ·ㄷ이 옳다.</div>' +
+        '</div></div>' +
+      '<div class="det-section"><div class="tracking">' +
+        (r.assignee ? '<div class="tr">' + I('user', 12) + ' ' + r.assignee + ' 담당</div>' : '') +
+        '<div class="tr">' + I('clock', 12) + ' 신고 ' + r.t + '</div></div></div>' +
+      (r.status !== 'resolved' ? respHtml() : '<div class="det-section"><div class="det-label">전달된 답변</div><div class="det-text" style="color:var(--success)">확인 후 다음 업데이트에 반영했습니다. 감사합니다.</div></div>') +
+      '<div class="row" style="justify-content:flex-end;margin-top:16px">' +
+        (r.status !== 'resolved' ? '<button class="btn btn-sm" data-act="assign">내가 담당</button><button class="btn btn-sm btn-primary" data-act="resolve">✓ 해결 처리</button>' : '<button class="btn btn-sm" data-act="reopen">재오픈</button>') +
+      '</div>';
+  }
+  function respHtml() {
+    return '<div class="det-section"><div class="det-label">유저에게 전달할 답변 · Tiptap</div>' +
+      '<div class="row" style="margin-bottom:8px"><select class="select input-sm" style="width:auto" data-act="tpl-select">' +
+        '<option>＋ 사전 템플릿</option><option>확인 후 반영하겠습니다</option><option>의도된 정답입니다</option><option>다음 업데이트 반영 예정</option></select></div>' +
+      '<div class="tt-bar"><button class="tt-btn" data-tt="b">B</button><button class="tt-btn" data-tt="i">I</button><span class="tt-sep"></span><button class="tt-btn" data-tt="ul">•</button><button class="tt-btn" data-tt="link" data-fill="link"></button></div>' +
+      '<div class="tt-editor" contenteditable="true" data-ph="답변을 입력하세요. 비워두면 앱에 표시되지 않습니다." style="min-height:72px"></div></div>';
+  }
+  list.innerHTML = data.map(row).join('');
+  document.querySelectorAll('.tt-btn[data-fill="link"]').forEach(function (b) { b.innerHTML = I('link', 15); });
+
+  // expand toggle
+  list.addEventListener('click', function (e) {
+    if (e.target.closest('.check')) { updateBulk(); return; }
+    if (e.target.closest('[data-act]')) return;
+    const head = e.target.closest('.item-head'); if (!head) return;
+    const item = head.closest('.item');
+    item.classList.toggle('open');
+    document.querySelectorAll('.item').forEach(function (x) { x.classList.remove('cur'); });
+    item.classList.add('cur');
+    document.querySelectorAll('.tt-btn[data-fill="link"]').forEach(function (b) { if (!b.innerHTML) b.innerHTML = I('link', 15); });
+  });
+
+  function updateBulk() {
+    const sel = list.querySelectorAll('.check.checked').length;
+    const bar = document.getElementById('bulkbar');
+    bar.hidden = sel === 0;
+    document.getElementById('bulkcnt').textContent = sel + '개 선택됨';
+  }
+  document.getElementById('bulkcancel').addEventListener('click', function () {
+    list.querySelectorAll('.check.checked').forEach(function (c) { c.classList.remove('checked'); c.innerHTML = ''; });
+    updateBulk();
+  });
+
+  // page acts
+  document.addEventListener('click', function (e) {
+    const tt = e.target.closest('.tt-btn[data-tt]'); if (tt && !tt.hasAttribute('data-act')) { tt.classList.toggle('on'); return; }
+    const act = e.target.closest('[data-act]'); if (!act) return;
+    const a = act.getAttribute('data-act');
+    if (a === 'resolve') window.toast('✓ 신고 해결 처리 완료');
+    else if (a === 'assign') window.toast('내가 담당으로 배정됨', 'info');
+    else if (a === 'reopen') window.toast('재오픈됨', 'info');
+    else if (a === 'q-edit') window.toast('인라인 편집 모드 (question-inspector 동일 편집기)', 'info');
+    else if (a === 'bulk-resolve') { window.toast(document.querySelectorAll('.check.checked').length + '건 일괄 해결'); document.getElementById('bulkcancel').click(); }
+    else if (a === 'bulk-assign') window.toast('선택 항목 내 담당 배정', 'info');
+  });
+  // template select
+  document.addEventListener('change', function (e) {
+    const s = e.target.closest('[data-act="tpl-select"]');
+    if (s && s.selectedIndex > 0) {
+      const ed = s.closest('.det-section').querySelector('.tt-editor');
+      ed.textContent = s.value + '. 신고 감사합니다 — 검토 후 처리하겠습니다.';
+      s.selectedIndex = 0; window.toast('템플릿 삽입됨', 'info');
+    }
+  });
+})();
+</script>
+</body>
+</html>

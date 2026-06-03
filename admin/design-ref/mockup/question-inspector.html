@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>문제 전수조사 · 합격루프 어드민 v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Serif+KR:wght@500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  .qi-grid { display: grid; grid-template-columns: 248px minmax(0,1fr) 372px; gap: var(--sp-4); align-items: start; margin-top: var(--sp-4); }
+  .qi-nav { position: sticky; top: 88px; }
+  .qi-side { position: sticky; top: 88px; display: flex; flex-direction: column; gap: var(--sp-4); }
+  .qnav-list { max-height: calc(100vh - 230px); overflow-y: auto; }
+  .qnav-row { display: flex; align-items: center; gap: 10px; padding: 0 12px; height: 38px; border-bottom: 1px solid var(--rule); cursor: pointer; transition: background var(--motion-fast); }
+  .qnav-row:hover { background: var(--surface-2); }
+  .qnav-row.cur { background: var(--accent-soft); box-shadow: inset 2.5px 0 0 var(--accent); }
+  .qnav-row .qn { font-family: var(--font-mono); font-size: 11px; color: var(--fg-faint); width: 22px; text-align: right; flex-shrink: 0; }
+  .qnav-row .qt { flex: 1; min-width: 0; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-muted); }
+  .qnav-row.cur .qt { color: var(--fg); font-weight: 600; }
+  .qnav-row .qd { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .gem-panel pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 13px 14px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.65; color: var(--fg-muted); white-space: pre-wrap; max-height: 220px; overflow: auto; }
+  .field-stack { display: flex; flex-direction: column; gap: var(--sp-4); }
+  @media (max-width: 1280px) { .qi-grid { grid-template-columns: 1fr; } .qi-nav, .qi-side { position: static; } .qnav-list { max-height: 280px; } }
+</style>
+</head>
+<body data-page="question-inspector">
+<div class="app">
+  <aside class="sidebar" data-shell-sidebar></aside>
+  <main>
+    <div class="mobile-topbar" data-shell-mobiletop></div>
+    <div class="topbar" data-shell-topbar data-title="문제 전수조사" data-sub="공인중개사 · 부동산학개론 · 제38회"></div>
+    <div class="content wide">
+
+      <!-- exam tabs -->
+      <div class="toolbar">
+        <div class="chip active">공인중개사</div>
+        <div class="chip">감정평가사</div>
+        <div class="chip">주택관리사</div>
+        <div class="spacer"></div>
+        <button class="btn btn-sm btn-ghost" data-act="tpl">🤖 프롬프트 템플릿</button>
+        <button class="icon-btn" title="새로고침">＋</button>
+      </div>
+      <!-- subject tabs -->
+      <div class="toolbar">
+        <div class="chip active">부동산학개론</div>
+        <div class="chip">민법</div>
+        <div class="chip">중개사법</div>
+        <div class="chip">공법</div>
+        <div class="chip">공시법</div>
+        <div class="chip">세법</div>
+      </div>
+      <!-- session + progress -->
+      <div class="toolbar" style="align-items:center">
+        <select class="select" style="width:160px">
+          <option>제38회 (2024)</option>
+          <option>제37회 (2023)</option>
+          <option>제36회 (2022)</option>
+        </select>
+        <div class="qprog" style="flex:1">
+          <div class="qs"><span>총</span><strong>40</strong><span>문항</span></div>
+          <div class="qs ok"><span>검수</span><strong>27</strong></div>
+          <div class="qs stale"><span>재검수</span><strong>3</strong></div>
+          <div class="qs"><span>미검수</span><strong>10</strong></div>
+          <div class="qprog-bar" title="검수 67% · 재검수 8%">
+            <span class="seg seg-ok" style="width:67%"></span>
+            <span class="seg seg-stale" style="width:8%"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- workbench -->
+      <div class="qi-grid">
+
+        <!-- LEFT: question navigation -->
+        <aside class="qi-nav">
+          <div class="sheet" style="margin:0">
+            <div class="sheet-head" style="padding:11px 14px">
+              <div class="sheet-title" style="font-size:var(--fs-base)">문항 40</div>
+              <span class="badge badge-neutral">38회</span>
+            </div>
+            <div class="qnav-list" data-rownav>
+              <!-- rows generated below -->
+            </div>
+          </div>
+        </aside>
+
+        <!-- CENTER: editor -->
+        <section class="qi-editor">
+          <div class="sheet marked" style="margin:0">
+            <div class="sheet-head">
+              <div>
+                <div class="sheet-title">12번 문항 편집</div>
+                <div class="sheet-sub">#a1b2c3d4 · v3 · 수정 2시간 전</div>
+              </div>
+              <div class="sheet-actions">
+                <div class="tabs" data-tabscope style="border:0">
+                  <div class="tab active" data-tab="edit">편집</div>
+                  <div class="tab" data-tab="preview">미리보기</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sheet-body" data-tabscope>
+              <!-- EDIT panel -->
+              <div data-tabpanel="edit">
+                <div class="field-stack">
+
+                  <!-- stem -->
+                  <div>
+                    <label class="field-label">문제 지문 (stem)</label>
+                    <div class="tt-bar" data-ttbar>
+                      <button class="tt-btn" data-tt="h">H</button>
+                      <button class="tt-btn" data-tt="b">B</button>
+                      <button class="tt-btn" data-tt="i">I</button>
+                      <span class="tt-sep"></span>
+                      <button class="tt-btn" data-tt="ul">•</button>
+                      <button class="tt-btn" data-tt="ol">1.</button>
+                      <span class="tt-sep"></span>
+                      <button class="tt-btn tbl" data-act="table"></button>
+                    </div>
+                    <div class="tt-editor" contenteditable="true" spellcheck="false">경기변동과 부동산시장에 관한 설명으로 옳은 것을 모두 고른 것은? (다툼이 있으면 판례에 따름)</div>
+                  </div>
+
+                  <!-- 보기 박스 -->
+                  <div>
+                    <label class="field-label">보기 박스 <span style="color:var(--fg-faint);font-weight:500;text-transform:none;letter-spacing:0">· 지문에 들어가는 〈보기〉 영역</span></label>
+                    <div class="givens" id="givens"><!-- cards injected --></div>
+                    <button class="gv-additem" data-act="add-box" style="margin-top:10px">＋ 보기 박스 추가</button>
+                  </div>
+
+                  <!-- choices -->
+                  <div>
+                    <label class="field-label">선택지 (정답 = 라디오로 지정)</label>
+                    <div class="col" id="choices"><!-- choices injected --></div>
+                  </div>
+
+                  <!-- explanation -->
+                  <div>
+                    <label class="field-label">해설 (explanation)</label>
+                    <div class="tt-bar" data-ttbar>
+                      <button class="tt-btn" data-tt="h">H</button>
+                      <button class="tt-btn on" data-tt="b">B</button>
+                      <button class="tt-btn" data-tt="i">I</button>
+                      <span class="tt-sep"></span>
+                      <button class="tt-btn" data-tt="ul">•</button>
+                      <button class="tt-btn" data-tt="ol">1.</button>
+                      <button class="tt-btn" data-tt="quote">"</button>
+                      <span class="tt-sep"></span>
+                      <button class="tt-btn tbl" data-act="table"></button>
+                      <button class="tt-btn" data-tt="link"></button>
+                    </div>
+                    <div class="tt-editor" contenteditable="true" spellcheck="false" style="min-height:120px">
+                      <p><b>ㄱ.</b> 경기침체로 수요가 감소하면 부동산 가격은 하락 압력을 받는다. (옳음)</p>
+                      <p><b>ㄴ.</b> 차입자에게 유리한 것은 금리 하락기이며, 보기의 진술과 상반된다. (틀림)</p>
+                    </div>
+                  </div>
+
+                  <div class="row" style="justify-content:flex-end;margin-top:4px">
+                    <button class="btn btn-secondary" data-act="cancel">취소</button>
+                    <button class="btn btn-primary" data-act="save">변경사항 저장</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- PREVIEW panel -->
+              <div data-tabpanel="preview" hidden>
+                <div class="q-box">
+                  <div class="q-stem">경기변동과 부동산시장에 관한 설명으로 옳은 것을 모두 고른 것은?</div>
+                  <div style="padding:14px 20px 0"><span class="badge badge-neutral" style="font-family:var(--font-serif)">보기 1</span></div>
+                  <div style="padding:8px 20px 0;font-size:var(--fs-md);line-height:1.9">ㄱ. 경기침체로 인해 부동산 수요가 감소한다<br>ㄴ. 차입자에게 유리한 금리가 적용된다<br>ㄷ. 공급의 가격탄력성이 커진다</div>
+                  <ul class="choices">
+                    <li class="choice"><span class="cid">①</span> ㄱ</li>
+                    <li class="choice correct"><span class="cid">②</span> ㄱ, ㄷ <span class="ctag">정답</span></li>
+                    <li class="choice"><span class="cid">③</span> ㄴ, ㄷ</li>
+                    <li class="choice"><span class="cid">④</span> ㄱ, ㄴ, ㄷ</li>
+                    <li class="choice"><span class="cid">⑤</span> ㄴ</li>
+                  </ul>
+                  <div class="exp-box">경기침체 시 수요가 감소(ㄱ)하고, 공급의 가격탄력성과 시장 반응을 함께 고려하면 ㄱ·ㄷ이 옳다.</div>
+                </div>
+                <div class="row" style="margin-top:14px;flex-wrap:wrap">
+                  <button class="btn btn-sm" style="color:var(--cat-plum);border-color:color-mix(in srgb,var(--cat-plum) 30%,transparent)" data-act="gemini">🤖 Gemini에 보내기</button>
+                  <button class="btn btn-sm" data-act="md"> .md 다운로드</button>
+                  <button class="btn btn-sm btn-primary" data-act="check">✓ 검수 완료</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT: mobile preview + gemini -->
+        <aside class="qi-side">
+          <div class="sheet" style="margin:0">
+            <div class="sheet-head" style="padding:11px 14px">
+              <div class="sheet-title" style="font-size:var(--fs-base)">모바일 미리보기</div>
+              <span class="mono" style="font-size:11px;color:var(--fg-subtle)">360px</span>
+            </div>
+            <div class="sheet-body" style="padding:14px;background:var(--surface-2)">
+              <div class="mobile-frame" style="width:312px;transform:scale(1)">
+                <div class="mobile-screen">
+                  <div style="font-family:var(--font-serif);font-size:16px;font-weight:600;margin-bottom:10px">12. 경기변동과 부동산시장에 관한 설명으로 옳은 것을 모두 고른 것은?</div>
+                  <div style="border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;font-size:13px;line-height:1.85;margin-bottom:12px">
+                    <b class="mono" style="font-size:11px">보기 1</b><br>ㄱ. 경기침체로 부동산 수요 감소<br>ㄴ. 차입자에게 유리한 금리<br>ㄷ. 공급의 가격탄력성 증가
+                  </div>
+                  <div class="mp-warn" id="mpwarn" hidden>⚠ 표 6칸+ — 폰에서 잘릴 수 있어요. 4칸 이하 권장.</div>
+                  <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+                    <div style="padding:8px 11px;border:1px solid var(--border);border-radius:var(--r-sm)">① ㄱ</div>
+                    <div style="padding:8px 11px;border:1px solid var(--accent-border);background:var(--accent-soft);border-radius:var(--r-sm);color:var(--accent);font-weight:600">② ㄱ, ㄷ</div>
+                    <div style="padding:8px 11px;border:1px solid var(--border);border-radius:var(--r-sm)">③ ㄴ, ㄷ</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sheet gem-panel" style="margin:0">
+            <div class="sheet-head" style="padding:11px 14px">
+              <div class="sheet-title" style="font-size:var(--fs-base)">Gemini 프롬프트</div>
+              <button class="btn btn-xs" data-act="copy-gem">복사</button>
+            </div>
+            <div class="sheet-body" style="padding:14px">
+              <pre>38회 12번
+
+경기변동과 부동산시장에 관한 설명으로
+옳은 것을 모두 고른 것은?
+
+〈보기 1〉
+ㄱ. 경기침체로 부동산 수요 감소
+ㄴ. 차입자에게 유리한 금리
+ㄷ. 공급의 가격탄력성 증가
+
+① ㄱ  ② ㄱ,ㄷ  ③ ㄴ,ㄷ  ④ ㄱ,ㄴ,ㄷ  ⑤ ㄴ
+정답: ② ㄱ, ㄷ</pre>
+              <div class="hint-bar" style="margin-top:12px;border:0;padding:0;background:none">
+                <div class="h"><span class="kbd">⌘</span><span class="kbd">↵</span> 복사 후 Gemini</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+  </main>
+  <div class="sb-backdrop"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+/* ---------- question nav list ---------- */
+(function () {
+  const list = document.querySelector('.qnav-list');
+  const statuses = ['ok','ok','ok','stale','ok','ok','ok','ok','un','ok','ok','cur','ok','stale','un','ok','ok','un','ok','ok'];
+  const titles = ['부동산학 개념','부동산의 특성','토지의 분류','부동산 수요·공급','균형가격 변동','수요탄력성','공급탄력성','부동산경기변동','거미집 이론','부동산시장','효율적시장가설','경기변동과 시장','입지론 개관','튀넨 입지론','베버 공업입지','크리스탈러','넬슨 소매입지','지대이론','마샬 준지대','리카도 차액지대'];
+  const map = { ok:['var(--success)','검수'], stale:['var(--warning)','재검수'], un:['var(--fg-faint)','미검수'], cur:['var(--accent)','검수'] };
+  let html = '';
+  titles.forEach(function (t, i) {
+    const st = statuses[i] || 'un';
+    const c = map[st][0];
+    html += '<div class="qnav-row' + (st === 'cur' ? ' cur' : '') + '" data-row data-n="' + (i + 1) + '">' +
+      '<span class="qn">' + (i + 1) + '</span><span class="qd" style="background:' + c + '"></span>' +
+      '<span class="qt">' + t + '</span></div>';
+  });
+  list.innerHTML = html;
+  list.addEventListener('click', function (e) {
+    const r = e.target.closest('.qnav-row'); if (!r) return;
+    list.querySelectorAll('.qnav-row').forEach(function (x) { x.classList.remove('cur'); });
+    r.classList.add('cur');
+    document.querySelector('.sheet-title').textContent = r.getAttribute('data-n') + '번 문항 편집';
+    window.toast(r.getAttribute('data-n') + '번 문항 로드됨', 'info');
+  });
+})();
+
+/* ---------- 보기 박스 (interactive) ---------- */
+(function () {
+  const wrap = document.getElementById('givens');
+  const I = window.adminIcon;
+  let boxes = [
+    { label: '보기 1', md: false, items: [
+      { k: 'ㄱ', t: '경기침체로 인해 부동산 수요가 감소한다' },
+      { k: 'ㄴ', t: '차입자에게 유리한 금리가 적용된다' },
+      { k: 'ㄷ', t: '공급의 가격탄력성이 커진다' },
+    ]},
+    { label: '보기 2', md: true, items: [
+      { k: 'ㄱ', t: '| 구분 | A형 | B형 |\n|---|---|---|\n| 수요 | 증가 | 감소 |' },
+    ]},
+  ];
+  const KEYS = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ'];
+
+  function render() {
+    wrap.innerHTML = '';
+    if (!boxes.length) {
+      wrap.innerHTML = '<div class="givens-empty">보기 박스가 필요한 문제면 <b>＋ 보기 박스 추가</b>를 누르세요.</div>';
+      return;
+    }
+    boxes.forEach(function (b, bi) {
+      const card = document.createElement('div');
+      card.className = 'gv-card';
+      let head = '<div class="gv-head"><span class="gv-drag" title="드래그로 순서변경">' + I('grip', 15) + '</span>' +
+        '<input class="gv-label-input" value="' + b.label + '" data-bi="' + bi + '">' +
+        '<span class="sp"></span>' +
+        '<span class="switch' + (b.md ? ' on' : '') + '" data-md="' + bi + '"><span class="switch-track"></span><span class="switch-label">마크다운</span></span>' +
+        '<span class="gv-del" data-del="' + bi + '" title="박스 삭제">' + I('trash', 15) + '</span></div>';
+      let tt = b.md ? '<div class="tt-bar attached"><button class="tt-btn" data-tt="h">H</button><button class="tt-btn" data-tt="b">B</button><span class="tt-sep"></span><button class="tt-btn" data-tt="ul">•</button><button class="tt-btn tbl" data-act="table">' + I('table', 15) + '</button></div>' : '';
+      let items = '<div class="gv-items">';
+      b.items.forEach(function (it, ii) {
+        const cls = b.md ? 'input mono textarea' : 'input';
+        if (b.md) {
+          items += '<div class="gv-item"><span class="gv-key">' + it.k + '</span><textarea class="textarea mono gv-itext" rows="2" style="min-height:auto">' + it.t + '</textarea></div>';
+        } else {
+          items += '<div class="gv-item"><span class="gv-key">' + it.k + '</span><input class="input gv-itext" value="' + it.t + '"></div>';
+        }
+      });
+      items += '<button class="gv-additem" data-additem="' + bi + '">＋ 항목 추가</button></div>';
+      card.innerHTML = head + tt + items;
+      wrap.appendChild(card);
+    });
+  }
+  render();
+
+  wrap.addEventListener('click', function (e) {
+    const md = e.target.closest('[data-md]');
+    if (md) { const i = +md.getAttribute('data-md'); boxes[i].md = !boxes[i].md; render(); window.toast(boxes[i].md ? '마크다운 ON · Tiptap 활성' : '마크다운 OFF', 'info'); return; }
+    const del = e.target.closest('[data-del]');
+    if (del) { const i = +del.getAttribute('data-del'); boxes.splice(i, 1); render(); window.toast('보기 박스 삭제됨'); return; }
+    const add = e.target.closest('[data-additem]');
+    if (add) { const i = +add.getAttribute('data-additem'); boxes[i].items.push({ k: KEYS[boxes[i].items.length] || '·', t: '' }); render(); return; }
+    if (e.target.closest('[data-act="table"]')) openTableDialog();
+  });
+  wrap.addEventListener('input', function (e) {
+    const lab = e.target.closest('.gv-label-input');
+    if (lab) boxes[+lab.getAttribute('data-bi')].label = lab.value;
+  });
+
+  // add-box modal
+  document.querySelector('[data-act="add-box"]').addEventListener('click', function () {
+    window.openModal({
+      size: 'compact', title: '보기 박스 추가', sub: 'stem_givens 항목 신규',
+      body: '<label class="field-label">라벨</label><input class="input" id="nb-label" value="보기 ' + (boxes.length + 1) + '" autofocus>' +
+        '<div style="height:14px"></div><div class="row" style="justify-content:space-between"><span style="font-size:var(--fs-sm)">마크다운(표·헤더) 사용</span><span class="switch" id="nb-md" data-toggle><span class="switch-track"></span><span class="switch-label">OFF</span></span></div>',
+      foot: '<button class="btn btn-sm" data-close>취소</button><button class="btn btn-sm btn-primary" id="nb-go">추가</button>',
+      onMount: function (bd) {
+        bd.querySelector('#nb-md').addEventListener('switchchange', function (ev) { this.querySelector('.switch-label').textContent = ev.detail.on ? 'ON' : 'OFF'; });
+        bd.querySelector('#nb-go').addEventListener('click', function () {
+          const label = bd.querySelector('#nb-label').value || ('보기 ' + (boxes.length + 1));
+          const md = bd.querySelector('#nb-md').classList.contains('on');
+          boxes.push({ label: label, md: md, items: [{ k: 'ㄱ', t: '' }] });
+          window.closeModal(); render(); window.toast('보기 박스 추가됨');
+        });
+      }
+    });
+  });
+
+  /* ---------- 표 삽입 다이얼로그 ---------- */
+  function openTableDialog() {
+    window.openModal({
+      size: 'medium', title: '표 삽입', sub: 'Markdown 표 · 컬럼 수 자유 지정',
+      body:
+        '<div class="row" style="gap:16px;align-items:flex-end">' +
+          '<div style="width:120px"><label class="field-label">행 (rows)</label><input class="input" type="number" id="t-rows" value="3" min="1" max="20"></div>' +
+          '<div style="width:120px"><label class="field-label">열 (cols)</label><input class="input" type="number" id="t-cols" value="3" min="1" max="12"></div>' +
+          '<label class="row" style="gap:8px;height:38px;cursor:pointer"><span class="check checked" id="t-head" data-toggle>' + window.adminIcon('check', 11) + '</span><span style="font-size:var(--fs-sm)">첫 행을 헤더로</span></label>' +
+        '</div>' +
+        '<label class="field-label" style="margin-top:16px">미리보기</label><div id="t-prev"></div>' +
+        '<div class="mp-warn" id="t-warn" hidden style="margin-top:10px">⚠ 6칸 이상 — 모바일에서 잘릴 수 있어요. 4칸 이하 권장.</div>',
+      foot: '<button class="btn btn-sm" data-close>취소</button><button class="btn btn-sm btn-primary" id="t-go">삽입</button>',
+      onMount: function (bd) {
+        function draw() {
+          const r = Math.max(1, Math.min(20, +bd.querySelector('#t-rows').value || 1));
+          const c = Math.max(1, Math.min(12, +bd.querySelector('#t-cols').value || 1));
+          const head = bd.querySelector('#t-head').classList.contains('checked');
+          const prev = bd.querySelector('#t-prev');
+          prev.className = 'grid-preview';
+          prev.style.gridTemplateColumns = 'repeat(' + c + ', 1fr)';
+          let cells = '';
+          for (var i = 0; i < r * c; i++) cells += '<div class="gc' + (head && i < c ? ' head' : '') + '"></div>';
+          prev.innerHTML = cells;
+          bd.querySelector('#t-warn').hidden = c < 5;
+        }
+        bd.querySelector('#t-rows').addEventListener('input', draw);
+        bd.querySelector('#t-cols').addEventListener('input', draw);
+        bd.querySelector('#t-head').addEventListener('click', function () { setTimeout(draw, 0); });
+        draw();
+        bd.querySelector('#t-go').addEventListener('click', function () {
+          window.closeModal();
+          window.toast('표가 삽입되었습니다');
+          const w = document.getElementById('mpwarn'); if (w) w.hidden = false;
+        });
+      }
+    });
+  }
+  window.__openTableDialog = openTableDialog;
+})();
+
+/* ---------- choices editor ---------- */
+(function () {
+  const host = document.getElementById('choices');
+  const cs = [
+    { id: '①', t: 'ㄱ', correct: false },
+    { id: '②', t: 'ㄱ, ㄷ', correct: true },
+    { id: '③', t: 'ㄴ, ㄷ', correct: false },
+    { id: '④', t: 'ㄱ, ㄴ, ㄷ', correct: false },
+    { id: '⑤', t: 'ㄴ', correct: false },
+  ];
+  function render() {
+    host.innerHTML = cs.map(function (c, i) {
+      return '<div class="row" style="gap:10px"><span class="radio' + (c.correct ? ' on' : '') + '" data-r="' + i + '" title="정답으로 지정"></span>' +
+        '<span class="mono" style="width:20px;color:var(--fg-subtle);font-size:16px;font-family:var(--font-serif)">' + c.id + '</span>' +
+        '<input class="input' + (c.correct ? '' : '') + '" value="' + c.t + '"' + (c.correct ? ' style="border-color:var(--accent-border);background:var(--accent-soft)"' : '') + '></div>';
+    }).join('');
+  }
+  render();
+  host.addEventListener('click', function (e) {
+    const r = e.target.closest('[data-r]'); if (!r) return;
+    cs.forEach(function (c) { c.correct = false; }); cs[+r.getAttribute('data-r')].correct = true; render();
+  });
+})();
+
+/* ---------- editor toolbar toggles + page acts ---------- */
+document.addEventListener('click', function (e) {
+  const tt = e.target.closest('.tt-btn[data-tt]');
+  if (tt) { tt.classList.toggle('on'); return; }
+  const tbl = e.target.closest('.tt-btn.tbl');
+  if (tbl && window.__openTableDialog) { window.__openTableDialog(); return; }
+  const act = e.target.closest('[data-act]'); if (!act) return;
+  const a = act.getAttribute('data-act');
+  if (a === 'save') window.toast('변경사항 저장됨 · 검수 v4');
+  else if (a === 'cancel') window.toast('변경 취소됨', 'info');
+  else if (a === 'check') window.toast('✓ 12번 검수 완료');
+  else if (a === 'gemini') window.toast('🤖 Gemini 프롬프트 복사됨', 'info');
+  else if (a === 'md') window.toast('.md 다운로드 생성됨', 'info');
+  else if (a === 'copy-gem') window.toast('프롬프트 복사됨 · Gemini에 붙여넣기', 'info');
+  else if (a === 'tpl') window.openModal({ size:'large', title:'Gemini 프롬프트 템플릿', sub:'부동산학개론 · 변수 {round} {number} {stem} {choices} {correct} {explanation}', body:'<label class="field-label">템플릿</label><textarea class="textarea mono" style="min-height:240px">{round}회 {number}번\n\n{stem}\n\n{choices}\n\n정답: {correct}\n\n해설: {explanation}</textarea>', foot:'<button class="btn btn-sm" data-close>닫기</button><button class="btn btn-sm btn-primary" data-close>저장</button>' });
+});
+
+/* fill icon-only toolbar buttons */
+document.querySelectorAll('.tt-btn.tbl:empty').forEach(function (b) { b.innerHTML = window.adminIcon('table', 15); });
+document.querySelectorAll('.tt-btn[data-tt="link"]:empty').forEach(function (b) { b.innerHTML = window.adminIcon('link', 15); });
+</script>
+</body>
+</html>
