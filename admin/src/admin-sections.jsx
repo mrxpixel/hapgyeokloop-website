@@ -312,6 +312,16 @@ function Reports({ pushToast }) {
     }
     return rs;
   }, [reports.data, filter, search]);
+  const filterCounts = useMemo(() => {
+    const rs = reports.data || [];
+    return {
+      pending: rs.filter(r => r.status === 'pending').length,
+      in_progress: rs.filter(r => r.status === 'in_progress').length,
+      resolved: rs.filter(r => r.status === 'resolved').length,
+      mine: rs.filter(r => r.assigned_to === currentAdminId()).length,
+      all: rs.length,
+    };
+  }, [reports.data]);
 
   const toggleSelect = (id) => {
     const n = new Set(selected); n.has(id) ? n.delete(id) : n.add(id); setSelected(n);
@@ -359,22 +369,23 @@ function Reports({ pushToast }) {
     <>
       <div className="toolbar">
         {[['pending','대기'], ['in_progress','처리중'], ['resolved','해결'], ['mine','내 담당'], ['all','전체']].map(([k, label]) => (
-          <div key={k} className={"filter-chip " + (filter === k ? 'active' : '')} onClick={() => setFilter(k)}>{label}</div>
+          <div key={k} className={"chip " + (filter === k ? 'active' : '')} onClick={() => setFilter(k)}>
+            {label} <span className="ct">{filterCounts[k] || 0}</span>
+          </div>
         ))}
-        <div style={{width:6}}/>
-        <select className="field-input" style={{padding:'5px 8px', fontSize:12}} value={subjectCode || ''} onChange={e => setSubjectCode(e.target.value || null)}>
+        <div style={{width:4}}/>
+        <select className="select input-sm" style={{width:130}} value={subjectCode || ''} onChange={e => setSubjectCode(e.target.value || null)}>
           <option value="">전체 시험</option>
           {(subjects.data || []).map(s => <option key={s.code} value={s.code}>{s.code}</option>)}
         </select>
-        <div style={{width:6}}/>
         {(savedViews.data || []).map(v => (
           <div key={v.id} className="saved-view" onClick={() => applySavedView(v)} onContextMenu={(e) => { e.preventDefault(); deleteSavedView(v.id, v.name); }} title="우클릭으로 삭제">
-            <span className="pin">📌</span>{v.name}
+            <span className="pin">★</span>{v.name}
           </div>
         ))}
-        <div className="saved-view" onClick={saveCurrentView} style={{borderStyle:'dashed', color:'var(--fg-subtle)'}}>+ 뷰 저장</div>
-        <div style={{flex:1}}/>
-        <input className="search-input" placeholder="검색..." value={search} onChange={e => setSearch(e.target.value)}/>
+        <div className="saved-view" onClick={saveCurrentView}>＋ 뷰 저장</div>
+        <div className="spacer"/>
+        <input className="search-input" placeholder="검색…" value={search} onChange={e => setSearch(e.target.value)}/>
         <button className="icon-btn" onClick={reports.refetch} title="새로고침"><Icon name="refresh"/></button>
       </div>
 
@@ -383,7 +394,7 @@ function Reports({ pushToast }) {
           <span className="cnt">{selected.size}개 선택됨</span>
           <button className="btn btn-sm" onClick={selectAllVisible}>{selected.size === filtered.length ? '전체 해제' : '화면 전체 선택'}</button>
           <button className="btn btn-sm" onClick={bulkAssign}><Icon name="user" size={12}/> 내가 담당</button>
-          <button className="btn btn-sm btn-success" onClick={bulkResolve}><Icon name="check" size={12}/> 일괄 해결</button>
+          <button className="btn btn-sm btn-primary" onClick={bulkResolve}><Icon name="check" size={12}/> 일괄 해결</button>
           <div className="spacer"/>
           <button className="btn btn-sm" onClick={() => setSelected(new Set())}>취소</button>
         </div>
@@ -391,12 +402,14 @@ function Reports({ pushToast }) {
 
       {reports.loading ? <Loader/> : reports.error ? <ErrorBox error={reports.error} retry={reports.refetch}/> :
         filtered.length === 0 ? <EmptyState icon="flag" title="신고가 없습니다" sub="현재 필터에 맞는 신고가 없어요."/> :
-        <div className="item-list">
-          {filtered.map(r => (
-            <ReportItem key={r.report_id} r={r} open={openId === r.report_id} onToggle={() => setOpenId(openId === r.report_id ? null : r.report_id)}
-              selected={selected.has(r.report_id)} onSelect={() => toggleSelect(r.report_id)}
-              onChanged={() => { reports.refetch(); }} pushToast={pushToast}/>
-          ))}
+        <div className="sheet" style={{margin:0}}>
+          <div className="item-list">
+            {filtered.map(r => (
+              <ReportItem key={r.report_id} r={r} open={openId === r.report_id} onToggle={() => setOpenId(openId === r.report_id ? null : r.report_id)}
+                selected={selected.has(r.report_id)} onSelect={() => toggleSelect(r.report_id)}
+                onChanged={() => { reports.refetch(); }} pushToast={pushToast}/>
+            ))}
+          </div>
         </div>
       }
     </>
@@ -447,23 +460,23 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
   };
 
   return (
-    <div className={"item " + (open ? 'open' : '') + (selected ? ' selected' : '')}>
-      <div className="item-head">
+    <div className={"item " + (open ? 'open cur' : '') + (selected ? ' selected' : '')}>
+      <div className="item-head" onClick={onToggle}>
         <div className={"item-check " + (selected ? 'checked' : '')} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
           {selected && <Icon name="check" size={10}/>}
         </div>
-        <div className="dot" style={{background: r.status === 'pending' ? 'var(--warning)' : r.status === 'in_progress' ? 'var(--cyan)' : 'var(--success)'}}/>
-        <div className="item-meta" onClick={onToggle}>
+        <div className={"dot " + (r.status || 'pending')}/>
+        <div className="item-meta">
           <div className="item-title">{r.reason || '신고'}</div>
           <div className="item-sub">
             <span style={{color:'var(--accent)'}}>{shortSubject(r.subject_id)}</span> · {r.year_session || q.year_session || '—'} · #{r.question_number || q.question_number || '—'} · {r.user_id ? (r.user_id + '').slice(0,8) : '익명'}
           </div>
         </div>
         <div className="item-right">
-          {r.assigned_name && <span className="badge badge-cyan">{r.assigned_name}</span>}
-          {r.status === 'pending' && <span className="badge badge-warning">PENDING</span>}
-          {r.status === 'in_progress' && <span className="badge badge-cyan">IN PROGRESS</span>}
-          {r.status === 'resolved' && <span className="badge badge-success">RESOLVED</span>}
+          {r.assigned_name && <span className="badge badge-info">{r.assigned_name}</span>}
+          {r.status === 'pending' && <span className="badge badge-warning"><span className="bdot"></span>대기</span>}
+          {r.status === 'in_progress' && <span className="badge badge-info"><span className="bdot"></span>처리중</span>}
+          {r.status === 'resolved' && <span className="badge badge-success"><span className="bdot"></span>해결</span>}
           <span className="item-time">{relativeTime(r.created_at)}</span>
         </div>
       </div>
@@ -503,9 +516,9 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
           )}
           <div className="form-actions" style={{marginTop:14}}>
             {r.status !== 'resolved' && !r.assigned_name && !resolving && <button className="btn btn-sm" onClick={assign}>내가 담당</button>}
-            {r.status !== 'resolved' && !resolving && <button className="btn btn-sm btn-success" onClick={() => setResolving(true)}><Icon name="check" size={12}/> 해결 처리</button>}
+            {r.status !== 'resolved' && !resolving && <button className="btn btn-sm btn-primary" onClick={() => setResolving(true)}><Icon name="check" size={12}/> 해결 처리</button>}
             {r.status !== 'resolved' && resolving && <>
-              <button className="btn btn-sm btn-success" onClick={resolve}><Icon name="check" size={12}/> 처리 완료</button>
+              <button className="btn btn-sm btn-primary" onClick={resolve}><Icon name="check" size={12}/> 처리 완료</button>
               <button className="btn btn-sm" onClick={() => { setResolving(false); setReplyText(''); }}>취소</button>
             </>}
             {r.status === 'resolved' && <button className="btn btn-sm" onClick={reopen}>재오픈</button>}
