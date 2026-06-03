@@ -1,5 +1,13 @@
 /* ─── Admin Shell (App root) ─── */
-const { useState: useStateApp, useEffect: useEffectApp, useCallback: useCallbackApp, useRef: useRefApp } = React;
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+const { useState: useStateApp, useEffect: useEffectApp, useCallback: useCallbackApp, useRef: useRefApp } = React
+import { sb, rpc, Icon, ErrorBoundary, EmptyState, AuthGate } from './admin-lib.jsx'
+import {
+  Overview, Analytics, Reports, QuestionInspector, Announcements, Subjects,
+  Exams, ExamDates, AppVersion, Admins, AuditLog, Settings,
+  CommandPalette, ShortcutsModal, NotifPanel,
+} from './admin-sections.jsx'
 
 const SECTIONS = [
   { group: 'Insights', items: [
@@ -216,7 +224,7 @@ function Shell({ session, admin }) {
               <div className="name">{displayName}</div>
               <div className="email">{admin.email}</div>
             </div>
-            <button onClick={signOut} title="로그아웃"><Icon name="logout" size={14}/></button>
+            <button className="out" onClick={signOut} title="로그아웃"><Icon name="logout" size={14}/></button>
           </div>
         </div>
       </aside>
@@ -236,8 +244,8 @@ function Shell({ session, admin }) {
 
         <div className="topbar">
           <div>
-            <h1>{title}</h1>
-            <div className="sub">{subtitle}</div>
+            <div className="tb-title">{title}</div>
+            <div className="tb-sub">{subtitle}</div>
           </div>
           <div className="top-actions">
             <button className="icon-btn" onClick={() => setShowShortcuts(true)} title="키보드 단축키 (?)"><Icon name="kbd" size={16}/></button>
@@ -291,7 +299,7 @@ const rootEl = document.getElementById('root') || (() => {
   const d = document.createElement('div'); d.id = 'root'; document.body.appendChild(d); return d;
 })();
 
-ReactDOM.createRoot(rootEl).render(
+createRoot(rootEl).render(
   <AuthGate>
     {({ session, admin }) => <Shell session={session} admin={admin}/>}
   </AuthGate>

@@ -1,4 +1,9 @@
 /* ─── Section components ─── */
+import React from 'react'
+const { useState, useEffect, useMemo, useRef } = React
+import { sb, rpc, Icon, useAsync, relativeTime, fmtNum, Loader, ErrorBox, EmptyState } from './admin-lib.jsx'
+import MarkdownEditor from './components/MarkdownEditor.jsx'
+import { parseStemGivens } from './lib/stem-givens-parse.js'
 
 /* ─── Overview ─── */
 function Overview({ goto }) {
@@ -13,10 +18,10 @@ function Overview({ goto }) {
   const subjectAct = data?.subject_activity || [];
 
   const kpis = [
-    { label: 'DAU', value: fmtNum(k.dau), sub: 'WAU ' + fmtNum(k.wau) + ' · MAU ' + fmtNum(k.mau), soft: 'var(--accent-soft)', stroke: 'var(--accent)' },
-    { label: '7일 신규', value: fmtNum(k.new_users_7d), sub: '30일 ' + fmtNum(k.new_users_30d), soft: 'var(--violet-soft)', stroke: 'var(--violet)' },
-    { label: '스티키니스', value: (k.stickiness_pct ?? 0) + '%', sub: 'DAU / MAU', soft: 'var(--cyan-soft)', stroke: 'var(--cyan)' },
-    { label: '유료 비중', value: (k.paid_ratio_pct ?? 0) + '%', sub: fmtNum(k.paid_users) + ' / ' + fmtNum(k.total_profiles), soft: 'var(--success-soft)', stroke: 'var(--success)' },
+    { label: 'DAU', value: fmtNum(k.dau), sub: 'WAU ' + fmtNum(k.wau) + ' · MAU ' + fmtNum(k.mau) },
+    { label: '7일 신규', value: fmtNum(k.new_users_7d), sub: '30일 ' + fmtNum(k.new_users_30d) },
+    { label: '스티키니스', value: (k.stickiness_pct ?? 0) + '%', sub: 'DAU / MAU' },
+    { label: '유료 비중', value: (k.paid_ratio_pct ?? 0) + '%', sub: fmtNum(k.paid_users) + ' / ' + fmtNum(k.total_profiles) },
   ];
 
   return (
@@ -26,24 +31,24 @@ function Overview({ goto }) {
           <div key={kpi.label} className="kpi">
             <div className="kpi-label">{kpi.label}</div>
             <div className="kpi-value">{kpi.value}</div>
-            <div className="kpi-delta"><span style={{color:'var(--fg-subtle)'}}>{kpi.sub}</span></div>
+            <div className="kpi-delta"><span>{kpi.sub}</span></div>
           </div>
         ))}
       </div>
 
       <div className="grid-2">
-        <div className="panel">
-          <div className="panel-head">
-            <div><div className="panel-title">일별 신규 가입</div><div className="panel-sub">최근 30일</div></div>
+        <div className="sheet">
+          <div className="sheet-head">
+            <div><div className="sheet-title">일별 신규 가입</div><div className="sheet-sub">최근 30일</div></div>
             <button className="btn btn-xs" onClick={() => goto('analytics')}>분석 보기 →</button>
           </div>
-          <div className="panel-body" style={{padding:'0 8px 8px'}}>
+          <div className="sheet-body" style={{padding:'0 8px 8px'}}>
             <BarChart data={signups.map(s => ({ date: Date.parse(s.date), value: s.count || 0 }))} color="var(--violet)"/>
           </div>
         </div>
-        <div className="panel">
-          <div className="panel-head"><div><div className="panel-title">빠른 작업</div><div className="panel-sub">자주 하는 업무</div></div></div>
-          <div className="panel-body" style={{display:'grid', gap:8}}>
+        <div className="sheet">
+          <div className="sheet-head"><div><div className="sheet-title">빠른 작업</div><div className="sheet-sub">자주 하는 업무</div></div></div>
+          <div className="sheet-body" style={{display:'grid', gap:8}}>
             <QuickAction icon="flag" color="warning" title="신고 관리" sub="대기·처리중 검토" onClick={() => goto('reports')}/>
             <QuickAction icon="user" color="violet" title="관리자 승인 대기 확인" sub="가입 신청 검토" onClick={() => goto('admins')}/>
             <QuickAction icon="megaphone" color="info" title="공지사항 작성" sub="앱에 바로 발행" onClick={() => goto('announcements')}/>
@@ -53,12 +58,12 @@ function Overview({ goto }) {
       </div>
 
       <div className="grid-2">
-        <div className="panel">
-          <div className="panel-head">
-            <div><div className="panel-title">최근 활동</div><div className="panel-sub">팀 전체 감사 로그</div></div>
+        <div className="sheet">
+          <div className="sheet-head">
+            <div><div className="sheet-title">최근 활동</div><div className="sheet-sub">팀 전체 감사 로그</div></div>
             <button className="btn btn-xs" onClick={() => goto('audit-log')}>전체 →</button>
           </div>
-          <div className="panel-body flush feed">
+          <div className="sheet-body flush feed">
             {audit.loading ? <Loader/> : audit.error ? <ErrorBox error={audit.error} retry={audit.refetch}/> :
               (audit.data || []).length === 0 ? <EmptyState icon="log" title="활동 내역 없음"/> :
               (audit.data || []).slice(0, 6).map((a, i) => (
@@ -75,9 +80,9 @@ function Overview({ goto }) {
             }
           </div>
         </div>
-        <div className="panel">
-          <div className="panel-head"><div><div className="panel-title">과목별 활동</div><div className="panel-sub">30일 리뷰 수</div></div></div>
-          <div className="panel-body" style={{display:'flex', flexDirection:'column', gap:10}}>
+        <div className="sheet">
+          <div className="sheet-head"><div><div className="sheet-title">과목별 활동</div><div className="sheet-sub">30일 리뷰 수</div></div></div>
+          <div className="sheet-body" style={{display:'flex', flexDirection:'column', gap:10}}>
             {subjectAct.length === 0 && <EmptyState icon="book" title="데이터 없음"/>}
             {(() => {
               const max = Math.max(1, ...subjectAct.map(s => s.review_count || 0));
@@ -88,7 +93,7 @@ function Overview({ goto }) {
                     <span style={{fontFamily:'var(--font-mono)', color:'var(--fg-muted)'}}>{fmtNum(s.review_count)} · {fmtNum(s.unique_users)}명</span>
                   </div>
                   <div style={{height:6, background:'var(--surface-2)', borderRadius:3, overflow:'hidden'}}>
-                    <div style={{height:'100%', width:((s.review_count || 0)/max*100)+'%', background:'linear-gradient(90deg, var(--accent), var(--cyan))', borderRadius:3}}/>
+                    <div style={{height:'100%', width:((s.review_count || 0)/max*100)+'%', background:'var(--accent)', borderRadius:3}}/>
                   </div>
                 </div>
               ));
@@ -126,17 +131,17 @@ function actionLabel(action) {
 }
 
 function QuickAction({ icon, color, title, sub, onClick }) {
-  const map = { warning: ['var(--warning-soft)','var(--warning)'], info: ['var(--accent-soft)','var(--accent)'], violet: ['var(--violet-soft)','var(--violet)'], danger: ['var(--danger-soft)','var(--danger)'] };
+  const map = { warning: ['var(--warning-soft)','var(--warning)'], info: ['var(--accent-soft)','var(--accent)'], violet: ['var(--info-soft)','var(--info)'], danger: ['var(--danger-soft)','var(--danger)'] };
   const [bg, fg] = map[color];
   return (
-    <div onClick={onClick} style={{padding:'10px 12px', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', display:'flex', gap:10, alignItems:'center', cursor:'pointer'}}>
-      <div style={{width:32, height:32, borderRadius:8, background:bg, color:fg, display:'flex', alignItems:'center', justifyContent:'center'}}><Icon name={icon} size={15}/></div>
-      <div style={{flex:1, minWidth:0}}>
-        <div style={{fontSize:12.5, fontWeight:500, marginBottom:2}}>{title}</div>
-        <div style={{fontSize:10.5, color:'var(--fg-subtle)', fontFamily:'var(--font-mono)'}}>{sub}</div>
+    <button type="button" className="qa" onClick={onClick}>
+      <span className="qa-ic" style={{background:bg, color:fg}}><Icon name={icon} size={16}/></span>
+      <div className="qa-text">
+        <div className="qa-t">{title}</div>
+        <div className="qa-s">{sub}</div>
       </div>
-      <span style={{color:'var(--fg-faint)'}}>→</span>
-    </div>
+      <span className="qa-ar">→</span>
+    </button>
   );
 }
 
@@ -308,6 +313,16 @@ function Reports({ pushToast }) {
     }
     return rs;
   }, [reports.data, filter, search]);
+  const filterCounts = useMemo(() => {
+    const rs = reports.data || [];
+    return {
+      pending: rs.filter(r => r.status === 'pending').length,
+      in_progress: rs.filter(r => r.status === 'in_progress').length,
+      resolved: rs.filter(r => r.status === 'resolved').length,
+      mine: rs.filter(r => r.assigned_to === currentAdminId()).length,
+      all: rs.length,
+    };
+  }, [reports.data]);
 
   const toggleSelect = (id) => {
     const n = new Set(selected); n.has(id) ? n.delete(id) : n.add(id); setSelected(n);
@@ -355,22 +370,23 @@ function Reports({ pushToast }) {
     <>
       <div className="toolbar">
         {[['pending','대기'], ['in_progress','처리중'], ['resolved','해결'], ['mine','내 담당'], ['all','전체']].map(([k, label]) => (
-          <div key={k} className={"filter-chip " + (filter === k ? 'active' : '')} onClick={() => setFilter(k)}>{label}</div>
+          <div key={k} className={"chip " + (filter === k ? 'active' : '')} onClick={() => setFilter(k)}>
+            {label} <span className="ct">{filterCounts[k] || 0}</span>
+          </div>
         ))}
-        <div style={{width:6}}/>
-        <select className="field-input" style={{padding:'5px 8px', fontSize:12}} value={subjectCode || ''} onChange={e => setSubjectCode(e.target.value || null)}>
+        <div style={{width:4}}/>
+        <select className="select input-sm" style={{width:130}} value={subjectCode || ''} onChange={e => setSubjectCode(e.target.value || null)}>
           <option value="">전체 시험</option>
           {(subjects.data || []).map(s => <option key={s.code} value={s.code}>{s.code}</option>)}
         </select>
-        <div style={{width:6}}/>
         {(savedViews.data || []).map(v => (
           <div key={v.id} className="saved-view" onClick={() => applySavedView(v)} onContextMenu={(e) => { e.preventDefault(); deleteSavedView(v.id, v.name); }} title="우클릭으로 삭제">
-            <span className="pin">📌</span>{v.name}
+            <span className="pin">★</span>{v.name}
           </div>
         ))}
-        <div className="saved-view" onClick={saveCurrentView} style={{borderStyle:'dashed', color:'var(--fg-subtle)'}}>+ 뷰 저장</div>
-        <div style={{flex:1}}/>
-        <input className="search-input" placeholder="검색..." value={search} onChange={e => setSearch(e.target.value)}/>
+        <div className="saved-view" onClick={saveCurrentView}>＋ 뷰 저장</div>
+        <div className="spacer"/>
+        <input className="search-input" placeholder="검색…" value={search} onChange={e => setSearch(e.target.value)}/>
         <button className="icon-btn" onClick={reports.refetch} title="새로고침"><Icon name="refresh"/></button>
       </div>
 
@@ -379,7 +395,7 @@ function Reports({ pushToast }) {
           <span className="cnt">{selected.size}개 선택됨</span>
           <button className="btn btn-sm" onClick={selectAllVisible}>{selected.size === filtered.length ? '전체 해제' : '화면 전체 선택'}</button>
           <button className="btn btn-sm" onClick={bulkAssign}><Icon name="user" size={12}/> 내가 담당</button>
-          <button className="btn btn-sm btn-success" onClick={bulkResolve}><Icon name="check" size={12}/> 일괄 해결</button>
+          <button className="btn btn-sm btn-primary" onClick={bulkResolve}><Icon name="check" size={12}/> 일괄 해결</button>
           <div className="spacer"/>
           <button className="btn btn-sm" onClick={() => setSelected(new Set())}>취소</button>
         </div>
@@ -387,12 +403,14 @@ function Reports({ pushToast }) {
 
       {reports.loading ? <Loader/> : reports.error ? <ErrorBox error={reports.error} retry={reports.refetch}/> :
         filtered.length === 0 ? <EmptyState icon="flag" title="신고가 없습니다" sub="현재 필터에 맞는 신고가 없어요."/> :
-        <div className="item-list">
-          {filtered.map(r => (
-            <ReportItem key={r.report_id} r={r} open={openId === r.report_id} onToggle={() => setOpenId(openId === r.report_id ? null : r.report_id)}
-              selected={selected.has(r.report_id)} onSelect={() => toggleSelect(r.report_id)}
-              onChanged={() => { reports.refetch(); }} pushToast={pushToast}/>
-          ))}
+        <div className="sheet" style={{margin:0}}>
+          <div className="item-list">
+            {filtered.map(r => (
+              <ReportItem key={r.report_id} r={r} open={openId === r.report_id} onToggle={() => setOpenId(openId === r.report_id ? null : r.report_id)}
+                selected={selected.has(r.report_id)} onSelect={() => toggleSelect(r.report_id)}
+                onChanged={() => { reports.refetch(); }} pushToast={pushToast}/>
+            ))}
+          </div>
         </div>
       }
     </>
@@ -443,23 +461,23 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
   };
 
   return (
-    <div className={"item " + (open ? 'open' : '') + (selected ? ' selected' : '')}>
-      <div className="item-head">
+    <div className={"item " + (open ? 'open cur' : '') + (selected ? ' selected' : '')}>
+      <div className="item-head" onClick={onToggle}>
         <div className={"item-check " + (selected ? 'checked' : '')} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
           {selected && <Icon name="check" size={10}/>}
         </div>
-        <div className="dot" style={{background: r.status === 'pending' ? 'var(--warning)' : r.status === 'in_progress' ? 'var(--cyan)' : 'var(--success)'}}/>
-        <div className="item-meta" onClick={onToggle}>
+        <div className={"dot " + (r.status || 'pending')}/>
+        <div className="item-meta">
           <div className="item-title">{r.reason || '신고'}</div>
           <div className="item-sub">
             <span style={{color:'var(--accent)'}}>{shortSubject(r.subject_id)}</span> · {r.year_session || q.year_session || '—'} · #{r.question_number || q.question_number || '—'} · {r.user_id ? (r.user_id + '').slice(0,8) : '익명'}
           </div>
         </div>
         <div className="item-right">
-          {r.assigned_name && <span className="badge badge-cyan">{r.assigned_name}</span>}
-          {r.status === 'pending' && <span className="badge badge-warning">PENDING</span>}
-          {r.status === 'in_progress' && <span className="badge badge-cyan">IN PROGRESS</span>}
-          {r.status === 'resolved' && <span className="badge badge-success">RESOLVED</span>}
+          {r.assigned_name && <span className="badge badge-info">{r.assigned_name}</span>}
+          {r.status === 'pending' && <span className="badge badge-warning"><span className="bdot"></span>대기</span>}
+          {r.status === 'in_progress' && <span className="badge badge-info"><span className="bdot"></span>처리중</span>}
+          {r.status === 'resolved' && <span className="badge badge-success"><span className="bdot"></span>해결</span>}
           <span className="item-time">{relativeTime(r.created_at)}</span>
         </div>
       </div>
@@ -483,11 +501,10 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
           {resolving && (
             <div className="det-section">
               <div className="det-label">유저에게 전달할 답변 <span style={{fontWeight:400, opacity:.6}}>(선택)</span></div>
-              <textarea
-                className="field-input"
-                style={{width:'100%', minHeight:72, marginTop:6, fontSize:13}}
+              <MarkdownEditor
+                compact
                 value={replyText}
-                onChange={e => setReplyText(e.target.value)}
+                onChange={md => setReplyText(md)}
                 placeholder="답변을 입력하세요. 비워두면 앱에 답변이 표시되지 않습니다."
               />
             </div>
@@ -500,15 +517,78 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
           )}
           <div className="form-actions" style={{marginTop:14}}>
             {r.status !== 'resolved' && !r.assigned_name && !resolving && <button className="btn btn-sm" onClick={assign}>내가 담당</button>}
-            {r.status !== 'resolved' && !resolving && <button className="btn btn-sm btn-success" onClick={() => setResolving(true)}><Icon name="check" size={12}/> 해결 처리</button>}
+            {r.status !== 'resolved' && !resolving && <button className="btn btn-sm btn-primary" onClick={() => setResolving(true)}><Icon name="check" size={12}/> 해결 처리</button>}
             {r.status !== 'resolved' && resolving && <>
-              <button className="btn btn-sm btn-success" onClick={resolve}><Icon name="check" size={12}/> 처리 완료</button>
+              <button className="btn btn-sm btn-primary" onClick={resolve}><Icon name="check" size={12}/> 처리 완료</button>
               <button className="btn btn-sm" onClick={() => { setResolving(false); setReplyText(''); }}>취소</button>
             </>}
             {r.status === 'resolved' && <button className="btn btn-sm" onClick={reopen}>재오픈</button>}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function normalizeGivens(sg) {
+  if (!Array.isArray(sg)) return [];
+  return sg.map(b => ({
+    label: typeof b?.label === 'string' ? b.label : '',
+    markdown_enabled: !!b?.markdown_enabled,
+    items: Array.isArray(b?.items)
+      ? b.items.map(it => ({ key: String(it?.key ?? ''), text: String(it?.text ?? '') }))
+      : [],
+  }));
+}
+
+// Returns { payload } (bare Box[] or null) or { error } if validation fails.
+function serializeGivens(boxes) {
+  const out = [];
+  for (const b of boxes) {
+    const items = (b.items || [])
+      .map(it => ({ key: (it.key || '').trim(), text: (it.text || '').trim() }))
+      .filter(it => it.key !== '' || it.text !== '');
+    if (items.length === 0) continue;
+    if (items.some(it => it.key === '' || it.text === '')) {
+      return { error: '보기 항목의 키와 내용을 모두 입력하세요.' };
+    }
+    out.push({ label: (b.label || '').trim() || '보기', markdown_enabled: !!b.markdown_enabled, items });
+  }
+  return { payload: out.length ? out : null };
+}
+
+function LegacyGivensImportPreview({ boxes, onImport, onIgnore }) {
+  return (
+    <div className="sheet marked" style={{ margin: '0 0 var(--sp-3)', background: 'var(--surface-2)' }}>
+      <div className="sheet-head" style={{ padding: 'var(--sp-3) var(--sp-4)', background: 'var(--surface-2)' }}>
+        <div>
+          <div className="sheet-title" style={{ fontSize: 'var(--fs-base)' }}>📦 기존 stem에서 감지된 보기</div>
+          <div className="sheet-sub">{boxes.length}개 박스 · import 전까지 저장되지 않음</div>
+        </div>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--fg-subtle)' }}>저장 안 됨</span>
+      </div>
+      <div className="sheet-body" style={{ padding: 'var(--sp-3)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+        {boxes.map((box, bi) => (
+          <div key={bi} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--surface)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-2)', padding: 'var(--sp-2) var(--sp-3)', borderBottom: '1px solid var(--rule)' }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: 'var(--fs-base)' }}>〈{box.label || '보기'}〉</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--fg-subtle)' }}>{(box.items || []).length} items</div>
+            </div>
+            <div style={{ padding: 'var(--sp-2) var(--sp-3)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+              {(box.items || []).map((it, ii) => (
+                <div key={ii} style={{ display: 'grid', gridTemplateColumns: '40px minmax(0, 1fr)', gap: 'var(--sp-2)', alignItems: 'start', fontSize: 'var(--fs-sm)', lineHeight: 1.7 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 'var(--r-sm)', textAlign: 'center', padding: '2px 0' }}>{it.key}</div>
+                  <div style={{ color: 'var(--fg-muted)', whiteSpace: 'pre-wrap', minWidth: 0 }}>{it.text}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--sp-2)', paddingTop: 'var(--sp-1)' }}>
+          <button type="button" className="btn btn-sm btn-ghost" onClick={onIgnore}>✕ 무시</button>
+          <button type="button" className="btn btn-sm btn-primary" onClick={onImport}>✓ 이대로 가져오기</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -522,17 +602,54 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
   const [correct, setCorrect] = useState(q.correct_index ?? 0);
   const [explanation, setExplanation] = useState(q.explanation || '');
   const [busy, setBusy] = useState(false);
+  // Inspection RPC returns stem_givens (so it's defined here); the Reports path does not
+  // (q built from report fields → undefined). Only enable the givens editor + v2 RPC when loaded.
+  const hasGivensField = q.stem_givens !== undefined;
+  const [boxes, setBoxes] = useState(() => normalizeGivens(q.stem_givens));
+  const [legacyImportHidden, setLegacyImportHidden] = useState(false);
+  const legacyGivens = useMemo(() => {
+    if (!hasGivensField || q.stem_givens !== null) return [];
+    return parseStemGivens(stem);
+  }, [hasGivensField, q.stem_givens, stem]);
+  const showLegacyImport = hasGivensField && q.stem_givens === null && !legacyImportHidden && legacyGivens.length > 0;
+
+  useEffect(() => {
+    setLegacyImportHidden(false);
+  }, [q.id]);
+
+  const updateBox  = (bi, fn) => setBoxes(bs => bs.map((b, i) => i === bi ? fn(b) : b));
+  const updateItem = (bi, ii, fn) => updateBox(bi, b => ({ ...b, items: b.items.map((x, j) => j === ii ? fn(x) : x) }));
+  const addBox     = () => setBoxes(bs => [...bs, { label: '', markdown_enabled: false, items: [{ key: '', text: '' }] }]);
+  const addItem    = (bi) => updateBox(bi, b => ({ ...b, items: [...(b.items || []), { key: '', text: '' }] }));
+  const removeItem = (bi, ii) => updateBox(bi, b => ({ ...b, items: b.items.filter((_, j) => j !== ii) }));
+  const removeBox  = (bi) => setBoxes(bs => bs.filter((_, i) => i !== bi));
+  const moveBox    = (bi, dir) => setBoxes(bs => {
+    const j = bi + dir; if (j < 0 || j >= bs.length) return bs;
+    const c = [...bs]; [c[bi], c[j]] = [c[j], c[bi]]; return c;
+  });
+  const importLegacyGivens = () => {
+    setBoxes(normalizeGivens(legacyGivens));
+    setLegacyImportHidden(true);
+    pushToast?.('감지된 보기를 편집 영역에 채웠습니다. 저장을 눌러 반영하세요.', 'info');
+  };
 
   const save = async () => {
     setBusy(true);
     try {
-      await rpc('admin_update_question', {
-        p_id: q.id,
-        p_stem: stem,
-        p_choices: choices.map(c => c.text ? c : { text: String(c) }),
-        p_correct_answer: String.fromCharCode(65 + correct),
-        p_explanation: explanation,
-      });
+      const p_choices = choices.map(c => c.text ? c : { text: String(c) });
+      const p_correct_answer = String.fromCharCode(65 + correct);
+      if (hasGivensField) {
+        const { payload, error } = serializeGivens(boxes);
+        if (error) { pushToast(error, 'info'); return; }
+        await rpc('admin_update_question_v2', {
+          p_id: q.id, p_stem: stem, p_stem_givens: payload,
+          p_choices, p_correct_answer, p_explanation: explanation,
+        });
+      } else {
+        await rpc('admin_update_question', {
+          p_id: q.id, p_stem: stem, p_choices, p_correct_answer, p_explanation: explanation,
+        });
+      }
       onSaved();
     } catch (e) { pushToast(e.message, 'info'); }
     finally { setBusy(false); }
@@ -542,6 +659,58 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
     return (
       <div className="q-box">
         <textarea value={stem} onChange={e=>setStem(e.target.value)} style={{marginBottom:14, minHeight:150}}/>
+        {hasGivensField && (
+          <div style={{ marginBottom: 14 }}>
+            <div className="field-label">보기 박스 (stem_givens)</div>
+            {showLegacyImport && (
+              <LegacyGivensImportPreview
+                boxes={legacyGivens}
+                onImport={importLegacyGivens}
+                onIgnore={() => setLegacyImportHidden(true)}
+              />
+            )}
+            {boxes.length === 0 && (
+              <div style={{ fontSize: 12, color: 'var(--fg-subtle)', padding: '6px 0' }}>
+                보기 박스가 필요한 문제면 <b>＋ 보기 박스 추가</b>를 누르세요.
+              </div>
+            )}
+            {boxes.map((box, bi) => (
+              <div key={bi} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', marginBottom: 8, background: 'var(--surface)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid var(--border)' }}>
+                  <input className="field-input" style={{ width: 120, padding: '5px 8px', fontSize: 12 }} placeholder="보기"
+                    value={box.label} onChange={e => updateBox(bi, b => ({ ...b, label: e.target.value }))} />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--fg-muted)' }}>
+                    <input type="checkbox" checked={box.markdown_enabled}
+                      onChange={e => updateBox(bi, b => ({ ...b, markdown_enabled: e.target.checked }))} />
+                    마크다운
+                  </label>
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+                    <button className="btn btn-xs" disabled={bi === 0} onClick={() => moveBox(bi, -1)} title="위로">▲</button>
+                    <button className="btn btn-xs" disabled={bi === boxes.length - 1} onClick={() => moveBox(bi, 1)} title="아래로">▼</button>
+                    <button className="btn btn-xs btn-danger" onClick={() => removeBox(bi)} title="박스 삭제"><Icon name="trash" size={11} /></button>
+                  </div>
+                </div>
+                <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {(box.items || []).map((it, ii) => (
+                    <div key={ii} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                      <input className="field-input" style={{ width: 48, padding: '7px 6px', textAlign: 'center', fontSize: 13 }} placeholder="ㄱ"
+                        value={it.key} onChange={e => updateItem(bi, ii, x => ({ ...x, key: e.target.value }))} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {box.markdown_enabled
+                          ? <MarkdownEditor compact value={it.text} onChange={md => updateItem(bi, ii, x => ({ ...x, text: md }))} placeholder="항목 내용 (마크다운)" />
+                          : <input className="field-input" style={{ width: '100%', padding: '7px 9px', fontSize: 14 }}
+                              value={it.text} onChange={e => updateItem(bi, ii, x => ({ ...x, text: e.target.value }))} placeholder="항목 내용" />}
+                      </div>
+                      <button className="btn btn-xs" onClick={() => removeItem(bi, ii)} title="항목 삭제"><Icon name="x" size={11} /></button>
+                    </div>
+                  ))}
+                  <button className="btn btn-xs" style={{ alignSelf: 'flex-start' }} onClick={() => addItem(bi)}>＋ 항목 추가</button>
+                </div>
+              </div>
+            ))}
+            <button className="btn btn-sm" onClick={addBox}><Icon name="plus" size={12} /> 보기 박스 추가</button>
+          </div>
+        )}
         <div style={{display:'flex', flexDirection:'column', gap:8, marginBottom:14}}>
           {choices.map((c, i) => (
             <div key={i} style={{display:'flex', gap:10, alignItems:'center'}}>
@@ -563,6 +732,18 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
     <div className="q-box">
       <button className="btn btn-xs q-edit" onClick={() => setEditing(true)}><Icon name="edit" size={10}/> 편집</button>
       <div className="q-stem">{q.stem}</div>
+      {Array.isArray(q.stem_givens) && q.stem_givens.length > 0 && (
+        <div style={{ margin: '8px 0 14px' }}>
+          {q.stem_givens.map((box, bi) => (
+            <div key={bi} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px', marginBottom: 6, background: 'var(--surface-2)' }}>
+              <div style={{ fontSize: 11, color: 'var(--fg-subtle)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>〈{box.label || '보기'}〉</div>
+              {(box.items || []).map((it, ii) => (
+                <div key={ii} style={{ fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}><b>{it.key}.</b> {it.text}</div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
       <ul className="choices-list">
         {choices.map((c, i) => {
           const text = typeof c === 'string' ? c : (c.text || '');
@@ -612,50 +793,62 @@ function Announcements({ pushToast }) {
 
   return (
     <>
-      <div className="panel">
-        <div className="panel-head"><div><div className="panel-title">새 공지사항 작성</div><div className="panel-sub">작성 후 초안 저장 또는 바로 발행</div></div></div>
-        <div className="ann-form">
-          <div className="ann-left">
-            <div><div className="field-label">제목</div><input className="field-input" style={{width:'100%'}} value={title} onChange={e=>setTitle(e.target.value)}/></div>
-            <div><div className="field-label">내용</div><textarea placeholder="마크다운 지원" value={body} onChange={e=>setBody(e.target.value)} style={{minHeight:140}}/></div>
+      <div className="ann-grid">
+        <section>
+          <div className="sheet marked" style={{margin:0}}>
+            <div className="sheet-head">
+              <div><div className="sheet-title">새 공지사항 작성</div><div className="sheet-sub">작성 후 초안 저장 또는 바로 발행</div></div>
+              <span className="badge badge-neutral">초안</span>
+            </div>
+            <div className="sheet-body">
+              <div style={{marginBottom:16}}>
+                <div className="field-label">제목</div>
+                <input className="ann-title-input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="제목을 입력하세요"/>
+              </div>
+              <div><div className="field-label">내용</div><MarkdownEditor value={body} onChange={md => setBody(md)} placeholder="마크다운 지원" /></div>
+            </div>
           </div>
-          <div className="ann-right">
-            <div>
-              <div className="field-label">유형</div>
-              <div className="select-pills">
-                <div className={"select-pill " + (tag === 'notice' ? 'active' : '')} onClick={() => setTag('notice')}>공지</div>
-                <div className={"select-pill " + (tag === 'update' ? 'active' : '')} onClick={() => setTag('update')}>업데이트</div>
+        </section>
+
+        <aside className="ann-side">
+          <div className="sheet" style={{margin:0}}>
+            <div className="sheet-head" style={{padding:'12px 16px'}}><div className="sheet-title" style={{fontSize:'var(--fs-base)'}}>발행 설정</div></div>
+            <div className="sheet-body" style={{padding:'6px 16px 16px'}}>
+              <div className="pub-row">
+                <span className="pl">유형</span>
+                <div className="seg">
+                  <button type="button" className={tag === 'notice' ? 'on' : ''} onClick={() => setTag('notice')}>공지</button>
+                  <button type="button" className={tag === 'update' ? 'on' : ''} onClick={() => setTag('update')}>업데이트</button>
+                </div>
+              </div>
+              <div style={{display:'flex', flexDirection:'column', gap:8, marginTop:14}}>
+                <button className="btn" onClick={() => publish(false)} disabled={busy}>초안 저장</button>
+                <button className="btn btn-primary" onClick={() => publish(true)} disabled={busy}><Icon name="send" size={12}/> 발행</button>
               </div>
             </div>
-            <div style={{display:'flex', gap:6, marginTop:'auto'}}>
-              <button className="btn" style={{flex:1}} onClick={() => publish(false)} disabled={busy}>초안 저장</button>
-              <button className="btn btn-primary" style={{flex:1}} onClick={() => publish(true)} disabled={busy}><Icon name="send" size={12}/> 발행</button>
-            </div>
           </div>
-        </div>
+        </aside>
       </div>
 
-      <div className="panel">
-        <div className="panel-head"><div><div className="panel-title">공지 목록</div><div className="panel-sub">{(list.data || []).length}건</div></div><button className="icon-btn" onClick={list.refetch}><Icon name="refresh"/></button></div>
-        <div className="panel-body flush">
+      <div className="sheet" style={{marginTop:'var(--sp-4)'}}>
+        <div className="sheet-head"><div><div className="sheet-title">공지 목록</div><div className="sheet-sub">{(list.data || []).length}건</div></div><button className="icon-btn" onClick={list.refetch}><Icon name="refresh"/></button></div>
+        <div className="sheet-body flush">
           {list.loading ? <Loader/> : list.error ? <ErrorBox error={list.error} retry={list.refetch}/> :
             (list.data || []).length === 0 ? <EmptyState icon="megaphone" title="공지가 없습니다"/> :
-            (list.data || []).map(a => (
-              <div key={a.id} style={{padding:'14px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:14}}>
-                <div style={{flex:1, minWidth:0}}>
-                  <div style={{display:'flex', gap:8, alignItems:'center', marginBottom:4, flexWrap:'wrap'}}>
-                    <span className={"badge " + (a.type === 'update' ? 'badge-info' : 'badge-violet')}>{(a.type || 'notice').toUpperCase()}</span>
+            <div className="ruled">
+              {(list.data || []).map(a => (
+                <div key={a.id} className="ruled-row">
+                  <div className="ln-body" style={{display:'flex', alignItems:'center', gap:12}}>
+                    <span className={"badge " + (a.type === 'update' ? 'badge-info' : 'badge-accent')}>{a.type === 'update' ? '업데이트' : '공지'}</span>
                     {a.is_published ? <span className="badge badge-success">발행됨</span> : <span className="badge badge-neutral">초안</span>}
-                    <span style={{fontSize:13, fontWeight:500}}>{a.title}</span>
+                    <span style={{fontWeight:600, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{a.title}</span>
+                    <span className="item-time">{relativeTime(a.created_at)}</span>
+                    <button className="btn btn-xs" onClick={() => togglePub(a)}>{a.is_published ? '내리기' : '발행'}</button>
+                    <button className="btn btn-xs btn-danger" onClick={() => del(a)}><Icon name="trash" size={11}/></button>
                   </div>
-                  <div style={{fontSize:11.5, color:'var(--fg-subtle)', fontFamily:'var(--font-mono)'}}>{relativeTime(a.created_at)}</div>
                 </div>
-                <div style={{display:'flex', gap:6}}>
-                  <button className="btn btn-xs" onClick={() => togglePub(a)}>{a.is_published ? '내리기' : '발행'}</button>
-                  <button className="btn btn-xs btn-danger" onClick={() => del(a)}><Icon name="trash" size={11}/></button>
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           }
         </div>
       </div>
@@ -2006,29 +2199,35 @@ function Admins({ pushToast }) {
   return (
     <>
       {pending.length > 0 && (
-        <div className="panel" style={{borderColor:'var(--warning)'}}>
-          <div className="panel-head" style={{background:'var(--warning-soft)'}}>
-            <div><div className="panel-title" style={{color:'var(--warning)'}}>승인 대기 {pending.length}명</div><div className="panel-sub">가입 신청 검토</div></div>
+        <div className="sheet marked" style={{marginBottom:'var(--sp-4)', borderColor:'var(--accent-border)'}}>
+          <div className="sheet-head" style={{background:'var(--accent-soft)'}}>
+            <div><div className="sheet-title" style={{color:'var(--accent)'}}>승인 대기 {pending.length}명</div><div className="sheet-sub">가입 신청 검토</div></div>
           </div>
-          <div className="panel-body">
+          <div className="sheet-body flush">
             {pending.map(u => (
-              <div key={u.id} className="user-row">
-                <div className="user-av" style={{background:'var(--surface-3)', color:'var(--fg-subtle)'}}>{(u.name || u.email || '?')[0]}</div>
-                <div className="user-info">
-                  <div className="user-name-line"><span className="user-name">{u.name || '(이름 없음)'}</span><span className="user-email">{u.email}</span></div>
-                  <div className="user-stat"><span>요청: {relativeTime(u.created_at)}</span></div>
+              <div key={u.id} className="urow">
+                <div className="uav" style={{background:'var(--surface-3)', color:'var(--fg-muted)', border:'1px solid var(--border-strong)'}}>{(u.name || u.email || '?')[0]}</div>
+                <div className="uinfo">
+                  <div className="uname-line"><span className="uname">{u.name || '(이름 없음)'}</span><span className="uemail">{u.email}</span></div>
+                  <div className="ustat"><span>요청: {relativeTime(u.created_at)}</span></div>
                 </div>
                 <button className="btn btn-sm btn-danger" onClick={() => reject(u.id)}>거절</button>
-                <button className="btn btn-sm btn-success" onClick={() => approve(u.id)}><Icon name="check" size={12}/> 승인</button>
+                <button className="btn btn-sm btn-primary" onClick={() => approve(u.id)}><Icon name="check" size={12}/> 승인</button>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="panel">
-        <div className="panel-head"><div><div className="panel-title">관리자 목록</div><div className="panel-sub">{approved.length}명 활성</div></div></div>
-        <div className="panel-body">
+      <div className="sheet" style={{margin:0}}>
+        <div className="sheet-head">
+          <div><div className="sheet-title">관리자 목록</div><div className="sheet-sub">{approved.length}명 활성</div></div>
+          <div className="perm-legend">
+            <div className="pi"><span className="badge badge-accent">SUPER</span> 전체 권한</div>
+            <div className="pi"><span className="badge badge-info">ADMIN</span> 배정 시험</div>
+          </div>
+        </div>
+        <div className="sheet-body flush">
           {approved.map(u => (
             <AdminRow key={u.id} u={u} stats={statsMap[u.id]} subjects={subjects.data || []} onChanged={users.refetch} onRevoke={() => revoke(u.id)} pushToast={pushToast}/>
           ))}
@@ -2051,19 +2250,19 @@ function AdminRow({ u, stats, subjects, onChanged, onRevoke, pushToast }) {
   const assignedCodes = (mySubs.data || []).map(s => s.subject_code || s.code);
 
   return (
-    <div className="user-row">
-      <div className="user-av" style={{background:'linear-gradient(135deg, var(--accent), var(--violet))'}}>{(u.name || u.email || '?')[0]}</div>
-      <div className="user-info">
-        <div className="user-name-line">
-          <span className="user-name">{u.name || '(이름 없음)'}</span>
-          {u.role === 'super_admin' && <span className="badge badge-violet">SUPER ADMIN</span>}
+    <div className="urow">
+      <div className="uav" style={{background:'var(--accent)', color:'#fff'}}>{(u.name || u.email || '?')[0]}</div>
+      <div className="uinfo">
+        <div className="uname-line">
+          <span className="uname">{u.name || '(이름 없음)'}</span>
+          {u.role === 'super_admin' && <span className="badge badge-accent">SUPER ADMIN</span>}
           {u.role === 'admin' && <span className="badge badge-info">ADMIN</span>}
-          <span className="user-email">{u.email}</span>
+          <span className="uemail">{u.email}</span>
         </div>
-        {stats && <div className="user-stat"><span>해결 {fmtNum(stats.resolved_count)}건</span><span>담당중 {fmtNum(stats.assigned_count)}건</span></div>}
-        <div style={{display:'flex', gap:4, marginTop:6, flexWrap:'wrap', alignItems:'center'}}>
+        {stats && <div className="ustat"><span>해결 {fmtNum(stats.resolved_count)}건</span><span>담당중 {fmtNum(stats.assigned_count)}건</span></div>}
+        <div className="utags">
           {assignedCodes.map(c => (
-            <span key={c} className="subj-tag">{c} <span style={{marginLeft:4, cursor:'pointer', color:'var(--fg-faint)'}} onClick={() => removeSubject(c)}>×</span></span>
+            <span key={c} className="tag-cat blue">{c} <span style={{marginLeft:4, cursor:'pointer', color:'var(--fg-faint)'}} onClick={() => removeSubject(c)}>×</span></span>
           ))}
           {adding ? (
             <select autoFocus className="field-input" style={{padding:'2px 6px', fontSize:11, height:22}} onChange={e => e.target.value && addSubject(e.target.value)} onBlur={() => setAdding(false)}>
@@ -2071,7 +2270,7 @@ function AdminRow({ u, stats, subjects, onChanged, onRevoke, pushToast }) {
               {subjects.filter(s => !assignedCodes.includes(s.code)).map(s => <option key={s.code} value={s.code}>{s.code}</option>)}
             </select>
           ) : (
-            <span className="subj-tag" style={{background:'var(--surface-2)', color:'var(--fg-subtle)', border:'1px dashed var(--border-strong)', cursor:'pointer'}} onClick={() => setAdding(true)}>+ 시험</span>
+            <button type="button" className="tag-cat" style={{borderStyle:'dashed', cursor:'pointer'}} onClick={() => setAdding(true)}>+ 시험 배정</button>
           )}
         </div>
       </div>
@@ -2295,9 +2494,9 @@ function NotifPanel({ onClose, onBadgeChange }) {
   );
 }
 
-Object.assign(window, {
+export {
   Overview, Analytics, Reports, QuestionInspector, Announcements, Subjects,
   Exams, ExamDates, AppVersion, Admins, AuditLog, Settings,
   CommandPalette, ShortcutsModal, NotifPanel,
   actionLabel,
-});
+}

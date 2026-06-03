@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>공지 · 업데이트 · 합격루프 어드민 v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Serif+KR:wght@500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  .ann-grid { display: grid; grid-template-columns: minmax(0,1fr) 332px; gap: var(--sp-4); align-items: start; }
+  .ann-side { position: sticky; top: 88px; display: flex; flex-direction: column; gap: var(--sp-4); }
+  .pub-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--rule); font-size: var(--fs-sm); }
+  .pub-row:last-child { border-bottom: 0; }
+  .pub-row .pl { color: var(--fg-muted); }
+  .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--r); overflow: hidden; }
+  .seg button { padding: 6px 13px; font-size: var(--fs-sm); font-weight: 600; color: var(--fg-muted); border-right: 1px solid var(--border); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--accent-soft); color: var(--accent); }
+  .ann-title-input { width: 100%; font-family: var(--font-serif); font-size: 24px; font-weight: 600; border: 0; border-bottom: 1px solid var(--border); background: transparent; padding: 6px 0 12px; outline: none; color: var(--fg); }
+  .ann-title-input::placeholder { color: var(--fg-faint); }
+  @media (max-width: 1080px) { .ann-grid { grid-template-columns: 1fr; } .ann-side { position: static; } }
+</style>
+</head>
+<body data-page="announcements">
+<div class="app">
+  <aside class="sidebar" data-shell-sidebar></aside>
+  <main>
+    <div class="mobile-topbar" data-shell-mobiletop></div>
+    <div class="topbar" data-shell-topbar data-title="공지 · 업데이트" data-sub="앱에 발행되는 공지 관리"></div>
+    <div class="content">
+
+      <div class="ann-grid">
+        <!-- editor -->
+        <section>
+          <div class="sheet marked" style="margin:0">
+            <div class="sheet-head">
+              <div class="sheet-title">새 공지 작성</div>
+              <span class="badge badge-neutral">초안</span>
+            </div>
+            <div class="sheet-body">
+              <input class="ann-title-input" placeholder="제목을 입력하세요" value="6월 정기 점검 안내">
+              <div style="height:16px"></div>
+              <div class="tt-bar">
+                <button class="tt-btn" data-tt="h">H1</button>
+                <button class="tt-btn" data-tt="h2">H2</button>
+                <span class="tt-sep"></span>
+                <button class="tt-btn" data-tt="b">B</button>
+                <button class="tt-btn" data-tt="i">I</button>
+                <button class="tt-btn" data-tt="s">S</button>
+                <span class="tt-sep"></span>
+                <button class="tt-btn" data-tt="ul">•</button>
+                <button class="tt-btn" data-tt="ol">1.</button>
+                <button class="tt-btn" data-tt="quote">"</button>
+                <span class="tt-sep"></span>
+                <button class="tt-btn tbl" data-act="table" data-fill="table"></button>
+                <button class="tt-btn" data-tt="link" data-fill="link"></button>
+              </div>
+              <div class="tt-editor" id="annbody" contenteditable="true" spellcheck="false" style="min-height:240px">
+                <h2>점검 일정</h2>
+                <p>안녕하세요, 합격루프입니다. 더 안정적인 서비스를 위해 아래 일정으로 정기 점검을 진행합니다.</p>
+                <table class="md"><thead><tr><th>구분</th><th>일시</th></tr></thead><tbody><tr><td>점검 시작</td><td>6/8 02:00</td></tr><tr><td>점검 종료</td><td>6/8 05:00</td></tr></tbody></table>
+                <p>점검 중에는 학습 기록 동기화가 일시 중단될 수 있습니다. 양해 부탁드립니다.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- publish panel -->
+        <aside class="ann-side">
+          <div class="sheet" style="margin:0">
+            <div class="sheet-head" style="padding:12px 16px"><div class="sheet-title" style="font-size:var(--fs-base)">발행 설정</div></div>
+            <div class="sheet-body" style="padding:6px 16px 16px">
+              <div class="pub-row"><span class="pl">유형</span>
+                <div class="seg"><button class="on">공지</button><button>업데이트</button></div></div>
+              <div class="pub-row"><span class="pl">발행 상태</span>
+                <span class="switch" data-toggle id="pubsw"><span class="switch-track"></span><span class="switch-label">초안</span></span></div>
+              <div class="pub-row"><span class="pl">발행 예약</span>
+                <input class="input input-sm" type="datetime-local" style="width:170px"></div>
+              <div class="pub-row"><span class="pl">모바일 미리보기</span>
+                <span class="switch on" data-toggle id="mpsw"><span class="switch-track"></span><span class="switch-label">ON</span></span></div>
+              <div class="col" style="margin-top:14px">
+                <button class="btn btn-secondary btn-block" data-act="draft">초안 저장</button>
+                <button class="btn btn-primary btn-block" data-act="publish">발행</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="sheet" id="mpwrap" style="margin:0">
+            <div class="sheet-head" style="padding:12px 16px"><div class="sheet-title" style="font-size:var(--fs-base)">모바일 미리보기</div><span class="mono" style="font-size:11px;color:var(--fg-subtle)">360px</span></div>
+            <div class="sheet-body" style="padding:14px;background:var(--surface-2)">
+              <div class="mobile-frame" style="width:300px">
+                <div class="mobile-screen">
+                  <span class="badge badge-accent">공지</span>
+                  <div style="font-family:var(--font-serif);font-size:18px;font-weight:600;margin:8px 0 4px">6월 정기 점검 안내</div>
+                  <div class="mono" style="font-size:10.5px;color:var(--fg-subtle);margin-bottom:12px">2026-06-03</div>
+                  <div style="font-family:var(--font-serif);font-size:15px;font-weight:600;margin-bottom:6px">점검 일정</div>
+                  <p style="font-size:13px;line-height:1.7;color:var(--fg-muted);margin-bottom:10px">더 안정적인 서비스를 위해 아래 일정으로 정기 점검을 진행합니다.</p>
+                  <table class="md" style="width:100%;border-collapse:collapse;font-size:12px"><tr><th style="border:1px solid var(--border-strong);padding:5px 8px;background:var(--surface-2);text-align:left">구분</th><th style="border:1px solid var(--border-strong);padding:5px 8px;background:var(--surface-2);text-align:left">일시</th></tr><tr><td style="border:1px solid var(--border-strong);padding:5px 8px">시작</td><td style="border:1px solid var(--border-strong);padding:5px 8px">6/8 02:00</td></tr></table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- list -->
+      <div class="sheet" style="margin-top:var(--sp-4)">
+        <div class="sheet-head"><div><div class="sheet-title">공지 목록</div><div class="sheet-sub">4건</div></div></div>
+        <div class="sheet-body flush">
+          <div class="ruled" id="annlist"></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+  <div class="sb-backdrop"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function () {
+  const I = window.adminIcon;
+  document.querySelectorAll('[data-fill="table"]').forEach(function (b) { b.innerHTML = I('table', 15); });
+  document.querySelectorAll('[data-fill="link"]').forEach(function (b) { b.innerHTML = I('link', 15); });
+
+  document.getElementById('pubsw').addEventListener('switchchange', function (e) {
+    this.querySelector('.switch-label').textContent = e.detail.on ? '발행' : '초안';
+    document.querySelector('.sheet.marked .badge').textContent = e.detail.on ? '발행 예정' : '초안';
+  });
+  document.getElementById('mpsw').addEventListener('switchchange', function (e) {
+    this.querySelector('.switch-label').textContent = e.detail.on ? 'ON' : 'OFF';
+    document.getElementById('mpwrap').style.display = e.detail.on ? '' : 'none';
+  });
+
+  const list = [
+    { type: '공지', t: '5월 구독제 전환 안내', pub: true, time: '3일 전' },
+    { type: '업데이트', t: 'v3.2.0 — 약점 노트 개선', pub: true, time: '1주 전' },
+    { type: '공지', t: '설 연휴 고객지원 운영 안내', pub: false, time: '2주 전' },
+    { type: '업데이트', t: 'FSRS 복습 알고리즘 적용', pub: true, time: '1개월 전' },
+  ];
+  document.getElementById('annlist').innerHTML = list.map(function (a, i) {
+    return '<div class="ruled-row"><span class="ln">' + (i + 1) + '</span><div class="ln-body" style="display:flex;align-items:center;gap:12px">' +
+      '<span class="badge ' + (a.type === '업데이트' ? 'badge-info' : 'badge-accent') + '">' + a.type + '</span>' +
+      (a.pub ? '<span class="badge badge-success">발행됨</span>' : '<span class="badge badge-neutral">초안</span>') +
+      '<span style="font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + a.t + '</span>' +
+      '<span class="item-time">' + a.time + '</span>' +
+      '<button class="btn btn-xs" data-act="' + (a.pub ? 'down' : 'up') + '">' + (a.pub ? '내리기' : '발행') + '</button>' +
+      '<button class="btn btn-xs btn-danger" data-act="del">' + I('trash', 12) + '</button>' +
+      '</div></div>';
+  }).join('');
+
+  document.addEventListener('click', function (e) {
+    const tt = e.target.closest('.tt-btn[data-tt]'); if (tt) { tt.classList.toggle('on'); return; }
+    if (e.target.closest('[data-act="table"]')) { openTable(); return; }
+    const act = e.target.closest('[data-act]'); if (!act) return;
+    const a = act.getAttribute('data-act');
+    if (a === 'publish') window.toast('공지 발행됨 · 앱에 노출');
+    else if (a === 'draft') window.toast('초안 저장됨', 'info');
+    else if (a === 'down') window.toast('공지 내림', 'info');
+    else if (a === 'up') window.toast('공지 발행됨');
+    else if (a === 'del') window.openModal({ size: 'compact', title: '공지 삭제', body: '이 공지를 삭제하시겠습니까? 되돌릴 수 없습니다.', foot: '<button class="btn btn-sm" data-close>취소</button><button class="btn btn-sm btn-danger" data-close>삭제</button>' });
+  });
+
+  function openTable() {
+    window.openModal({ size: 'medium', title: '표 삽입', sub: 'Markdown 표', body:
+      '<div class="row" style="gap:16px;align-items:flex-end"><div style="width:120px"><label class="field-label">행</label><input class="input" type="number" id="tr" value="3"></div>' +
+      '<div style="width:120px"><label class="field-label">열</label><input class="input" type="number" id="tc" value="2"></div>' +
+      '<label class="row" style="gap:8px;height:38px;cursor:pointer"><span class="check checked" data-toggle>' + I('check', 11) + '</span><span style="font-size:var(--fs-sm)">첫 행을 헤더로</span></label></div>' +
+      '<label class="field-label" style="margin-top:14px">미리보기</label><div class="grid-preview" id="gp" style="grid-template-columns:repeat(2,1fr)"></div>',
+      foot: '<button class="btn btn-sm" data-close>취소</button><button class="btn btn-sm btn-primary" data-close>삽입</button>',
+      onMount: function (bd) {
+        const gp = bd.querySelector('#gp'); let c = '';
+        for (var i = 0; i < 6; i++) c += '<div class="gc' + (i < 2 ? ' head' : '') + '"></div>';
+        gp.innerHTML = c;
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

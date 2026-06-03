@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>개요 · 합격루프 어드민 v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Serif+KR:wght@500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  .qa { display: flex; gap: 11px; align-items: center; padding: 11px 13px; border: 1px solid var(--border); border-radius: var(--r); cursor: pointer; transition: all var(--motion-fast); background: var(--surface); }
+  .qa:hover { border-color: var(--border-strong); background: var(--surface-2); }
+  .qa .qa-ic { width: 34px; height: 34px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .qa .qa-t { font-size: var(--fs-sm); font-weight: 600; }
+  .qa .qa-s { font-size: var(--fs-xs); color: var(--fg-subtle); font-family: var(--font-mono); margin-top: 2px; }
+  .qa .qa-ar { margin-left: auto; color: var(--fg-faint); }
+  .subj-bar { margin-bottom: 12px; }
+  .subj-bar .sl { display: flex; justify-content: space-between; font-size: var(--fs-sm); margin-bottom: 5px; }
+  .subj-bar .sl .sv { font-family: var(--font-mono); color: var(--fg-subtle); font-size: var(--fs-xs); }
+  .subj-bar .track { height: 7px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+  .subj-bar .fill { height: 100%; background: var(--accent); border-radius: 4px; opacity: .8; }
+</style>
+</head>
+<body data-page="overview">
+<div class="app">
+  <aside class="sidebar" data-shell-sidebar></aside>
+  <main>
+    <div class="mobile-topbar" data-shell-mobiletop></div>
+    <div class="topbar" data-shell-topbar data-title="개요" data-sub="오늘 팀이 봐야 할 것 · 2026-06-03"></div>
+    <div class="content">
+
+      <div class="kpi-grid" id="kpis"></div>
+
+      <div class="grid-2">
+        <div class="sheet" style="margin:0">
+          <div class="sheet-head">
+            <div><div class="sheet-title">일별 신규 가입</div><div class="sheet-sub">최근 30일</div></div>
+            <a class="btn btn-xs" href="#">분석 보기 →</a>
+          </div>
+          <div class="sheet-body"><div id="chart"></div></div>
+        </div>
+        <div class="sheet" style="margin:0">
+          <div class="sheet-head"><div><div class="sheet-title">빠른 작업</div><div class="sheet-sub">자주 하는 업무</div></div></div>
+          <div class="sheet-body col">
+            <a class="qa" href="reports.html"><span class="qa-ic" style="background:var(--warning-soft);color:var(--warning)" id="qa1"></span><div><div class="qa-t">신고 관리</div><div class="qa-s">7건 대기 · 처리중 3</div></div><span class="qa-ar">→</span></a>
+            <a class="qa" href="admins.html"><span class="qa-ic" style="background:var(--info-soft);color:var(--info)" id="qa2"></span><div><div class="qa-t">관리자 승인 대기</div><div class="qa-s">2명 신청</div></div><span class="qa-ar">→</span></a>
+            <a class="qa" href="announcements.html"><span class="qa-ic" style="background:var(--accent-soft);color:var(--accent)" id="qa3"></span><div><div class="qa-t">공지사항 작성</div><div class="qa-s">앱에 바로 발행</div></div><span class="qa-ar">→</span></a>
+            <a class="qa" href="question-inspector.html"><span class="qa-ic" style="background:var(--success-soft);color:var(--success)" id="qa4"></span><div><div class="qa-t">문제 전수조사</div><div class="qa-s">미검수 10문항</div></div><span class="qa-ar">→</span></a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="sheet" style="margin:0">
+          <div class="sheet-head"><div><div class="sheet-title">최근 활동</div><div class="sheet-sub">팀 전체 감사 로그</div></div><a class="btn btn-xs" href="#">전체 →</a></div>
+          <div class="sheet-body" style="padding-top:6px"><div class="feed" id="feed"></div></div>
+        </div>
+        <div class="sheet" style="margin:0">
+          <div class="sheet-head"><div><div class="sheet-title">과목별 활동</div><div class="sheet-sub">30일 리뷰 수</div></div></div>
+          <div class="sheet-body" id="subjacts"></div>
+        </div>
+      </div>
+
+      <div class="sheet" style="margin:0">
+        <div class="sheet-head"><div><div class="sheet-title">상위 신고 문제 TOP 10</div><div class="sheet-sub">정렬 가능 · 헤더 클릭</div></div></div>
+        <div class="sheet-body flush">
+          <div class="dtable-wrap" style="border:0;border-radius:0">
+            <table class="dtable">
+              <thead><tr>
+                <th class="sortable">과목 <span class="sort-ar">↕</span></th>
+                <th class="sortable">문항 ID <span class="sort-ar">↕</span></th>
+                <th class="sortable sorted sorted-desc">총 신고 <span class="sort-ar">↓</span></th>
+                <th class="sortable">대기 <span class="sort-ar">↕</span></th>
+                <th class="sortable">최근 신고 <span class="sort-ar">↕</span></th>
+              </tr></thead>
+              <tbody id="toptbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+  <div class="sb-backdrop"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function () {
+  const I = window.adminIcon;
+  document.getElementById('qa1').innerHTML = I('flag', 16);
+  document.getElementById('qa2').innerHTML = I('user', 16);
+  document.getElementById('qa3').innerHTML = I('megaphone', 16);
+  document.getElementById('qa4').innerHTML = I('edit', 16);
+
+  // sparkline
+  function spark(data, color) {
+    const w = 84, h = 30, max = Math.max.apply(null, data), min = Math.min.apply(null, data);
+    const pts = data.map(function (v, i) {
+      const x = (i / (data.length - 1)) * w;
+      const y = h - ((v - min) / (max - min || 1)) * (h - 4) - 2;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    return '<svg class="kpi-spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
+      '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  }
+  const kpis = [
+    { label: 'DAU', value: '1,284', delta: '+8.4%', up: true, sub: 'WAU 4,902 · MAU 12,330', data: [9,11,10,12,11,13,12,14,13,15], color: 'var(--accent)' },
+    { label: '7일 신규', value: '342', delta: '+12%', up: true, sub: '30일 1,488', data: [4,5,4,6,7,6,8,7,9,10], color: 'var(--success)' },
+    { label: '스티키니스', value: '10.4%', delta: '-0.6%', up: false, sub: 'DAU / MAU', data: [12,11,11,10,11,10,10,9,10,10], color: 'var(--warning)' },
+    { label: '유료 비중', value: '6.8%', delta: '+1.1%', up: true, sub: '838 / 12,330', data: [5,5,6,6,6,7,6,7,7,7], color: 'var(--info)' },
+  ];
+  document.getElementById('kpis').innerHTML = kpis.map(function (k) {
+    return '<div class="kpi"><div class="kpi-label">' + k.label + '</div>' +
+      '<div class="kpi-value tnum">' + k.value + '</div>' +
+      '<div class="kpi-delta"><span class="' + (k.up ? 'up' : 'down') + '">' + (k.up ? '▲' : '▼') + ' ' + k.delta + '</span><span>· ' + k.sub + '</span></div>' +
+      spark(k.data, k.color) + '</div>';
+  }).join('');
+
+  // bar chart
+  (function () {
+    const data = [12,18,15,22,19,25,21,28,24,30,27,33,29,35,31,38,34,40,36,42,38,45,41,48,44,50,46,53,49,56];
+    const w = 560, h = 200, padL = 28, padB = 22, padT = 12;
+    const max = Math.max.apply(null, data) * 1.1;
+    const cw = (w - padL) / data.length;
+    let bars = '', grid = '';
+    [0,1,2,3].forEach(function (i) {
+      const y = padT + (h - padT - padB) * (i / 3);
+      grid += '<line x1="' + padL + '" x2="' + w + '" y1="' + y + '" y2="' + y + '" stroke="var(--rule)" stroke-dasharray="2 3"/>' +
+        '<text x="' + (padL - 5) + '" y="' + (y + 3) + '" text-anchor="end" font-size="9" font-family="var(--font-mono)" fill="var(--fg-faint)">' + Math.round(max * (1 - i / 3)) + '</text>';
+    });
+    data.forEach(function (v, i) {
+      const bh = (v / max) * (h - padT - padB);
+      const x = padL + i * cw + 1;
+      const y = h - padB - bh;
+      bars += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + (cw - 2).toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="1.5" fill="var(--accent)" opacity="' + (0.55 + 0.45 * v / max) + '"><title>' + v + '명</title></rect>';
+    });
+    document.getElementById('chart').innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:200px" preserveAspectRatio="none">' + grid + bars + '</svg>';
+  })();
+
+  // feed
+  const feed = [
+    ['L', 'Logan', '해결 처리:', '오타 신고 #4f3a', '12분 전'],
+    ['J', 'Jin', '문항 수정:', '38회 부동산학개론 12번', '38분 전'],
+    ['L', 'Logan', '공지 발행:', '6월 정기점검 안내', '2시간 전'],
+    ['S', 'Soo', '검수 완료:', '37회 민법 1~20번', '3시간 전'],
+    ['J', 'Jin', '관리자 승인:', 'minho@…', '어제'],
+  ];
+  document.getElementById('feed').innerHTML = feed.map(function (f) {
+    return '<div class="feed-item"><div class="feed-av">' + f[0] + '</div>' +
+      '<div class="feed-text"><strong>' + f[1] + '</strong> <span class="muted">' + f[2] + '</span> <span class="target">' + f[3] + '</span></div>' +
+      '<div class="feed-time">' + f[4] + '</div></div>';
+  }).join('');
+
+  // subject activity
+  const subj = [['부동산학개론', 4820, 100], ['민법', 4210, 87], ['중개사법', 3180, 66], ['공법', 2740, 57], ['공시법', 1980, 41], ['세법', 1520, 31]];
+  document.getElementById('subjacts').innerHTML = subj.map(function (s) {
+    return '<div class="subj-bar"><div class="sl"><span>' + s[0] + '</span><span class="sv">' + s[1].toLocaleString() + '</span></div>' +
+      '<div class="track"><div class="fill" style="width:' + s[2] + '%"></div></div></div>';
+  }).join('');
+
+  // top reports table
+  const top = [
+    ['개론', 'a1b2c3d4', 14, 3, '8분 전'], ['민법', '7c2e9f10', 11, 2, '1시간 전'],
+    ['공법', '31aa77bd', 9, 4, '2시간 전'], ['세법', '2e7c1a05', 7, 0, '어제'],
+    ['공시법', '88fe21cc', 6, 1, '어제'], ['중개사법', 'd41fa9e0', 5, 0, '2일 전'],
+  ];
+  document.getElementById('toptbody').innerHTML = top.map(function (r) {
+    return '<tr><td class="accent">' + r[0] + '</td><td class="muted">#' + r[1] + '</td>' +
+      '<td class="num" data-sort="' + r[2] + '" style="font-weight:600">' + r[2] + '</td>' +
+      '<td>' + (r[3] > 0 ? '<span class="badge badge-warning">' + r[3] + '</span>' : '<span class="muted">0</span>') + '</td>' +
+      '<td class="muted">' + r[4] + '</td></tr>';
+  }).join('');
+})();
+</script>
+</body>
+</html>
