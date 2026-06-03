@@ -3,6 +3,7 @@ import React from 'react'
 const { useState, useEffect, useMemo, useRef } = React
 import { sb, rpc, Icon, useAsync, relativeTime, fmtNum, Loader, ErrorBox, EmptyState } from './admin-lib.jsx'
 import MarkdownEditor from './components/MarkdownEditor.jsx'
+import { parseStemGivens } from './lib/stem-givens-parse.js'
 
 /* ─── Overview ─── */
 function Overview({ goto }) {
@@ -556,6 +557,42 @@ function serializeGivens(boxes) {
   return { payload: out.length ? out : null };
 }
 
+function LegacyGivensImportPreview({ boxes, onImport, onIgnore }) {
+  return (
+    <div className="sheet marked" style={{ margin: '0 0 var(--sp-3)', background: 'var(--surface-2)' }}>
+      <div className="sheet-head" style={{ padding: 'var(--sp-3) var(--sp-4)', background: 'var(--surface-2)' }}>
+        <div>
+          <div className="sheet-title" style={{ fontSize: 'var(--fs-base)' }}>📦 기존 stem에서 감지된 보기</div>
+          <div className="sheet-sub">{boxes.length}개 박스 · import 전까지 저장되지 않음</div>
+        </div>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--fg-subtle)' }}>저장 안 됨</span>
+      </div>
+      <div className="sheet-body" style={{ padding: 'var(--sp-3)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+        {boxes.map((box, bi) => (
+          <div key={bi} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--surface)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-2)', padding: 'var(--sp-2) var(--sp-3)', borderBottom: '1px solid var(--rule)' }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: 'var(--fs-base)' }}>〈{box.label || '보기'}〉</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)', color: 'var(--fg-subtle)' }}>{(box.items || []).length} items</div>
+            </div>
+            <div style={{ padding: 'var(--sp-2) var(--sp-3)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+              {(box.items || []).map((it, ii) => (
+                <div key={ii} style={{ display: 'grid', gridTemplateColumns: '40px minmax(0, 1fr)', gap: 'var(--sp-2)', alignItems: 'start', fontSize: 'var(--fs-sm)', lineHeight: 1.7 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: 'var(--r-sm)', textAlign: 'center', padding: '2px 0' }}>{it.key}</div>
+                  <div style={{ color: 'var(--fg-muted)', whiteSpace: 'pre-wrap', minWidth: 0 }}>{it.text}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--sp-2)', paddingTop: 'var(--sp-1)' }}>
+          <button type="button" className="btn btn-sm btn-ghost" onClick={onIgnore}>✕ 무시</button>
+          <button type="button" className="btn btn-sm btn-primary" onClick={onImport}>✓ 이대로 가져오기</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
   const [stem, setStem] = useState(q.stem || '');
   const [choices, setChoices] = useState(() => {
@@ -569,6 +606,16 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
   // (q built from report fields → undefined). Only enable the givens editor + v2 RPC when loaded.
   const hasGivensField = q.stem_givens !== undefined;
   const [boxes, setBoxes] = useState(() => normalizeGivens(q.stem_givens));
+  const [legacyImportHidden, setLegacyImportHidden] = useState(false);
+  const legacyGivens = useMemo(() => {
+    if (!hasGivensField || q.stem_givens !== null) return [];
+    return parseStemGivens(stem);
+  }, [hasGivensField, q.stem_givens, stem]);
+  const showLegacyImport = hasGivensField && q.stem_givens === null && !legacyImportHidden && legacyGivens.length > 0;
+
+  useEffect(() => {
+    setLegacyImportHidden(false);
+  }, [q.id]);
 
   const updateBox  = (bi, fn) => setBoxes(bs => bs.map((b, i) => i === bi ? fn(b) : b));
   const updateItem = (bi, ii, fn) => updateBox(bi, b => ({ ...b, items: b.items.map((x, j) => j === ii ? fn(x) : x) }));
@@ -580,6 +627,11 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
     const j = bi + dir; if (j < 0 || j >= bs.length) return bs;
     const c = [...bs]; [c[bi], c[j]] = [c[j], c[bi]]; return c;
   });
+  const importLegacyGivens = () => {
+    setBoxes(normalizeGivens(legacyGivens));
+    setLegacyImportHidden(true);
+    pushToast?.('감지된 보기를 편집 영역에 채웠습니다. 저장을 눌러 반영하세요.', 'info');
+  };
 
   const save = async () => {
     setBusy(true);
@@ -610,6 +662,13 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
         {hasGivensField && (
           <div style={{ marginBottom: 14 }}>
             <div className="field-label">보기 박스 (stem_givens)</div>
+            {showLegacyImport && (
+              <LegacyGivensImportPreview
+                boxes={legacyGivens}
+                onImport={importLegacyGivens}
+                onIgnore={() => setLegacyImportHidden(true)}
+              />
+            )}
             {boxes.length === 0 && (
               <div style={{ fontSize: 12, color: 'var(--fg-subtle)', padding: '6px 0' }}>
                 보기 박스가 필요한 문제면 <b>＋ 보기 박스 추가</b>를 누르세요.
