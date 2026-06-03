@@ -17,10 +17,10 @@ function Overview({ goto }) {
   const subjectAct = data?.subject_activity || [];
 
   const kpis = [
-    { label: 'DAU', value: fmtNum(k.dau), sub: 'WAU ' + fmtNum(k.wau) + ' · MAU ' + fmtNum(k.mau), soft: 'var(--accent-soft)', stroke: 'var(--accent)' },
-    { label: '7일 신규', value: fmtNum(k.new_users_7d), sub: '30일 ' + fmtNum(k.new_users_30d), soft: 'var(--violet-soft)', stroke: 'var(--violet)' },
-    { label: '스티키니스', value: (k.stickiness_pct ?? 0) + '%', sub: 'DAU / MAU', soft: 'var(--cyan-soft)', stroke: 'var(--cyan)' },
-    { label: '유료 비중', value: (k.paid_ratio_pct ?? 0) + '%', sub: fmtNum(k.paid_users) + ' / ' + fmtNum(k.total_profiles), soft: 'var(--success-soft)', stroke: 'var(--success)' },
+    { label: 'DAU', value: fmtNum(k.dau), sub: 'WAU ' + fmtNum(k.wau) + ' · MAU ' + fmtNum(k.mau) },
+    { label: '7일 신규', value: fmtNum(k.new_users_7d), sub: '30일 ' + fmtNum(k.new_users_30d) },
+    { label: '스티키니스', value: (k.stickiness_pct ?? 0) + '%', sub: 'DAU / MAU' },
+    { label: '유료 비중', value: (k.paid_ratio_pct ?? 0) + '%', sub: fmtNum(k.paid_users) + ' / ' + fmtNum(k.total_profiles) },
   ];
 
   return (
@@ -30,24 +30,24 @@ function Overview({ goto }) {
           <div key={kpi.label} className="kpi">
             <div className="kpi-label">{kpi.label}</div>
             <div className="kpi-value">{kpi.value}</div>
-            <div className="kpi-delta"><span style={{color:'var(--fg-subtle)'}}>{kpi.sub}</span></div>
+            <div className="kpi-delta"><span>{kpi.sub}</span></div>
           </div>
         ))}
       </div>
 
       <div className="grid-2">
-        <div className="panel">
-          <div className="panel-head">
-            <div><div className="panel-title">일별 신규 가입</div><div className="panel-sub">최근 30일</div></div>
+        <div className="sheet">
+          <div className="sheet-head">
+            <div><div className="sheet-title">일별 신규 가입</div><div className="sheet-sub">최근 30일</div></div>
             <button className="btn btn-xs" onClick={() => goto('analytics')}>분석 보기 →</button>
           </div>
-          <div className="panel-body" style={{padding:'0 8px 8px'}}>
+          <div className="sheet-body" style={{padding:'0 8px 8px'}}>
             <BarChart data={signups.map(s => ({ date: Date.parse(s.date), value: s.count || 0 }))} color="var(--violet)"/>
           </div>
         </div>
-        <div className="panel">
-          <div className="panel-head"><div><div className="panel-title">빠른 작업</div><div className="panel-sub">자주 하는 업무</div></div></div>
-          <div className="panel-body" style={{display:'grid', gap:8}}>
+        <div className="sheet">
+          <div className="sheet-head"><div><div className="sheet-title">빠른 작업</div><div className="sheet-sub">자주 하는 업무</div></div></div>
+          <div className="sheet-body" style={{display:'grid', gap:8}}>
             <QuickAction icon="flag" color="warning" title="신고 관리" sub="대기·처리중 검토" onClick={() => goto('reports')}/>
             <QuickAction icon="user" color="violet" title="관리자 승인 대기 확인" sub="가입 신청 검토" onClick={() => goto('admins')}/>
             <QuickAction icon="megaphone" color="info" title="공지사항 작성" sub="앱에 바로 발행" onClick={() => goto('announcements')}/>
@@ -57,12 +57,12 @@ function Overview({ goto }) {
       </div>
 
       <div className="grid-2">
-        <div className="panel">
-          <div className="panel-head">
-            <div><div className="panel-title">최근 활동</div><div className="panel-sub">팀 전체 감사 로그</div></div>
+        <div className="sheet">
+          <div className="sheet-head">
+            <div><div className="sheet-title">최근 활동</div><div className="sheet-sub">팀 전체 감사 로그</div></div>
             <button className="btn btn-xs" onClick={() => goto('audit-log')}>전체 →</button>
           </div>
-          <div className="panel-body flush feed">
+          <div className="sheet-body flush feed">
             {audit.loading ? <Loader/> : audit.error ? <ErrorBox error={audit.error} retry={audit.refetch}/> :
               (audit.data || []).length === 0 ? <EmptyState icon="log" title="활동 내역 없음"/> :
               (audit.data || []).slice(0, 6).map((a, i) => (
@@ -79,9 +79,9 @@ function Overview({ goto }) {
             }
           </div>
         </div>
-        <div className="panel">
-          <div className="panel-head"><div><div className="panel-title">과목별 활동</div><div className="panel-sub">30일 리뷰 수</div></div></div>
-          <div className="panel-body" style={{display:'flex', flexDirection:'column', gap:10}}>
+        <div className="sheet">
+          <div className="sheet-head"><div><div className="sheet-title">과목별 활동</div><div className="sheet-sub">30일 리뷰 수</div></div></div>
+          <div className="sheet-body" style={{display:'flex', flexDirection:'column', gap:10}}>
             {subjectAct.length === 0 && <EmptyState icon="book" title="데이터 없음"/>}
             {(() => {
               const max = Math.max(1, ...subjectAct.map(s => s.review_count || 0));
@@ -92,7 +92,7 @@ function Overview({ goto }) {
                     <span style={{fontFamily:'var(--font-mono)', color:'var(--fg-muted)'}}>{fmtNum(s.review_count)} · {fmtNum(s.unique_users)}명</span>
                   </div>
                   <div style={{height:6, background:'var(--surface-2)', borderRadius:3, overflow:'hidden'}}>
-                    <div style={{height:'100%', width:((s.review_count || 0)/max*100)+'%', background:'linear-gradient(90deg, var(--accent), var(--cyan))', borderRadius:3}}/>
+                    <div style={{height:'100%', width:((s.review_count || 0)/max*100)+'%', background:'var(--accent)', borderRadius:3}}/>
                   </div>
                 </div>
               ));
@@ -130,17 +130,17 @@ function actionLabel(action) {
 }
 
 function QuickAction({ icon, color, title, sub, onClick }) {
-  const map = { warning: ['var(--warning-soft)','var(--warning)'], info: ['var(--accent-soft)','var(--accent)'], violet: ['var(--violet-soft)','var(--violet)'], danger: ['var(--danger-soft)','var(--danger)'] };
+  const map = { warning: ['var(--warning-soft)','var(--warning)'], info: ['var(--accent-soft)','var(--accent)'], violet: ['var(--info-soft)','var(--info)'], danger: ['var(--danger-soft)','var(--danger)'] };
   const [bg, fg] = map[color];
   return (
-    <div onClick={onClick} style={{padding:'10px 12px', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', display:'flex', gap:10, alignItems:'center', cursor:'pointer'}}>
-      <div style={{width:32, height:32, borderRadius:8, background:bg, color:fg, display:'flex', alignItems:'center', justifyContent:'center'}}><Icon name={icon} size={15}/></div>
-      <div style={{flex:1, minWidth:0}}>
-        <div style={{fontSize:12.5, fontWeight:500, marginBottom:2}}>{title}</div>
-        <div style={{fontSize:10.5, color:'var(--fg-subtle)', fontFamily:'var(--font-mono)'}}>{sub}</div>
+    <button type="button" className="qa" onClick={onClick}>
+      <span className="qa-ic" style={{background:bg, color:fg}}><Icon name={icon} size={16}/></span>
+      <div className="qa-text">
+        <div className="qa-t">{title}</div>
+        <div className="qa-s">{sub}</div>
       </div>
-      <span style={{color:'var(--fg-faint)'}}>→</span>
-    </div>
+      <span className="qa-ar">→</span>
+    </button>
   );
 }
 
