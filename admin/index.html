@@ -6,67 +6,94 @@
 <title>합격루프 Admin · Redesign</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Serif+KR:wght@500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css">
 <style>
   :root {
-    --font-sans: 'Geist', 'Pretendard', -apple-system, system-ui, sans-serif;
-    --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
-    /* dark (default) */
-    --bg: #0a0a0c;
-    --surface: #121215;
-    --surface-2: #18181d;
-    --surface-3: #1f1f26;
-    --border: #26262e;
-    --border-strong: #353541;
-    --fg: #ededf0;
-    --fg-muted: #a0a0ab;
-    --fg-subtle: #6c6c78;
-    --fg-faint: #4a4a55;
-    --accent: #6366f1;
-    --accent-hi: #818cf8;
-    --accent-soft: rgba(99,102,241,.14);
-    --accent-border: rgba(99,102,241,.32);
-    --success: #10b981;
-    --success-soft: rgba(16,185,129,.14);
-    --warning: #f59e0b;
-    --warning-soft: rgba(245,158,11,.14);
-    --danger: #ef4444;
-    --danger-soft: rgba(239,68,68,.14);
-    --violet: #a855f7;
-    --violet-soft: rgba(168,85,247,.14);
-    --cyan: #06b6d4;
-    --cyan-soft: rgba(6,182,212,.14);
-    --pink: #ec4899;
-    --pink-soft: rgba(236,72,153,.14);
-    --r-sm: 6px; --r: 10px; --r-lg: 14px;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,.25);
-    --shadow: 0 8px 24px rgba(0,0,0,.35);
-    --shadow-lg: 0 20px 60px rgba(0,0,0,.55);
+    /* type */
+    --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-serif: 'Newsreader', 'Noto Serif KR', Georgia, 'Times New Roman', serif;
+    --font-mono: 'Spline Sans Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    /* scales (theme-independent; available for later structural work) */
+    --fs-xs: 11.5px; --fs-sm: 13px; --fs-base: 14.5px; --fs-md: 15.5px; --fs-lg: 17px; --fs-xl: 20px; --fs-title: 25px;
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-12: 48px; --sp-16: 64px;
+    --r-sm: 5px; --r: 7px; --r-lg: 11px; --r-pill: 999px;
+    --row-h: 40px; --field-h: 38px;
+    --motion-fast: 120ms; --motion: 180ms; --motion-slow: 260ms; --ease: cubic-bezier(.2,.6,.2,1);
+
+    /* DARK (default) — ink / print */
+    --bg: #14130f;
+    --surface: #1b1914;
+    --surface-2: #23201a;
+    --surface-3: #2c2820;
+    --border: #2e2a22;
+    --border-strong: #443d30;
+    --rule: #322d24;
+    --fg: #ece6da;
+    --fg-muted: #aaa18d;
+    --fg-subtle: #7c735f;
+    --fg-faint: #564e3f;
+    --accent: #f0664a;
+    --accent-hi: #f57c63;
+    --accent-soft: rgba(240,102,74,.16);
+    --accent-border: rgba(240,102,74,.34);
+    --accent-on: #1a0d08;
+    --success: #a6bd6f;
+    --success-soft: rgba(166,189,111,.15);
+    --warning: #dca94d;
+    --warning-soft: rgba(220,169,77,.15);
+    --danger: #ef6b56;
+    --danger-soft: rgba(239,107,86,.15);
+    --info: #6f95e8;
+    --info-soft: rgba(111,149,232,.15);
+    --cat-blue: #6f95e8;
+    --cat-teal: #5cab9c;
+    --cat-plum: #c08bc4;
+    /* legacy decorative aliases kept so current components keep color (remapped to proof palette) */
+    --violet: #c08bc4; --violet-soft: rgba(192,139,196,.15);
+    --cyan: #5cab9c; --cyan-soft: rgba(92,171,156,.15);
+    --pink: #f0664a; --pink-soft: rgba(240,102,74,.15);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+    --shadow: 0 10px 30px -16px rgba(0,0,0,.6);
+    --shadow-lg: 0 28px 70px -24px rgba(0,0,0,.72);
+    --paper-line: rgba(255,240,210,.035);
   }
   [data-theme="light"] {
-    --bg: #fafafa;
-    --surface: #ffffff;
-    --surface-2: #f5f5f7;
-    --surface-3: #ededf0;
-    --border: #e4e4e9;
-    --border-strong: #d4d4da;
-    --fg: #0a0a0c;
-    --fg-muted: #52525b;
-    --fg-subtle: #71717a;
-    --fg-faint: #a1a1aa;
-    --accent: #4f46e5;
-    --accent-hi: #6366f1;
-    --accent-soft: rgba(79,70,229,.08);
-    --accent-border: rgba(79,70,229,.2);
-    --success-soft: rgba(16,185,129,.1);
-    --warning-soft: rgba(245,158,11,.12);
-    --danger-soft: rgba(239,68,68,.08);
-    --violet-soft: rgba(168,85,247,.1);
-    --cyan-soft: rgba(6,182,212,.1);
-    --pink-soft: rgba(236,72,153,.1);
-    --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
-    --shadow: 0 6px 20px rgba(0,0,0,.06);
-    --shadow-lg: 0 20px 60px rgba(0,0,0,.1);
+    --bg: #f7f5ef;
+    --surface: #fdfcf8;
+    --surface-2: #f0ede3;
+    --surface-3: #e7e3d5;
+    --border: #ddd7c7;
+    --border-strong: #c7bfa9;
+    --rule: #d3ccba;
+    --fg: #1a1612;
+    --fg-muted: #726a59;
+    --fg-subtle: #968c76;
+    --fg-faint: #b9af99;
+    --accent: #d6452b;
+    --accent-hi: #b8371f;
+    --accent-soft: rgba(214,69,43,.10);
+    --accent-border: rgba(214,69,43,.30);
+    --accent-on: #ffffff;
+    --success: #5f7138;
+    --success-soft: rgba(95,113,56,.14);
+    --warning: #a9781f;
+    --warning-soft: rgba(169,120,31,.14);
+    --danger: #c0392b;
+    --danger-soft: rgba(192,57,43,.12);
+    --info: #2b5fd6;
+    --info-soft: rgba(43,95,214,.10);
+    --cat-blue: #2b5fd6;
+    --cat-teal: #2f7d72;
+    --cat-plum: #8a4f8f;
+    --violet: #8a4f8f; --violet-soft: rgba(138,79,143,.10);
+    --cyan: #2f7d72; --cyan-soft: rgba(47,125,114,.10);
+    --pink: #d6452b; --pink-soft: rgba(214,69,43,.10);
+    --shadow-sm: 0 1px 2px rgba(60,50,30,.06);
+    --shadow: 0 8px 24px -14px rgba(60,50,30,.22);
+    --shadow-lg: 0 24px 60px -22px rgba(40,33,20,.34);
+    --paper-line: rgba(120,105,75,.07);
   }
   * { box-sizing: border-box; margin:0; padding:0; }
   html, body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); font-size: 13.5px; line-height: 1.55; min-height: 100vh; -webkit-font-smoothing: antialiased; transition: background .2s, color .2s; }
