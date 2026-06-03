@@ -734,50 +734,62 @@ function Announcements({ pushToast }) {
 
   return (
     <>
-      <div className="panel">
-        <div className="panel-head"><div><div className="panel-title">새 공지사항 작성</div><div className="panel-sub">작성 후 초안 저장 또는 바로 발행</div></div></div>
-        <div className="ann-form">
-          <div className="ann-left">
-            <div><div className="field-label">제목</div><input className="field-input" style={{width:'100%'}} value={title} onChange={e=>setTitle(e.target.value)}/></div>
-            <div><div className="field-label">내용</div><MarkdownEditor value={body} onChange={md => setBody(md)} placeholder="마크다운 지원" /></div>
+      <div className="ann-grid">
+        <section>
+          <div className="sheet marked" style={{margin:0}}>
+            <div className="sheet-head">
+              <div><div className="sheet-title">새 공지사항 작성</div><div className="sheet-sub">작성 후 초안 저장 또는 바로 발행</div></div>
+              <span className="badge badge-neutral">초안</span>
+            </div>
+            <div className="sheet-body">
+              <div style={{marginBottom:16}}>
+                <div className="field-label">제목</div>
+                <input className="ann-title-input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="제목을 입력하세요"/>
+              </div>
+              <div><div className="field-label">내용</div><MarkdownEditor value={body} onChange={md => setBody(md)} placeholder="마크다운 지원" /></div>
+            </div>
           </div>
-          <div className="ann-right">
-            <div>
-              <div className="field-label">유형</div>
-              <div className="select-pills">
-                <div className={"select-pill " + (tag === 'notice' ? 'active' : '')} onClick={() => setTag('notice')}>공지</div>
-                <div className={"select-pill " + (tag === 'update' ? 'active' : '')} onClick={() => setTag('update')}>업데이트</div>
+        </section>
+
+        <aside className="ann-side">
+          <div className="sheet" style={{margin:0}}>
+            <div className="sheet-head" style={{padding:'12px 16px'}}><div className="sheet-title" style={{fontSize:'var(--fs-base)'}}>발행 설정</div></div>
+            <div className="sheet-body" style={{padding:'6px 16px 16px'}}>
+              <div className="pub-row">
+                <span className="pl">유형</span>
+                <div className="seg">
+                  <button type="button" className={tag === 'notice' ? 'on' : ''} onClick={() => setTag('notice')}>공지</button>
+                  <button type="button" className={tag === 'update' ? 'on' : ''} onClick={() => setTag('update')}>업데이트</button>
+                </div>
+              </div>
+              <div style={{display:'flex', flexDirection:'column', gap:8, marginTop:14}}>
+                <button className="btn" onClick={() => publish(false)} disabled={busy}>초안 저장</button>
+                <button className="btn btn-primary" onClick={() => publish(true)} disabled={busy}><Icon name="send" size={12}/> 발행</button>
               </div>
             </div>
-            <div style={{display:'flex', gap:6, marginTop:'auto'}}>
-              <button className="btn" style={{flex:1}} onClick={() => publish(false)} disabled={busy}>초안 저장</button>
-              <button className="btn btn-primary" style={{flex:1}} onClick={() => publish(true)} disabled={busy}><Icon name="send" size={12}/> 발행</button>
-            </div>
           </div>
-        </div>
+        </aside>
       </div>
 
-      <div className="panel">
-        <div className="panel-head"><div><div className="panel-title">공지 목록</div><div className="panel-sub">{(list.data || []).length}건</div></div><button className="icon-btn" onClick={list.refetch}><Icon name="refresh"/></button></div>
-        <div className="panel-body flush">
+      <div className="sheet" style={{marginTop:'var(--sp-4)'}}>
+        <div className="sheet-head"><div><div className="sheet-title">공지 목록</div><div className="sheet-sub">{(list.data || []).length}건</div></div><button className="icon-btn" onClick={list.refetch}><Icon name="refresh"/></button></div>
+        <div className="sheet-body flush">
           {list.loading ? <Loader/> : list.error ? <ErrorBox error={list.error} retry={list.refetch}/> :
             (list.data || []).length === 0 ? <EmptyState icon="megaphone" title="공지가 없습니다"/> :
-            (list.data || []).map(a => (
-              <div key={a.id} style={{padding:'14px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:14}}>
-                <div style={{flex:1, minWidth:0}}>
-                  <div style={{display:'flex', gap:8, alignItems:'center', marginBottom:4, flexWrap:'wrap'}}>
-                    <span className={"badge " + (a.type === 'update' ? 'badge-info' : 'badge-violet')}>{(a.type || 'notice').toUpperCase()}</span>
+            <div className="ruled">
+              {(list.data || []).map(a => (
+                <div key={a.id} className="ruled-row">
+                  <div className="ln-body" style={{display:'flex', alignItems:'center', gap:12}}>
+                    <span className={"badge " + (a.type === 'update' ? 'badge-info' : 'badge-accent')}>{a.type === 'update' ? '업데이트' : '공지'}</span>
                     {a.is_published ? <span className="badge badge-success">발행됨</span> : <span className="badge badge-neutral">초안</span>}
-                    <span style={{fontSize:13, fontWeight:500}}>{a.title}</span>
+                    <span style={{fontWeight:600, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{a.title}</span>
+                    <span className="item-time">{relativeTime(a.created_at)}</span>
+                    <button className="btn btn-xs" onClick={() => togglePub(a)}>{a.is_published ? '내리기' : '발행'}</button>
+                    <button className="btn btn-xs btn-danger" onClick={() => del(a)}><Icon name="trash" size={11}/></button>
                   </div>
-                  <div style={{fontSize:11.5, color:'var(--fg-subtle)', fontFamily:'var(--font-mono)'}}>{relativeTime(a.created_at)}</div>
                 </div>
-                <div style={{display:'flex', gap:6}}>
-                  <button className="btn btn-xs" onClick={() => togglePub(a)}>{a.is_published ? '내리기' : '발행'}</button>
-                  <button className="btn btn-xs btn-danger" onClick={() => del(a)}><Icon name="trash" size={11}/></button>
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           }
         </div>
       </div>
