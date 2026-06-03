@@ -2140,29 +2140,35 @@ function Admins({ pushToast }) {
   return (
     <>
       {pending.length > 0 && (
-        <div className="panel" style={{borderColor:'var(--warning)'}}>
-          <div className="panel-head" style={{background:'var(--warning-soft)'}}>
-            <div><div className="panel-title" style={{color:'var(--warning)'}}>승인 대기 {pending.length}명</div><div className="panel-sub">가입 신청 검토</div></div>
+        <div className="sheet marked" style={{marginBottom:'var(--sp-4)', borderColor:'var(--accent-border)'}}>
+          <div className="sheet-head" style={{background:'var(--accent-soft)'}}>
+            <div><div className="sheet-title" style={{color:'var(--accent)'}}>승인 대기 {pending.length}명</div><div className="sheet-sub">가입 신청 검토</div></div>
           </div>
-          <div className="panel-body">
+          <div className="sheet-body flush">
             {pending.map(u => (
-              <div key={u.id} className="user-row">
-                <div className="user-av" style={{background:'var(--surface-3)', color:'var(--fg-subtle)'}}>{(u.name || u.email || '?')[0]}</div>
-                <div className="user-info">
-                  <div className="user-name-line"><span className="user-name">{u.name || '(이름 없음)'}</span><span className="user-email">{u.email}</span></div>
-                  <div className="user-stat"><span>요청: {relativeTime(u.created_at)}</span></div>
+              <div key={u.id} className="urow">
+                <div className="uav" style={{background:'var(--surface-3)', color:'var(--fg-muted)', border:'1px solid var(--border-strong)'}}>{(u.name || u.email || '?')[0]}</div>
+                <div className="uinfo">
+                  <div className="uname-line"><span className="uname">{u.name || '(이름 없음)'}</span><span className="uemail">{u.email}</span></div>
+                  <div className="ustat"><span>요청: {relativeTime(u.created_at)}</span></div>
                 </div>
                 <button className="btn btn-sm btn-danger" onClick={() => reject(u.id)}>거절</button>
-                <button className="btn btn-sm btn-success" onClick={() => approve(u.id)}><Icon name="check" size={12}/> 승인</button>
+                <button className="btn btn-sm btn-primary" onClick={() => approve(u.id)}><Icon name="check" size={12}/> 승인</button>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="panel">
-        <div className="panel-head"><div><div className="panel-title">관리자 목록</div><div className="panel-sub">{approved.length}명 활성</div></div></div>
-        <div className="panel-body">
+      <div className="sheet" style={{margin:0}}>
+        <div className="sheet-head">
+          <div><div className="sheet-title">관리자 목록</div><div className="sheet-sub">{approved.length}명 활성</div></div>
+          <div className="perm-legend">
+            <div className="pi"><span className="badge badge-accent">SUPER</span> 전체 권한</div>
+            <div className="pi"><span className="badge badge-info">ADMIN</span> 배정 시험</div>
+          </div>
+        </div>
+        <div className="sheet-body flush">
           {approved.map(u => (
             <AdminRow key={u.id} u={u} stats={statsMap[u.id]} subjects={subjects.data || []} onChanged={users.refetch} onRevoke={() => revoke(u.id)} pushToast={pushToast}/>
           ))}
@@ -2185,19 +2191,19 @@ function AdminRow({ u, stats, subjects, onChanged, onRevoke, pushToast }) {
   const assignedCodes = (mySubs.data || []).map(s => s.subject_code || s.code);
 
   return (
-    <div className="user-row">
-      <div className="user-av" style={{background:'linear-gradient(135deg, var(--accent), var(--violet))'}}>{(u.name || u.email || '?')[0]}</div>
-      <div className="user-info">
-        <div className="user-name-line">
-          <span className="user-name">{u.name || '(이름 없음)'}</span>
-          {u.role === 'super_admin' && <span className="badge badge-violet">SUPER ADMIN</span>}
+    <div className="urow">
+      <div className="uav" style={{background:'var(--accent)', color:'#fff'}}>{(u.name || u.email || '?')[0]}</div>
+      <div className="uinfo">
+        <div className="uname-line">
+          <span className="uname">{u.name || '(이름 없음)'}</span>
+          {u.role === 'super_admin' && <span className="badge badge-accent">SUPER ADMIN</span>}
           {u.role === 'admin' && <span className="badge badge-info">ADMIN</span>}
-          <span className="user-email">{u.email}</span>
+          <span className="uemail">{u.email}</span>
         </div>
-        {stats && <div className="user-stat"><span>해결 {fmtNum(stats.resolved_count)}건</span><span>담당중 {fmtNum(stats.assigned_count)}건</span></div>}
-        <div style={{display:'flex', gap:4, marginTop:6, flexWrap:'wrap', alignItems:'center'}}>
+        {stats && <div className="ustat"><span>해결 {fmtNum(stats.resolved_count)}건</span><span>담당중 {fmtNum(stats.assigned_count)}건</span></div>}
+        <div className="utags">
           {assignedCodes.map(c => (
-            <span key={c} className="subj-tag">{c} <span style={{marginLeft:4, cursor:'pointer', color:'var(--fg-faint)'}} onClick={() => removeSubject(c)}>×</span></span>
+            <span key={c} className="tag-cat blue">{c} <span style={{marginLeft:4, cursor:'pointer', color:'var(--fg-faint)'}} onClick={() => removeSubject(c)}>×</span></span>
           ))}
           {adding ? (
             <select autoFocus className="field-input" style={{padding:'2px 6px', fontSize:11, height:22}} onChange={e => e.target.value && addSubject(e.target.value)} onBlur={() => setAdding(false)}>
@@ -2205,7 +2211,7 @@ function AdminRow({ u, stats, subjects, onChanged, onRevoke, pushToast }) {
               {subjects.filter(s => !assignedCodes.includes(s.code)).map(s => <option key={s.code} value={s.code}>{s.code}</option>)}
             </select>
           ) : (
-            <span className="subj-tag" style={{background:'var(--surface-2)', color:'var(--fg-subtle)', border:'1px dashed var(--border-strong)', cursor:'pointer'}} onClick={() => setAdding(true)}>+ 시험</span>
+            <button type="button" className="tag-cat" style={{borderStyle:'dashed', cursor:'pointer'}} onClick={() => setAdding(true)}>+ 시험 배정</button>
           )}
         </div>
       </div>
