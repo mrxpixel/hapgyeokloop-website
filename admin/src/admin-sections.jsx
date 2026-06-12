@@ -6,7 +6,7 @@ import { sb, rpc, Icon, useAsync, relativeTime, fmtNum, Loader, ErrorBox, EmptyS
 import MarkdownEditor from './components/MarkdownEditor.jsx'
 import { parseStemGivens } from './lib/stem-givens-parse.js'
 
-marked.setOptions({ gfm: true, breaks: false })
+// marked 옵션은 MarkdownEditor.jsx에서 단일 설정 (중복 setOptions 금지)
 
 /* ─── Overview ─── */
 function Overview({ goto }) {
