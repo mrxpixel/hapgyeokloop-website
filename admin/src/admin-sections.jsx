@@ -1,9 +1,12 @@
 /* ─── Section components ─── */
 import React from 'react'
 const { useState, useEffect, useMemo, useRef } = React
+import { marked } from 'marked'
 import { sb, rpc, Icon, useAsync, relativeTime, fmtNum, Loader, ErrorBox, EmptyState } from './admin-lib.jsx'
 import MarkdownEditor from './components/MarkdownEditor.jsx'
 import { parseStemGivens } from './lib/stem-givens-parse.js'
+
+marked.setOptions({ gfm: true, breaks: false })
 
 /* ─── Overview ─── */
 function Overview({ goto }) {
@@ -534,9 +537,11 @@ function normalizeGivens(sg) {
   if (!Array.isArray(sg)) return [];
   return sg.map(b => {
     const label = typeof b?.label === 'string' ? b.label : '';
+    const boxed = typeof b?.boxed === 'boolean' ? b.boxed : label.trim() !== '';
     return {
-      label,
-      wrap_box: label.trim() !== '',
+      label: boxed ? label : '',
+      boxed,
+      _box_type: boxed ? (label.trim() ? 'view' : 'simple') : 'plain',
       markdown_enabled: !!b?.markdown_enabled,
       items: Array.isArray(b?.items)
         ? b.items.map(it => ({ key: String(it?.key ?? ''), text: String(it?.text ?? '') }))
@@ -556,10 +561,55 @@ function serializeGivens(boxes) {
     if (items.some(it => it.key === '' || it.text === '')) {
       return { error: '보기 항목의 키와 내용을 모두 입력하세요.' };
     }
-    const label = b.wrap_box === false ? '' : ((b.label || '').trim() || '보기');
-    out.push({ label, markdown_enabled: !!b.markdown_enabled, items });
+    const boxType = givenBoxType(b);
+    const boxed = boxType !== 'plain';
+    const label = boxType === 'view' ? ((b.label || '').trim() || '보기') : '';
+    out.push({ label, markdown_enabled: !!b.markdown_enabled, boxed, items });
   }
   return { payload: out.length ? out : null };
+}
+
+function givenBoxType(box) {
+  if (box?._box_type === 'plain' || box?._box_type === 'simple' || box?._box_type === 'view') {
+    return box._box_type;
+  }
+  if (box?.boxed === false) return 'plain';
+  const label = typeof box?.label === 'string' ? box.label.trim() : '';
+  return label ? 'view' : 'simple';
+}
+
+function applyGivenBoxType(box, type) {
+  if (type === 'plain') return { ...box, boxed: false, label: '', _box_type: 'plain' };
+  if (type === 'simple') return { ...box, boxed: true, label: '', _box_type: 'simple' };
+  return { ...box, boxed: true, label: (box.label || '').trim() || '보기', _box_type: 'view' };
+}
+
+function createGivenBox(type) {
+  if (type === 'simple') {
+    return { label: '', boxed: true, _box_type: 'simple', markdown_enabled: false, items: [{ key: '', text: '' }] };
+  }
+  if (type === 'markdown') {
+    return { label: '', boxed: true, _box_type: 'simple', markdown_enabled: true, items: [{ key: '', text: '' }] };
+  }
+  return { label: '보기', boxed: true, _box_type: 'view', markdown_enabled: false, items: [{ key: '', text: '' }] };
+}
+
+function givenPreviewBoxMeta(box) {
+  const label = typeof box?.label === 'string' ? box.label.trim() : '';
+  const boxed = typeof box?.boxed === 'boolean' ? box.boxed : label !== '';
+  return { boxed, label: boxed ? label : '' };
+}
+
+function GivenPreviewText({ text, markdown }) {
+  if (markdown) {
+    return (
+      <div
+        style={{ color: 'var(--fg-muted)', minWidth: 0, lineHeight: 1.7, overflowX: 'auto' }}
+        dangerouslySetInnerHTML={{ __html: marked.parse(text || '') }}
+      />
+    );
+  }
+  return <div style={{ color: 'var(--fg-muted)', whiteSpace: 'pre-wrap', minWidth: 0 }}>{text}</div>;
 }
 
 function LegacyGivensImportPreview({ boxes, onImport, onIgnore }) {
@@ -624,7 +674,7 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
 
   const updateBox  = (bi, fn) => setBoxes(bs => bs.map((b, i) => i === bi ? fn(b) : b));
   const updateItem = (bi, ii, fn) => updateBox(bi, b => ({ ...b, items: b.items.map((x, j) => j === ii ? fn(x) : x) }));
-  const addBox     = () => setBoxes(bs => [...bs, { label: '보기', wrap_box: true, markdown_enabled: false, items: [{ key: '', text: '' }] }]);
+  const addBox     = (type) => setBoxes(bs => [...bs, createGivenBox(type)]);
   const addItem    = (bi) => updateBox(bi, b => ({ ...b, items: [...(b.items || []), { key: '', text: '' }] }));
   const removeItem = (bi, ii) => updateBox(bi, b => ({ ...b, items: b.items.filter((_, j) => j !== ii) }));
   const removeBox  = (bi) => setBoxes(bs => bs.filter((_, i) => i !== bi));
@@ -676,22 +726,31 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
             )}
             {boxes.length === 0 && (
               <div style={{ fontSize: 12, color: 'var(--fg-subtle)', padding: '6px 0' }}>
-                보기 박스가 필요한 문제면 <b>＋ 보기 박스 추가</b>를 누르세요.
+                필요한 유형을 골라 박스를 추가하세요.
               </div>
             )}
             {boxes.map((box, bi) => {
-              const wrapBox = box.wrap_box !== false;
+              const boxType = givenBoxType(box);
               return (
                 <div key={bi} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', marginBottom: 8, background: 'var(--surface)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid var(--border)' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--fg-muted)' }}>
-                      <input type="checkbox" checked={wrapBox}
-                        onChange={e => updateBox(bi, b => ({ ...b, wrap_box: e.target.checked }))} />
-                      보기 박스로 감싸기
-                    </label>
-                    {wrapBox && (
+                    <select
+                      className="field-input"
+                      style={{ width: 150, padding: '5px 8px', fontSize: 12 }}
+                      value={boxType}
+                      onChange={e => updateBox(bi, b => applyGivenBoxType(b, e.target.value))}
+                    >
+                      <option value="plain">평문(박스 없음)</option>
+                      <option value="simple">단순 박스</option>
+                      <option value="view">〈보기〉 박스</option>
+                    </select>
+                    {boxType === 'view' && (
                       <input className="field-input" style={{ width: 120, padding: '5px 8px', fontSize: 12 }} placeholder="보기"
-                        value={box.label} onChange={e => updateBox(bi, b => ({ ...b, label: e.target.value }))} />
+                        value={box.label}
+                        onChange={e => updateBox(bi, b => ({ ...b, boxed: true, _box_type: 'view', label: e.target.value }))}
+                        onBlur={e => {
+                          if (!e.target.value.trim()) updateBox(bi, b => ({ ...b, label: '보기' }));
+                        }} />
                     )}
                     <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--fg-muted)' }}>
                       <input type="checkbox" checked={box.markdown_enabled}
@@ -707,7 +766,7 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
                   <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
                     {(box.items || []).map((it, ii) => (
                       <div key={ii} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-                        <input className="field-input" style={{ width: 48, padding: '7px 6px', textAlign: 'center', fontSize: 13 }} placeholder="ㄱ"
+                        <input className="field-input" style={{ width: 58, padding: '7px 6px', textAlign: 'center', fontSize: 13 }} placeholder="ㄱ, ㉠ …"
                           value={it.key} onChange={e => updateItem(bi, ii, x => ({ ...x, key: e.target.value }))} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           {box.markdown_enabled
@@ -723,7 +782,11 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
                 </div>
               );
             })}
-            <button className="btn btn-sm" onClick={addBox}><Icon name="plus" size={12} /> 보기 박스 추가</button>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <button className="btn btn-sm" onClick={() => addBox('simple')}><Icon name="plus" size={12} /> 단순 박스</button>
+              <button className="btn btn-sm" onClick={() => addBox('markdown')}><Icon name="plus" size={12} /> 마크다운 박스</button>
+              <button className="btn btn-sm" onClick={() => addBox('view')}><Icon name="plus" size={12} /> 〈보기〉 박스</button>
+            </div>
           </div>
         )}
         <div style={{display:'flex', flexDirection:'column', gap:8, marginBottom:14}}>
@@ -750,12 +813,15 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
       {Array.isArray(q.stem_givens) && q.stem_givens.length > 0 && (
         <div style={{ margin: '8px 0 14px' }}>
           {q.stem_givens.map((box, bi) => {
-            const label = typeof box?.label === 'string' ? box.label.trim() : '';
+            const { boxed, label } = givenPreviewBoxMeta(box);
             return (
-              <div key={bi} style={label ? { border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px', marginBottom: 6, background: 'var(--surface-2)' } : { padding: '2px 0', marginBottom: 6 }}>
+              <div key={bi} style={boxed ? { border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px', marginBottom: 6, background: 'var(--surface-2)' } : { padding: '2px 0', marginBottom: 6 }}>
                 {label && <div style={{ fontSize: 11, color: 'var(--fg-subtle)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>〈{label}〉</div>}
                 {(box.items || []).map((it, ii) => (
-                  <div key={ii} style={{ fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}><b>{it.key}.</b> {it.text}</div>
+                  <div key={ii} style={{ display: 'grid', gridTemplateColumns: '40px minmax(0, 1fr)', gap: 8, alignItems: 'start', fontSize: 14, lineHeight: 1.7 }}>
+                    <b>{it.key}.</b>
+                    <GivenPreviewText text={it.text} markdown={!!box.markdown_enabled} />
+                  </div>
                 ))}
               </div>
             );

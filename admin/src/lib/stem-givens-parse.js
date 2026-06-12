@@ -257,6 +257,7 @@ function makeBox(label, items) {
   return {
     label: normalizeLabel(label),
     markdown_enabled: false,
+    boxed: true,
     items: cleanItems,
   };
 }
