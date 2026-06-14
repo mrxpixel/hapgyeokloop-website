@@ -538,20 +538,45 @@ function normalizeGivens(sg) {
   return sg.map(b => {
     const label = typeof b?.label === 'string' ? b.label : '';
     const boxed = typeof b?.boxed === 'boolean' ? b.boxed : label.trim() !== '';
+    const rawItems = Array.isArray(b?.items)
+      ? b.items.map(it => ({
+          key: String(it?.key ?? ''),
+          text: String(it?.text ?? ''),
+          _auto_key: Boolean(it?._auto_key),
+        }))
+      : [];
+    const markerFamily = inferGivenMarkerFamilyFromItems(rawItems);
     return {
       label: boxed ? label : '',
       boxed,
       _box_type: boxed ? (label.trim() ? 'view' : 'simple') : 'plain',
+      _marker_family: markerFamily,
       markdown_enabled: !!b?.markdown_enabled,
-      items: Array.isArray(b?.items)
-        ? b.items.map(it => ({ key: String(it?.key ?? ''), text: String(it?.text ?? '') }))
-        : [],
+      items: rawItems.map((it, index) => normalizeGivenItemForMarkerFamily(it, markerFamily, index)),
     };
   });
 }
 
 const FIRST_GIVEN_MARKER_KEY = `${HANGUL_CONSONANTS[0]}.`;
 const GEOMETRIC_MARKER_PATTERN = /^[\u25A0-\u25FF☆★×]$/u;
+const CIRCLED_NUMBER_MARKER_KEYS = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳'];
+const SHAPE_GIVEN_MARKER_KEYS = ['○', '●', '■', '□', '◆', '◇'];
+const GIVEN_MARKER_FAMILY_CONSONANTS = '자음';
+const GIVEN_MARKER_FAMILY_CIRCLED_HANGUL = '원문자';
+const GIVEN_MARKER_FAMILY_CIRCLED_NUMBER = '원숫자';
+const SHAPE_MARKER_FAMILY_PREFIX = '도형:';
+const DEFAULT_GIVEN_MARKER_FAMILY = GIVEN_MARKER_FAMILY_CONSONANTS;
+const GIVEN_MARKER_SEQUENCES = {
+  [GIVEN_MARKER_FAMILY_CONSONANTS]: HANGUL_CONSONANTS.map(key => `${key}.`),
+  [GIVEN_MARKER_FAMILY_CIRCLED_HANGUL]: CIRCLED_HANGUL_KEYS,
+  [GIVEN_MARKER_FAMILY_CIRCLED_NUMBER]: CIRCLED_NUMBER_MARKER_KEYS,
+};
+const GIVEN_MARKER_FAMILY_OPTIONS = [
+  { value: GIVEN_MARKER_FAMILY_CONSONANTS, label: '자음 ㄱㄴㄷ' },
+  { value: GIVEN_MARKER_FAMILY_CIRCLED_HANGUL, label: '원문자 ㉠㉡㉢' },
+  { value: GIVEN_MARKER_FAMILY_CIRCLED_NUMBER, label: '원숫자 ①②③' },
+  ...SHAPE_GIVEN_MARKER_KEYS.map(key => ({ value: `${SHAPE_MARKER_FAMILY_PREFIX}${key}`, label: `도형 ${key}` })),
+];
 
 function createGivenItem(key = FIRST_GIVEN_MARKER_KEY, text = '') {
   return { key, text, _auto_key: true };
@@ -571,6 +596,7 @@ function formatGivenMarkerKey(key) {
   const base = stripGivenMarkerPunctuation(value);
   if (HANGUL_CONSONANTS.includes(base)) return `${base}.`;
   if (CIRCLED_HANGUL_KEYS.includes(base)) return base;
+  if (CIRCLED_NUMBER_MARKER_KEYS.includes(base)) return base;
   if (isGeometricMarkerKey(base)) return base;
   return value;
 }
@@ -586,27 +612,86 @@ function displayGivenMarkerKey(key) {
 }
 
 function nextGivenMarkerKey(items) {
-  const keys = (items || [])
-    .map(item => String(item?.key ?? '').trim())
-    .filter(Boolean);
-  if (keys.length === 0) return FIRST_GIVEN_MARKER_KEY;
+  const markerFamily = inferGivenMarkerFamilyFromItems(items);
+  return givenMarkerKeyForIndex(markerFamily, (items || []).length);
+}
 
-  const lastKey = keys[keys.length - 1];
-  const base = stripGivenMarkerPunctuation(lastKey);
-  const consonantIndex = HANGUL_CONSONANTS.indexOf(base);
-  if (consonantIndex >= 0) {
-    const next = HANGUL_CONSONANTS[consonantIndex + 1];
-    return next ? `${next}.` : '';
+function isShapeGivenMarkerFamily(family) {
+  const value = String(family ?? '');
+  if (!value.startsWith(SHAPE_MARKER_FAMILY_PREFIX)) return false;
+  return SHAPE_GIVEN_MARKER_KEYS.includes(value.slice(SHAPE_MARKER_FAMILY_PREFIX.length));
+}
+
+function isGivenMarkerFamily(family) {
+  return Boolean(GIVEN_MARKER_SEQUENCES[family]) || isShapeGivenMarkerFamily(family);
+}
+
+function shapeGivenMarkerFromFamily(family) {
+  const value = String(family ?? '');
+  const marker = value.startsWith(SHAPE_MARKER_FAMILY_PREFIX)
+    ? value.slice(SHAPE_MARKER_FAMILY_PREFIX.length)
+    : '';
+  return SHAPE_GIVEN_MARKER_KEYS.includes(marker) ? marker : SHAPE_GIVEN_MARKER_KEYS[0];
+}
+
+function givenMarkerCellOptions(family) {
+  if (isShapeGivenMarkerFamily(family)) return SHAPE_GIVEN_MARKER_KEYS;
+  return GIVEN_MARKER_SEQUENCES[family] || GIVEN_MARKER_SEQUENCES[DEFAULT_GIVEN_MARKER_FAMILY];
+}
+
+function givenMarkerKeyForIndex(family, index) {
+  if (isShapeGivenMarkerFamily(family)) return shapeGivenMarkerFromFamily(family);
+  const sequence = givenMarkerCellOptions(family);
+  if (sequence.length === 0) return '';
+  const safeIndex = Math.max(0, Number(index) || 0);
+  return sequence[Math.min(safeIndex, sequence.length - 1)];
+}
+
+function inferGivenMarkerFamilyFromKey(key) {
+  const value = formatGivenMarkerKey(key);
+  const base = stripGivenMarkerPunctuation(value);
+  if (GIVEN_MARKER_SEQUENCES[GIVEN_MARKER_FAMILY_CONSONANTS].includes(value) || HANGUL_CONSONANTS.includes(base)) {
+    return GIVEN_MARKER_FAMILY_CONSONANTS;
   }
+  if (CIRCLED_HANGUL_KEYS.includes(value)) return GIVEN_MARKER_FAMILY_CIRCLED_HANGUL;
+  if (CIRCLED_NUMBER_MARKER_KEYS.includes(value)) return GIVEN_MARKER_FAMILY_CIRCLED_NUMBER;
+  if (SHAPE_GIVEN_MARKER_KEYS.includes(value)) return `${SHAPE_MARKER_FAMILY_PREFIX}${value}`;
+  return null;
+}
 
-  const circledIndex = CIRCLED_HANGUL_KEYS.indexOf(base);
-  if (circledIndex >= 0) {
-    return CIRCLED_HANGUL_KEYS[circledIndex + 1] || '';
+function inferGivenMarkerFamilyFromItems(items) {
+  for (const item of items || []) {
+    const family = inferGivenMarkerFamilyFromKey(item?.key);
+    if (family) return family;
   }
+  return DEFAULT_GIVEN_MARKER_FAMILY;
+}
 
-  if (isGeometricMarkerKey(lastKey)) return lastKey.trim();
-  if (isGeometricMarkerKey(base)) return base;
-  return '';
+function givenMarkerFamily(box) {
+  return isGivenMarkerFamily(box?._marker_family)
+    ? box._marker_family
+    : inferGivenMarkerFamilyFromItems(box?.items);
+}
+
+function normalizeGivenItemForMarkerFamily(item, family, index) {
+  const key = formatGivenMarkerKey(item?.key);
+  if (key && givenMarkerCellOptions(family).includes(key)) {
+    return { ...item, key };
+  }
+  return { ...item, key: givenMarkerKeyForIndex(family, index), _auto_key: true };
+}
+
+function applyGivenMarkerFamily(box, family) {
+  const markerFamily = isGivenMarkerFamily(family) ? family : DEFAULT_GIVEN_MARKER_FAMILY;
+  return {
+    ...box,
+    _marker_family: markerFamily,
+    items: (box.items || []).map((item, index) => ({
+      ...item,
+      key: givenMarkerKeyForIndex(markerFamily, index),
+      _auto_key: true,
+    })),
+  };
 }
 
 // Returns { payload } (bare Box[] or null) or { error } if validation fails.
@@ -646,12 +731,12 @@ function applyGivenBoxType(box, type) {
 
 function createGivenBox(type) {
   if (type === 'simple') {
-    return { label: '', boxed: true, _box_type: 'simple', markdown_enabled: false, items: [createGivenItem()] };
+    return { label: '', boxed: true, _box_type: 'simple', _marker_family: DEFAULT_GIVEN_MARKER_FAMILY, markdown_enabled: false, items: [createGivenItem()] };
   }
   if (type === 'markdown') {
-    return { label: '', boxed: true, _box_type: 'simple', markdown_enabled: true, items: [createGivenItem()] };
+    return { label: '', boxed: true, _box_type: 'simple', _marker_family: DEFAULT_GIVEN_MARKER_FAMILY, markdown_enabled: true, items: [createGivenItem()] };
   }
-  return { label: '보기', boxed: true, _box_type: 'view', markdown_enabled: false, items: [createGivenItem()] };
+  return { label: '보기', boxed: true, _box_type: 'view', _marker_family: DEFAULT_GIVEN_MARKER_FAMILY, markdown_enabled: false, items: [createGivenItem()] };
 }
 
 function givenPreviewBoxMeta(box) {
@@ -735,7 +820,15 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
   const updateBox  = (bi, fn) => setBoxes(bs => bs.map((b, i) => i === bi ? fn(b) : b));
   const updateItem = (bi, ii, fn) => updateBox(bi, b => ({ ...b, items: (b.items || []).map((x, j) => j === ii ? fn(x) : x) }));
   const addBox     = (type) => setBoxes(bs => [...bs, createGivenBox(type)]);
-  const addItem    = (bi) => updateBox(bi, b => ({ ...b, items: [...(b.items || []), createGivenItem(nextGivenMarkerKey(b.items))] }));
+  const addItem    = (bi) => updateBox(bi, b => {
+    const markerFamily = givenMarkerFamily(b);
+    const items = b.items || [];
+    return {
+      ...b,
+      _marker_family: markerFamily,
+      items: [...items, createGivenItem(givenMarkerKeyForIndex(markerFamily, items.length))],
+    };
+  });
   const removeItem = (bi, ii) => updateBox(bi, b => ({ ...b, items: (b.items || []).filter((_, j) => j !== ii) }));
   const removeBox  = (bi) => setBoxes(bs => bs.filter((_, i) => i !== bi));
   const moveBox    = (bi, dir) => setBoxes(bs => {
@@ -791,9 +884,11 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
             )}
             {boxes.map((box, bi) => {
               const boxType = givenBoxType(box);
+              const markerFamily = givenMarkerFamily(box);
+              const markerOptions = givenMarkerCellOptions(markerFamily);
               return (
                 <div key={bi} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', marginBottom: 8, background: 'var(--surface)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 10px', borderBottom: '1px solid var(--border)' }}>
                     <select
                       className="field-input"
                       style={{ width: 150, padding: '5px 8px', fontSize: 12 }}
@@ -804,6 +899,19 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
                       <option value="simple">단순 박스</option>
                       <option value="view">〈보기〉 박스</option>
                     </select>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--fg-muted)' }}>
+                      마커:
+                      <select
+                        className="field-input"
+                        style={{ width: 132, padding: '5px 8px', fontSize: 12 }}
+                        value={markerFamily}
+                        onChange={e => updateBox(bi, b => applyGivenMarkerFamily(b, e.target.value))}
+                      >
+                        {GIVEN_MARKER_FAMILY_OPTIONS.map(option => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </label>
                     {boxType === 'view' && (
                       <input className="field-input" style={{ width: 120, padding: '5px 8px', fontSize: 12 }} placeholder="보기"
                         value={box.label}
@@ -826,8 +934,16 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
                   <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
                     {(box.items || []).map((it, ii) => (
                       <div key={ii} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-                        <input className="field-input" style={{ width: 58, padding: '7px 6px', textAlign: 'center', fontSize: 13 }} placeholder="ㄱ., ㉠, ○ …"
-                          value={it.key} onChange={e => updateItem(bi, ii, x => ({ ...x, key: e.target.value, _auto_key: false }))} />
+                        <select
+                          className="field-input"
+                          style={{ width: 78, padding: '7px 6px', textAlign: 'center', fontSize: 13, color: 'var(--accent)', fontWeight: 700 }}
+                          value={markerOptions.includes(it.key) ? it.key : givenMarkerKeyForIndex(markerFamily, ii)}
+                          onChange={e => updateItem(bi, ii, x => ({ ...x, key: e.target.value, _auto_key: false }))}
+                        >
+                          {markerOptions.map(key => (
+                            <option key={key} value={key}>{key}</option>
+                          ))}
+                        </select>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           {box.markdown_enabled
                             ? <MarkdownEditor compact value={it.text} onChange={md => updateItem(bi, ii, x => ({ ...x, text: md }))} placeholder="항목 내용 (마크다운)" />
@@ -879,7 +995,7 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
                 {label && <div style={{ fontSize: 11, color: 'var(--fg-subtle)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>〈{label}〉</div>}
                 {(box.items || []).map((it, ii) => (
                   <div key={ii} style={{ display: 'grid', gridTemplateColumns: '40px minmax(0, 1fr)', gap: 8, alignItems: 'start', fontSize: 14, lineHeight: 1.7 }}>
-                    <b>{displayGivenMarkerKey(it.key)}</b>
+                    <b>{String(it.key ?? '')}</b>
                     <GivenPreviewText text={it.text} markdown={!!box.markdown_enabled} />
                   </div>
                 ))}
