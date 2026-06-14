@@ -4,7 +4,7 @@ const { useState, useEffect, useMemo, useRef } = React
 import { marked } from 'marked'
 import { sb, rpc, Icon, useAsync, relativeTime, fmtNum, Loader, ErrorBox, EmptyState } from './admin-lib.jsx'
 import MarkdownEditor from './components/MarkdownEditor.jsx'
-import { parseStemGivens } from './lib/stem-givens-parse.js'
+import { parseStemGivens, HANGUL_CONSONANTS, CIRCLED_HANGUL_KEYS, GEOMETRIC_MARKER_KEYS } from './lib/stem-givens-parse.js'
 
 // marked 옵션은 MarkdownEditor.jsx에서 단일 설정 (중복 setOptions 금지)
 
@@ -550,12 +550,72 @@ function normalizeGivens(sg) {
   });
 }
 
+const FIRST_GIVEN_MARKER_KEY = `${HANGUL_CONSONANTS[0]}.`;
+const GEOMETRIC_MARKER_PATTERN = /^[\u25A0-\u25FF☆★×]$/u;
+
+function createGivenItem(key = FIRST_GIVEN_MARKER_KEY, text = '') {
+  return { key, text, _auto_key: true };
+}
+
+function stripGivenMarkerPunctuation(key) {
+  return String(key ?? '').trim().replace(/\s*[.:)]\s*$/u, '').trim();
+}
+
+function isGeometricMarkerKey(key) {
+  const value = String(key ?? '').trim();
+  return GEOMETRIC_MARKER_KEYS.includes(value) || GEOMETRIC_MARKER_PATTERN.test(value);
+}
+
+function formatGivenMarkerKey(key) {
+  const value = String(key ?? '').trim();
+  const base = stripGivenMarkerPunctuation(value);
+  if (HANGUL_CONSONANTS.includes(base)) return `${base}.`;
+  if (CIRCLED_HANGUL_KEYS.includes(base)) return base;
+  if (isGeometricMarkerKey(base)) return base;
+  return value;
+}
+
+function displayGivenMarkerKey(key) {
+  const value = String(key ?? '').trim();
+  const formatted = formatGivenMarkerKey(value);
+  if (!formatted || formatted !== value || /[.:)]$/u.test(value)) return formatted;
+  if (/^(?:[A-Za-z]|\d{1,2}|[가나다라마바사아자차카타파하]|[①-⑳]|[ⓐ-ⓩ]|[㉮-㉻])$/u.test(value)) {
+    return `${value}.`;
+  }
+  return value;
+}
+
+function nextGivenMarkerKey(items) {
+  const keys = (items || [])
+    .map(item => String(item?.key ?? '').trim())
+    .filter(Boolean);
+  if (keys.length === 0) return FIRST_GIVEN_MARKER_KEY;
+
+  const lastKey = keys[keys.length - 1];
+  const base = stripGivenMarkerPunctuation(lastKey);
+  const consonantIndex = HANGUL_CONSONANTS.indexOf(base);
+  if (consonantIndex >= 0) {
+    const next = HANGUL_CONSONANTS[consonantIndex + 1];
+    return next ? `${next}.` : '';
+  }
+
+  const circledIndex = CIRCLED_HANGUL_KEYS.indexOf(base);
+  if (circledIndex >= 0) {
+    return CIRCLED_HANGUL_KEYS[circledIndex + 1] || '';
+  }
+
+  if (isGeometricMarkerKey(lastKey)) return lastKey.trim();
+  if (isGeometricMarkerKey(base)) return base;
+  return '';
+}
+
 // Returns { payload } (bare Box[] or null) or { error } if validation fails.
 function serializeGivens(boxes) {
   const out = [];
   for (const b of boxes) {
     const items = (b.items || [])
-      .map(it => ({ key: (it.key || '').trim(), text: (it.text || '').trim() }))
+      .map(it => ({ key: (it.key || '').trim(), text: (it.text || '').trim(), _auto_key: Boolean(it?._auto_key) }))
+      .filter(it => !(it._auto_key && it.text === ''))
       .filter(it => it.key !== '' || it.text !== '');
     if (items.length === 0) continue;
     if (items.some(it => it.key === '' || it.text === '')) {
@@ -564,7 +624,7 @@ function serializeGivens(boxes) {
     const boxType = givenBoxType(b);
     const boxed = boxType !== 'plain';
     const label = boxType === 'view' ? ((b.label || '').trim() || '보기') : '';
-    out.push({ label, markdown_enabled: !!b.markdown_enabled, boxed, items });
+    out.push({ label, markdown_enabled: !!b.markdown_enabled, boxed, items: items.map(({ key, text }) => ({ key, text })) });
   }
   return { payload: out.length ? out : null };
 }
@@ -586,12 +646,12 @@ function applyGivenBoxType(box, type) {
 
 function createGivenBox(type) {
   if (type === 'simple') {
-    return { label: '', boxed: true, _box_type: 'simple', markdown_enabled: false, items: [{ key: '', text: '' }] };
+    return { label: '', boxed: true, _box_type: 'simple', markdown_enabled: false, items: [createGivenItem()] };
   }
   if (type === 'markdown') {
-    return { label: '', boxed: true, _box_type: 'simple', markdown_enabled: true, items: [{ key: '', text: '' }] };
+    return { label: '', boxed: true, _box_type: 'simple', markdown_enabled: true, items: [createGivenItem()] };
   }
-  return { label: '보기', boxed: true, _box_type: 'view', markdown_enabled: false, items: [{ key: '', text: '' }] };
+  return { label: '보기', boxed: true, _box_type: 'view', markdown_enabled: false, items: [createGivenItem()] };
 }
 
 function givenPreviewBoxMeta(box) {
@@ -673,10 +733,10 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
   }, [q.id]);
 
   const updateBox  = (bi, fn) => setBoxes(bs => bs.map((b, i) => i === bi ? fn(b) : b));
-  const updateItem = (bi, ii, fn) => updateBox(bi, b => ({ ...b, items: b.items.map((x, j) => j === ii ? fn(x) : x) }));
+  const updateItem = (bi, ii, fn) => updateBox(bi, b => ({ ...b, items: (b.items || []).map((x, j) => j === ii ? fn(x) : x) }));
   const addBox     = (type) => setBoxes(bs => [...bs, createGivenBox(type)]);
-  const addItem    = (bi) => updateBox(bi, b => ({ ...b, items: [...(b.items || []), { key: '', text: '' }] }));
-  const removeItem = (bi, ii) => updateBox(bi, b => ({ ...b, items: b.items.filter((_, j) => j !== ii) }));
+  const addItem    = (bi) => updateBox(bi, b => ({ ...b, items: [...(b.items || []), createGivenItem(nextGivenMarkerKey(b.items))] }));
+  const removeItem = (bi, ii) => updateBox(bi, b => ({ ...b, items: (b.items || []).filter((_, j) => j !== ii) }));
   const removeBox  = (bi) => setBoxes(bs => bs.filter((_, i) => i !== bi));
   const moveBox    = (bi, dir) => setBoxes(bs => {
     const j = bi + dir; if (j < 0 || j >= bs.length) return bs;
@@ -766,8 +826,8 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
                   <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
                     {(box.items || []).map((it, ii) => (
                       <div key={ii} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-                        <input className="field-input" style={{ width: 58, padding: '7px 6px', textAlign: 'center', fontSize: 13 }} placeholder="ㄱ, ㉠ …"
-                          value={it.key} onChange={e => updateItem(bi, ii, x => ({ ...x, key: e.target.value }))} />
+                        <input className="field-input" style={{ width: 58, padding: '7px 6px', textAlign: 'center', fontSize: 13 }} placeholder="ㄱ., ㉠, ○ …"
+                          value={it.key} onChange={e => updateItem(bi, ii, x => ({ ...x, key: e.target.value, _auto_key: false }))} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           {box.markdown_enabled
                             ? <MarkdownEditor compact value={it.text} onChange={md => updateItem(bi, ii, x => ({ ...x, text: md }))} placeholder="항목 내용 (마크다운)" />
@@ -819,7 +879,7 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
                 {label && <div style={{ fontSize: 11, color: 'var(--fg-subtle)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>〈{label}〉</div>}
                 {(box.items || []).map((it, ii) => (
                   <div key={ii} style={{ display: 'grid', gridTemplateColumns: '40px minmax(0, 1fr)', gap: 8, alignItems: 'start', fontSize: 14, lineHeight: 1.7 }}>
-                    <b>{it.key}.</b>
+                    <b>{displayGivenMarkerKey(it.key)}</b>
                     <GivenPreviewText text={it.text} markdown={!!box.markdown_enabled} />
                   </div>
                 ))}

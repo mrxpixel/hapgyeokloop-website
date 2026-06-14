@@ -1,10 +1,11 @@
 const BOXED_PATTERN = /\[BOXED\]([\s\S]*?)\[\/BOXED\]/gi;
 
-const HANGUL_CONSONANTS = ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+export const HANGUL_CONSONANTS = ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
 const HANGUL_SYLLABLE_KEYS = ['가', '나', '다', '라', '마', '바', '사', '아', '자', '차', '카', '타', '파', '하'];
-const CIRCLED_HANGUL_KEYS = ['㉠', '㉡', '㉢', '㉣', '㉤', '㉥', '㉦', '㉧', '㉨', '㉩', '㉪', '㉫', '㉬', '㉭'];
+export const CIRCLED_HANGUL_KEYS = ['㉠', '㉡', '㉢', '㉣', '㉤', '㉥', '㉦', '㉧', '㉨', '㉩', '㉪', '㉫', '㉬', '㉭'];
 const CIRCLED_HANGUL_SYLLABLE_KEYS = ['㉮', '㉯', '㉰', '㉱', '㉲', '㉳', '㉴', '㉵', '㉶', '㉷', '㉸', '㉹', '㉺', '㉻'];
 const CIRCLED_NUMBER_KEYS = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳'];
+export const GEOMETRIC_MARKER_KEYS = ['○', '●', '◎', '◯', '◉', '□', '■', '◇', '◆', '△', '▲', '▽', '▼', '▷', '▶', '◁', '◀', '☆', '★', '▪', '▫', '▬', '▭', '▮', '▯', '◈', '×'];
 
 export function parseStemGivens(rawStem) {
   const source = String(rawStem ?? '');
@@ -160,7 +161,7 @@ function matchGivenLine(line, { allowLatin, allowNumbers }) {
     /^\(?\s*([ㄱ-ㅎ])\s*\)?\s*[.:)]?\s*(.*)$/u,
     /^([㉠-㉯㉮-㉻])\s*[.:)]?\s*(.*)$/u,
     /^\(?\s*([가나다라마바사아자차카타파하])\s*\)?\s*[:.)]\s*(.*)$/u,
-    /^([○●■×])\s*(.*)$/u,
+    /^([\u25A0-\u25FF☆★×])\s*(.*)$/u,
   ];
 
   if (allowNumbers) {
@@ -248,7 +249,7 @@ function looksLikeTrailingQuestion(line) {
 function makeBox(label, items) {
   const cleanItems = (items || [])
     .map(item => ({
-      key: String(item?.key ?? '').trim(),
+      key: normalizeParsedGivenKey(item?.key),
       text: String(item?.text ?? '').trim(),
     }))
     .filter(item => item.key && item.text);
@@ -260,6 +261,14 @@ function makeBox(label, items) {
     boxed: true,
     items: cleanItems,
   };
+}
+
+function normalizeParsedGivenKey(key) {
+  const value = String(key ?? '').trim();
+  if (HANGUL_CONSONANTS.includes(value)) return `${value}.`;
+  if (CIRCLED_HANGUL_KEYS.includes(value)) return value;
+  if (GEOMETRIC_MARKER_KEYS.includes(value)) return value;
+  return value;
 }
 
 function toLines(text) {
