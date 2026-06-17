@@ -1141,6 +1141,15 @@ function formatKstDateTime(ts) {
   });
 }
 
+function dateStringFromTodayPlusMonths(months) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function Subscriptions({ pushToast }) {
   const [query, setQuery] = useState('');
   const [users, setUsers] = useState([]);
@@ -1327,6 +1336,12 @@ function Subscriptions({ pushToast }) {
                 </div>
                 <div>
                   <div className="field-label">만료일</div>
+                  <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:8}}>
+                    <button type="button" className="btn btn-xs" onClick={() => setExpiresDate(dateStringFromTodayPlusMonths(1))}>1개월</button>
+                    <button type="button" className="btn btn-xs" onClick={() => setExpiresDate(dateStringFromTodayPlusMonths(6))}>6개월</button>
+                    <button type="button" className="btn btn-xs" onClick={() => setExpiresDate(dateStringFromTodayPlusMonths(12))}>1년</button>
+                    <button type="button" className="btn btn-xs" onClick={() => setExpiresDate('')}>무기한</button>
+                  </div>
                   <input type="date" className="field-input" style={{width:'100%'}} value={expiresDate} onChange={e => setExpiresDate(e.target.value)}/>
                   <div className="sheet-sub" style={{marginTop:6}}>비우면 무기한, 선택 시 해당일 23:59:59 KST까지</div>
                 </div>
