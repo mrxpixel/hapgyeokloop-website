@@ -5,7 +5,7 @@ const { useState: useStateApp, useEffect: useEffectApp, useCallback: useCallback
 import { sb, rpc, Icon, ErrorBoundary, EmptyState, AuthGate } from './admin-lib.jsx'
 import {
   Overview, Analytics, Reports, QuestionInspector, Announcements, Subjects,
-  Exams, ExamDates, AppVersion, Admins, AuditLog, Settings,
+  Exams, ExamDates, AppVersion, Subscriptions, Admins, AuditLog, Settings,
   CommandPalette, ShortcutsModal, NotifPanel,
 } from './admin-sections.jsx'
 
@@ -18,6 +18,7 @@ const SECTIONS = [
     { key: 'reports',       label: '신고 관리',      icon: 'flag' },
     { key: 'question-inspector', label: '문제 전수조사', icon: 'edit' },
     { key: 'announcements', label: '공지 · 업데이트', icon: 'megaphone' },
+    { key: 'subscriptions', label: '구독 관리',      icon: 'users' },
     { key: 'subjects',      label: '시험 과목',      icon: 'book' },
     { key: 'exams',         label: '시험 관리',      icon: 'database' },
     { key: 'exam-dates',    label: '시험 일자',      icon: 'calendar' },
@@ -38,6 +39,7 @@ const SECTION_TITLES = {
   'reports':      ['신고 관리', '유저가 제출한 문제 신고'],
   'question-inspector': ['문제 전수조사', '과목·회차별 문항 검수 및 Gemini 프롬프트 생성'],
   'announcements':['공지 · 업데이트', '앱에 발행되는 공지 관리'],
+  'subscriptions':['구독 관리', '유저 검색 · 시험별 구독 부여/연장/해지'],
   'subjects':     ['시험 과목', '제공 중인 시험 관리'],
   'exams':        ['시험 관리', 'exams 테이블 직접 관리 · 새 시험 추가'],
   'exam-dates':   ['시험 일자 설정', '시험별 다음 회차 시험일·회차 명칭 관리'],
@@ -144,6 +146,7 @@ function Shell({ session, admin }) {
       case 'reports':       return <Reports pushToast={pushToast}/>;
       case 'question-inspector': return <QuestionInspector pushToast={pushToast}/>;
       case 'announcements': return <Announcements pushToast={pushToast}/>;
+      case 'subscriptions': return admin.role === 'super_admin' ? <Subscriptions pushToast={pushToast}/> : <NotAllowed/>;
       case 'subjects':      return <Subjects pushToast={pushToast}/>;
       case 'exams':         return <Exams pushToast={pushToast}/>;
       case 'exam-dates':    return <ExamDates pushToast={pushToast}/>;
@@ -162,6 +165,7 @@ function Shell({ session, admin }) {
   const visibleSections = SECTIONS.map(g => ({
     ...g,
     items: g.items.filter(it => {
+      if (it.key === 'subscriptions' && admin.role !== 'super_admin') return false;
       if (g.group === 'Super Admin' && admin.role !== 'super_admin') return it.key === 'audit-log'; // allow audit for all admins
       return true;
     }),
