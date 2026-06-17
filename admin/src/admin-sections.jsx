@@ -125,6 +125,8 @@ function actionLabel(action) {
     revoke_user: '권한 해제:',
     assign_subject: '시험 배정:',
     unassign_subject: '시험 배정 해제:',
+    grant_entitlement: '구독 부여',
+    revoke_entitlement: '구독 해지',
     add_subject: '시험 추가:',
     remove_subject: '시험 삭제:',
     update_app_version: '앱 버전 설정:',
@@ -1110,6 +1112,266 @@ function Announcements({ pushToast }) {
               ))}
             </div>
           }
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ─── Subscriptions ─── */
+const MANUAL_EXAMS = [
+  { id: 'gongjungaesa', label: '공인중개사' },
+  { id: 'gampyeongsa', label: '감정평가사' },
+];
+const MANUAL_EXAM_LABELS = Object.fromEntries(MANUAL_EXAMS.map(e => [e.id, e.label]));
+
+function manualExamLabel(id) {
+  return MANUAL_EXAM_LABELS[id] || id || '—';
+}
+
+function formatKstDateTime(ts) {
+  if (!ts) return '무기한';
+  return new Date(ts).toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function Subscriptions({ pushToast }) {
+  const [query, setQuery] = useState('');
+  const [users, setUsers] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [entitlements, setEntitlements] = useState([]);
+  const [entitlementsLoading, setEntitlementsLoading] = useState(false);
+  const [entitlementsTick, setEntitlementsTick] = useState(0);
+  const [examId, setExamId] = useState('gongjungaesa');
+  const [expiresDate, setExpiresDate] = useState('');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [revokingExam, setRevokingExam] = useState(null);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setUsers([]);
+      setSearching(false);
+      return;
+    }
+
+    let cancelled = false;
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const rows = await rpc('admin_search_app_users', { p_query: q });
+        if (!cancelled) setUsers(rows || []);
+      } catch (e) {
+        if (!cancelled) {
+          setUsers([]);
+          pushToast(e.message || '실패', 'info');
+        }
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, pushToast]);
+
+  useEffect(() => {
+    if (!selectedUser?.user_id) {
+      setEntitlements([]);
+      setEntitlementsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setEntitlements([]);
+    setEntitlementsLoading(true);
+    rpc('admin_list_manual_entitlements', { p_user_id: selectedUser.user_id }).then(
+      rows => { if (!cancelled) setEntitlements(rows || []); },
+      e => {
+        if (!cancelled) {
+          setEntitlements([]);
+          pushToast(e.message || '실패', 'info');
+        }
+      }
+    ).finally(() => {
+      if (!cancelled) setEntitlementsLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [selectedUser?.user_id, entitlementsTick, pushToast]);
+
+  const grant = async (e) => {
+    e.preventDefault();
+    if (!selectedUser?.email) { pushToast('유저를 선택하세요', 'info'); return; }
+    if (!examId) { pushToast('시험을 선택하세요', 'info'); return; }
+
+    setBusy(true);
+    try {
+      await rpc('admin_grant_entitlement', {
+        p_email: selectedUser.email,
+        p_exam_id: examId,
+        p_expires_at: expiresDate ? `${expiresDate}T23:59:59+09:00` : null,
+        p_note: note.trim() || null,
+      });
+      pushToast('구독 부여 완료');
+      setEntitlementsTick(t => t + 1);
+    } catch (err) {
+      pushToast(err.message || '실패', 'info');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revoke = async (row) => {
+    if (!selectedUser?.user_id) { pushToast('유저를 선택하세요', 'info'); return; }
+    if (!confirm(`${manualExamLabel(row.exam_id)} 구독을 해지하시겠습니까?`)) return;
+
+    setRevokingExam(row.exam_id);
+    try {
+      await rpc('admin_revoke_entitlement', {
+        p_user_id: selectedUser.user_id,
+        p_exam_id: row.exam_id,
+      });
+      pushToast('구독 해지 완료');
+      setEntitlementsTick(t => t + 1);
+    } catch (e) {
+      pushToast(e.message || '실패', 'info');
+    } finally {
+      setRevokingExam(null);
+    }
+  };
+
+  const showSearchHint = query.trim().length < 2;
+
+  return (
+    <>
+      <div className="toolbar">
+        <input
+          className="search-input"
+          style={{maxWidth:520}}
+          placeholder="이메일 또는 닉네임 검색..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+        <button className="icon-btn" onClick={() => setEntitlementsTick(t => t + 1)} title="부여 현황 새로고침" disabled={!selectedUser}>
+          <Icon name="refresh"/>
+        </button>
+      </div>
+
+      <div className="grid-2" style={{alignItems:'start'}}>
+        <div className="sheet" style={{margin:0}}>
+          <div className="sheet-head">
+            <div><div className="sheet-title">유저 검색</div><div className="sheet-sub">{showSearchHint ? '2자 이상 입력' : `${users.length}명`}</div></div>
+            {searching && <span className="badge badge-neutral">검색 중</span>}
+          </div>
+          <div className="sheet-body flush">
+            {showSearchHint ? <EmptyState icon="search" title="검색어를 입력하세요" sub="이메일 또는 닉네임 2자 이상"/> :
+              searching ? <Loader/> :
+              users.length === 0 ? <EmptyState icon="users" title="검색 결과 없음"/> :
+              users.map(u => {
+                const selected = selectedUser?.user_id === u.user_id;
+                return (
+                  <button
+                    type="button"
+                    key={u.user_id}
+                    className="urow"
+                    style={{width:'100%', textAlign:'left', background:selected ? 'var(--accent-soft)' : undefined}}
+                    onClick={() => setSelectedUser(u)}
+                  >
+                    <div className="uav" style={{background:selected ? 'var(--accent)' : 'var(--surface-3)', color:selected ? '#fff' : 'var(--fg-muted)', border:'1px solid var(--border-strong)'}}>
+                      {(u.display_name || u.email || '?')[0]}
+                    </div>
+                    <div className="uinfo">
+                      <div className="uname-line">
+                        <span className="uname">{u.display_name || '(닉네임 없음)'}</span>
+                        <span className="uemail">{u.email}</span>
+                      </div>
+                      <div className="utags">
+                        <span className="badge badge-info">{u.subscription_tier || 'free'}</span>
+                        {u.selected_exam_id && <span className="badge badge-neutral">{manualExamLabel(u.selected_exam_id)}</span>}
+                        {u.has_used_trial && <span className="badge badge-neutral">trial used</span>}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            }
+          </div>
+        </div>
+
+        <div style={{display:'grid', gap:'var(--sp-4)'}}>
+          <div className="sheet" style={{margin:0}}>
+            <div className="sheet-head">
+              <div>
+                <div className="sheet-title">구독 부여 · 연장</div>
+                <div className="sheet-sub">{selectedUser ? selectedUser.email : '유저를 먼저 선택하세요'}</div>
+              </div>
+            </div>
+            <div className="sheet-body">
+              <form onSubmit={grant} style={{display:'grid', gap:12}}>
+                <div>
+                  <div className="field-label">시험</div>
+                  <select className="field-input" style={{width:'100%'}} value={examId} onChange={e => setExamId(e.target.value)}>
+                    {MANUAL_EXAMS.map(e => <option key={e.id} value={e.id}>{e.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div className="field-label">만료일</div>
+                  <input type="date" className="field-input" style={{width:'100%'}} value={expiresDate} onChange={e => setExpiresDate(e.target.value)}/>
+                  <div className="sheet-sub" style={{marginTop:6}}>비우면 무기한, 선택 시 해당일 23:59:59 KST까지</div>
+                </div>
+                <div>
+                  <div className="field-label">메모</div>
+                  <textarea className="textarea" style={{width:'100%', minHeight:78}} value={note} onChange={e => setNote(e.target.value)} placeholder="계좌이체 확인 메모"/>
+                </div>
+                <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? '처리 중...' : '부여/연장'}</button>
+              </form>
+            </div>
+          </div>
+
+          <div className="sheet" style={{margin:0}}>
+            <div className="sheet-head">
+              <div><div className="sheet-title">현재 부여 현황</div><div className="sheet-sub">{selectedUser ? `${entitlements.length}건 활성` : '선택된 유저 없음'}</div></div>
+            </div>
+            <div className="sheet-body flush">
+              {!selectedUser ? <EmptyState icon="users" title="유저를 선택하세요"/> :
+                entitlementsLoading ? <Loader/> :
+                entitlements.length === 0 ? <EmptyState icon="info" title="활성 부여 없음"/> :
+                <div className="ruled">
+                  {entitlements.map(row => (
+                    <div key={row.id || row.exam_id} className="ruled-row">
+                      <div className="ln">{manualExamLabel(row.exam_id).slice(0, 2)}</div>
+                      <div className="ln-body" style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+                        <div style={{flex:1, minWidth:180}}>
+                          <div style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+                            <span style={{fontWeight:600}}>{manualExamLabel(row.exam_id)}</span>
+                            <span className="badge badge-success">{formatKstDateTime(row.expires_at)}</span>
+                          </div>
+                          <div className="ustat" style={{marginTop:6}}>
+                            <span>부여: {formatKstDateTime(row.granted_at)}</span>
+                          </div>
+                          {row.note && <div style={{fontSize:12, color:'var(--fg-muted)', marginTop:6, wordBreak:'break-word'}}>{row.note}</div>}
+                        </div>
+                        <button className="btn btn-xs btn-danger" onClick={() => revoke(row)} disabled={revokingExam === row.exam_id}>
+                          {revokingExam === row.exam_id ? '해지 중' : '해지'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              }
+            </div>
+          </div>
         </div>
       </div>
     </>
@@ -2549,6 +2811,8 @@ function AuditLog() {
     { key: 'bulk_resolve_reports', label: '일괄 해결' },
     { key: 'create_announcement', label: '공지 작성' },
     { key: 'update_app_version', label: '앱 버전' },
+    { key: 'grant_entitlement', label: '구독 부여' },
+    { key: 'revoke_entitlement', label: '구독 해지' },
     { key: 'approve_user', label: '관리자 승인' },
     { key: 'update_question', label: '문항 수정' },
   ];
@@ -2634,6 +2898,7 @@ function CommandPalette({ onClose, setSection }) {
       { label: '신고 관리', icon:'flag', action: () => setSection('reports') },
       { label: '문제 전수조사', icon:'edit', action: () => setSection('question-inspector') },
       { label: '공지 · 업데이트', icon:'megaphone', action: () => setSection('announcements') },
+      { label: '구독 관리', icon:'users', action: () => setSection('subscriptions') },
       { label: '시험 과목', icon:'book', action: () => setSection('subjects') },
       { label: '앱 버전', icon:'phone', action: () => setSection('app-version') },
       { label: '관리자 관리', icon:'users', action: () => setSection('admins') },
@@ -2756,7 +3021,7 @@ function NotifPanel({ onClose, onBadgeChange }) {
 
 export {
   Overview, Analytics, Reports, QuestionInspector, Announcements, Subjects,
-  Exams, ExamDates, AppVersion, Admins, AuditLog, Settings,
+  Exams, ExamDates, AppVersion, Subscriptions, Admins, AuditLog, Settings,
   CommandPalette, ShortcutsModal, NotifPanel,
   actionLabel,
 }
