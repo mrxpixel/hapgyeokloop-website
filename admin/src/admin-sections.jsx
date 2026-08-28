@@ -566,17 +566,20 @@ const SHAPE_GIVEN_MARKER_KEYS = ['○', '●', '■', '□', '◆', '◇'];
 const GIVEN_MARKER_FAMILY_CONSONANTS = '자음';
 const GIVEN_MARKER_FAMILY_CIRCLED_HANGUL = '원문자';
 const GIVEN_MARKER_FAMILY_CIRCLED_NUMBER = '원숫자';
+const GIVEN_MARKER_FAMILY_NONE = '없음';
 const SHAPE_MARKER_FAMILY_PREFIX = '도형:';
 const DEFAULT_GIVEN_MARKER_FAMILY = GIVEN_MARKER_FAMILY_CONSONANTS;
 const GIVEN_MARKER_SEQUENCES = {
   [GIVEN_MARKER_FAMILY_CONSONANTS]: HANGUL_CONSONANTS.map(key => `${key}.`),
   [GIVEN_MARKER_FAMILY_CIRCLED_HANGUL]: CIRCLED_HANGUL_KEYS,
   [GIVEN_MARKER_FAMILY_CIRCLED_NUMBER]: CIRCLED_NUMBER_MARKER_KEYS,
+  [GIVEN_MARKER_FAMILY_NONE]: [''],
 };
 const GIVEN_MARKER_FAMILY_OPTIONS = [
   { value: GIVEN_MARKER_FAMILY_CONSONANTS, label: '자음 ㄱㄴㄷ' },
   { value: GIVEN_MARKER_FAMILY_CIRCLED_HANGUL, label: '원문자 ㉠㉡㉢' },
   { value: GIVEN_MARKER_FAMILY_CIRCLED_NUMBER, label: '원숫자 ①②③' },
+  { value: GIVEN_MARKER_FAMILY_NONE, label: '기호 없음' },
   ...SHAPE_GIVEN_MARKER_KEYS.map(key => ({ value: `${SHAPE_MARKER_FAMILY_PREFIX}${key}`, label: `도형 ${key}` })),
 ];
 
@@ -662,9 +665,13 @@ function inferGivenMarkerFamilyFromKey(key) {
 }
 
 function inferGivenMarkerFamilyFromItems(items) {
-  for (const item of items || []) {
+  const itemList = items || [];
+  for (const item of itemList) {
     const family = inferGivenMarkerFamilyFromKey(item?.key);
     if (family) return family;
+  }
+  if (itemList.length > 0 && itemList.every(item => String(item?.key ?? '').trim() === '')) {
+    return GIVEN_MARKER_FAMILY_NONE;
   }
   return DEFAULT_GIVEN_MARKER_FAMILY;
 }
@@ -676,6 +683,9 @@ function givenMarkerFamily(box) {
 }
 
 function normalizeGivenItemForMarkerFamily(item, family, index) {
+  if (String(item?.text ?? '').trim() && String(item?.key ?? '').trim() === '') {
+    return { ...item, key: '', _auto_key: false };
+  }
   const key = formatGivenMarkerKey(item?.key);
   if (key && givenMarkerCellOptions(family).includes(key)) {
     return { ...item, key };
@@ -705,8 +715,8 @@ function serializeGivens(boxes) {
       .filter(it => !(it._auto_key && it.text === ''))
       .filter(it => it.key !== '' || it.text !== '');
     if (items.length === 0) continue;
-    if (items.some(it => it.key === '' || it.text === '')) {
-      return { error: '보기 항목의 키와 내용을 모두 입력하세요.' };
+    if (items.some(it => it.text === '')) {
+      return { error: '보기 항목의 내용을 입력하세요.' };
     }
     const boxType = givenBoxType(b);
     const boxed = boxType !== 'plain';
@@ -936,16 +946,19 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
                   <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
                     {(box.items || []).map((it, ii) => (
                       <div key={ii} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-                        <select
-                          className="field-input"
-                          style={{ width: 78, padding: '7px 6px', textAlign: 'center', fontSize: 13, color: 'var(--accent)', fontWeight: 700 }}
-                          value={markerOptions.includes(it.key) ? it.key : givenMarkerKeyForIndex(markerFamily, ii)}
-                          onChange={e => updateItem(bi, ii, x => ({ ...x, key: e.target.value, _auto_key: false }))}
-                        >
-                          {markerOptions.map(key => (
-                            <option key={key} value={key}>{key}</option>
-                          ))}
-                        </select>
+                        {markerFamily !== GIVEN_MARKER_FAMILY_NONE && (
+                          <select
+                            className="field-input"
+                            style={{ width: 78, padding: '7px 6px', textAlign: 'center', fontSize: 13, color: 'var(--accent)', fontWeight: 700 }}
+                            value={it.key === '' ? '' : (markerOptions.includes(it.key) ? it.key : givenMarkerKeyForIndex(markerFamily, ii))}
+                            onChange={e => updateItem(bi, ii, x => ({ ...x, key: e.target.value, _auto_key: false }))}
+                          >
+                            {markerOptions.map(key => (
+                              <option key={key} value={key}>{key}</option>
+                            ))}
+                            <option key="__none__" value="">(없음)</option>
+                          </select>
+                        )}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           {box.markdown_enabled
                             ? <MarkdownEditor compact value={it.text} onChange={md => updateItem(bi, ii, x => ({ ...x, text: md }))} placeholder="항목 내용 (마크다운)" />
@@ -995,12 +1008,15 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
             return (
               <div key={bi} style={boxed ? { border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px', marginBottom: 6, background: 'var(--surface-2)' } : { padding: '2px 0', marginBottom: 6 }}>
                 {label && <div style={{ fontSize: 11, color: 'var(--fg-subtle)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>〈{label}〉</div>}
-                {(box.items || []).map((it, ii) => (
-                  <div key={ii} style={{ display: 'grid', gridTemplateColumns: '40px minmax(0, 1fr)', gap: 8, alignItems: 'start', fontSize: 14, lineHeight: 1.7 }}>
-                    <b>{String(it.key ?? '')}</b>
-                    <GivenPreviewText text={it.text} markdown={!!box.markdown_enabled} />
-                  </div>
-                ))}
+                {(box.items || []).map((it, ii) => {
+                  const hasKey = String(it.key ?? '').trim() !== '';
+                  return (
+                    <div key={ii} style={{ display: 'grid', gridTemplateColumns: hasKey ? '40px minmax(0, 1fr)' : 'minmax(0, 1fr)', gap: 8, alignItems: 'start', fontSize: 14, lineHeight: 1.7 }}>
+                      {hasKey && <b>{String(it.key ?? '')}</b>}
+                      <GivenPreviewText text={it.text} markdown={!!box.markdown_enabled} />
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
