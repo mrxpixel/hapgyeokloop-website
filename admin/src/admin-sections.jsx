@@ -438,16 +438,48 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
   const [editing, setEditing] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [replyText, setReplyText] = useState('');
-  const q = r.question || {
+  const reportQuestion = r.question || {
     id: r.question_id,
+    subject_id: r.subject_id,
     stem: r.q_stem,
+    stem_givens: r.q_stem_givens,
     choices: r.q_choices,
     correct_index: r.q_correct_answer ? 'ABCDE'.indexOf(r.q_correct_answer) : 0,
+    correct_answer: r.q_correct_answer,
     explanation: r.q_explanation,
     year_session: r.year_session,
     question_number: r.question_number,
+    updated_at: r.q_updated_at,
+    admin_checked_at: r.q_admin_checked_at,
+    check_status: r.q_check_status,
   };
-  const choices = Array.isArray(q.choices) ? q.choices : (q.choices?.options || []);
+  const questionId = reportQuestion.id || r.question_id;
+  const questionSubjectId = reportQuestion.subject_id || r.subject_id;
+  const questionYearSession = reportQuestion.year_session || r.year_session;
+  const hasCheckStatusData = reportQuestion.check_status != null
+    || (reportQuestion.updated_at != null && Object.prototype.hasOwnProperty.call(reportQuestion, 'admin_checked_at'));
+  const needsQuestionDetail = reportQuestion.stem_givens === undefined || !hasCheckStatusData;
+  const canLoadQuestionDetail = Boolean(questionId && questionSubjectId && questionYearSession != null);
+  const questionDetail = useAsync(async () => {
+    if (!open || !needsQuestionDetail || !canLoadQuestionDetail) {
+      return { question: null, skipped: true };
+    }
+    const rows = await rpc('admin_get_questions_for_inspection', {
+      p_subject_id: questionSubjectId,
+      p_year_session: Number(questionYearSession),
+    });
+    return {
+      question: (rows || []).find(item => item.id === questionId) || null,
+      skipped: false,
+    };
+  }, [open, needsQuestionDetail, canLoadQuestionDetail, questionId, questionSubjectId, questionYearSession]);
+  const q = normalizeInspectionQuestion({
+    ...reportQuestion,
+    ...(questionDetail.data?.question || {}),
+    id: questionId,
+    subject_id: questionSubjectId,
+    year_session: questionYearSession,
+  });
 
   const resolve = async () => {
     try {
@@ -495,7 +527,19 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
           {q.stem && (
             <div className="det-section">
               <div className="det-label">문제 원문 <span className="new-tag">인라인 편집</span></div>
-              <QuestionBlock q={q} editing={editing} setEditing={setEditing} onSaved={() => { setEditing(false); onChanged(); pushToast('문항이 수정되었습니다'); }} pushToast={pushToast}/>
+              {needsQuestionDetail && canLoadQuestionDetail && !questionDetail.data && !questionDetail.error ?
+                <Loader label="문항 상세 불러오는 중..."/> :
+               questionDetail.error ?
+                <RpcNotApplied message="문항 상세를 불러오지 못해 안전한 편집을 중단했습니다." error={questionDetail.error} retry={questionDetail.refetch}/> :
+                <QuestionBlock
+                  q={q}
+                  editing={editing}
+                  setEditing={setEditing}
+                  onSaved={() => { setEditing(false); onChanged(); pushToast('문항이 수정되었습니다'); }}
+                  onChanged={onChanged}
+                  pushToast={pushToast}
+                />
+              }
             </div>
           )}
           <div className="tracking">
@@ -805,7 +849,22 @@ function LegacyGivensImportPreview({ boxes, onImport, onIgnore }) {
   );
 }
 
-function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
+function inspectionCheckStatus(item) {
+  if (item?.check_status) return item.check_status;
+  if (!item?.admin_checked_at) return 'unchecked';
+  if (item?.updated_at && Date.parse(item.admin_checked_at) < Date.parse(item.updated_at)) return 'stale';
+  return 'checked';
+}
+
+function inspectionStatusMeta(status) {
+  return {
+    unchecked: ['badge-neutral', '미검수', 'var(--fg-faint)'],
+    checked: ['badge-success', '검수 완료', 'var(--success)'],
+    stale: ['badge-warning', '재검수', 'var(--warning)'],
+  }[status] || ['badge-neutral', status || '미검수', 'var(--fg-faint)'];
+}
+
+function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, showTabs = true }) {
   const [stem, setStem] = useState(q.stem || '');
   const [choices, setChoices] = useState(() => {
     const cs = Array.isArray(q.choices) ? q.choices : (q.choices?.options || []);
@@ -814,6 +873,8 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
   const [correct, setCorrect] = useState(q.correct_index ?? 0);
   const [explanation, setExplanation] = useState(q.explanation || '');
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [checkStatus, setCheckStatus] = useState(() => inspectionCheckStatus(q));
   // Inspection RPC returns stem_givens (so it's defined here); the Reports path does not
   // (q built from report fields → undefined). Only enable the givens editor + v2 RPC when loaded.
   const hasGivensField = q.stem_givens !== undefined;
@@ -828,6 +889,10 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
   useEffect(() => {
     setLegacyImportHidden(false);
   }, [q.id]);
+
+  useEffect(() => {
+    setCheckStatus(inspectionCheckStatus(q));
+  }, [q.id, q.check_status, q.admin_checked_at, q.updated_at]);
 
   const updateBox  = (bi, fn) => setBoxes(bs => bs.map((b, i) => i === bi ? fn(b) : b));
   const updateItem = (bi, ii, fn) => updateBox(bi, b => ({ ...b, items: (b.items || []).map((x, j) => j === ii ? fn(x) : x) }));
@@ -858,25 +923,57 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
     try {
       const p_choices = choices.map(c => c.text ? c : { text: String(c) });
       const p_correct_answer = String.fromCharCode(65 + correct);
-      if (hasGivensField) {
-        const { payload, error } = serializeGivens(boxes);
-        if (error) { pushToast(error, 'info'); return; }
-        await rpc('admin_update_question_v2', {
-          p_id: q.id, p_stem: stem, p_stem_givens: payload,
-          p_choices, p_correct_answer, p_explanation: explanation,
-        });
-      } else {
-        await rpc('admin_update_question', {
-          p_id: q.id, p_stem: stem, p_choices, p_correct_answer, p_explanation: explanation,
-        });
-      }
+      const { payload, error } = serializeGivens(boxes);
+      if (error) { pushToast(error, 'info'); return; }
+      await rpc('admin_update_question_v2', {
+        p_id: q.id, p_stem: stem, p_stem_givens: payload,
+        p_choices, p_correct_answer, p_explanation: explanation,
+      });
+      setCheckStatus(status => status === 'checked' ? 'stale' : status);
       onSaved();
     } catch (e) { pushToast(e.message, 'info'); }
     finally { setBusy(false); }
   };
 
+  const toggleCheck = async () => {
+    if (checking) return;
+    const isChecked = checkStatus !== 'unchecked';
+    setChecking(true);
+    try {
+      if (isChecked) {
+        await rpc('admin_unmark_question_checked', { p_question_id: q.id });
+        setCheckStatus('unchecked');
+        pushToast('검수 해제됨');
+      } else {
+        await rpc('admin_mark_question_checked', { p_question_id: q.id });
+        setCheckStatus('checked');
+        pushToast('검수 완료');
+      }
+      onChanged?.();
+    } catch (e) { pushToast(e.message, 'info'); }
+    finally { setChecking(false); }
+  };
+
+  const statusMeta = inspectionStatusMeta(checkStatus);
+  const tabs = showTabs ? (
+    <div className="qi-tabs">
+      <div className={"qi-tab " + (editing ? 'active' : '')} onClick={() => setEditing(true)}>편집</div>
+      <div className={"qi-tab " + (!editing ? 'active' : '')} onClick={() => setEditing(false)}>미리보기</div>
+      <span className={"badge " + statusMeta[0]} style={{marginLeft:'auto', alignSelf:'center'}}>{statusMeta[1]}</span>
+    </div>
+  ) : null;
+  const checkAction = showTabs ? (
+    <div className="qi-actions" style={{justifyContent:'flex-end'}}>
+      <button className={"btn btn-sm " + (checkStatus === 'unchecked' ? 'btn-success' : '')} onClick={toggleCheck} disabled={checking}>
+        {checking ? '처리 중...' : checkStatus === 'unchecked' ? '✓ 검수 완료' : '검수 해제'}
+      </button>
+    </div>
+  ) : null;
+
   if (editing) {
     return (
+      <>
+      {tabs}
       <div className="q-box">
         <textarea value={stem} onChange={e=>setStem(e.target.value)} style={{marginBottom:14, minHeight:150}}/>
         {hasGivensField && (
@@ -995,11 +1092,15 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
           <button className="btn btn-sm btn-primary" onClick={save} disabled={busy}>{busy ? '저장 중...' : '저장'}</button>
         </div>
       </div>
+      {checkAction}
+      </>
     );
   }
   return (
+    <>
+    {tabs}
     <div className="q-box">
-      <button className="btn btn-xs q-edit" onClick={() => setEditing(true)}><Icon name="edit" size={10}/> 편집</button>
+      {!showTabs && <button className="btn btn-xs q-edit" onClick={() => setEditing(true)}><Icon name="edit" size={10}/> 편집</button>}
       <div className="q-stem">{q.stem}</div>
       {Array.isArray(q.stem_givens) && q.stem_givens.length > 0 && (
         <div style={{ margin: '8px 0 14px' }}>
@@ -1035,6 +1136,8 @@ function QuestionBlock({ q, editing, setEditing, onSaved, pushToast }) {
       </ul>
       {q.explanation && <div className="exp-box">{q.explanation}</div>}
     </div>
+    {checkAction}
+    </>
   );
 }
 
@@ -1785,11 +1888,16 @@ function QuestionInspector({ pushToast }) {
   const exams = useAsync(() => rpc('admin_get_exams'));
   const [examCode, setExamCode] = useState(localStorage.getItem('qi.examCode') || null);
   const [subjectCode, setSubjectCode] = useState(localStorage.getItem('qi.subjectCode') || null);
-  const [yearSession, setYearSession] = useState(null);
-  const [openId, setOpenId] = useState(null);
+  const [yearSession, setYearSession] = useState(() => {
+    const stored = Number(localStorage.getItem('qi.yearSession'));
+    return Number.isFinite(stored) && stored > 0 ? stored : null;
+  });
+  const [openId, setOpenId] = useState(localStorage.getItem('qi.openId') || null);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsCode, setSettingsCode] = useState(null);
   const [activeTabPerCard, setActiveTabPerCard] = useState({});
+  const previousExamId = useRef(null);
+  const previousSubjectId = useRef(null);
 
   const sortedExams = useMemo(() => {
     return [...(exams.data || [])];
@@ -1831,6 +1939,14 @@ function QuestionInspector({ pushToast }) {
   }, [subjectCode]);
 
   useEffect(() => {
+    if (yearSession) localStorage.setItem('qi.yearSession', String(yearSession));
+  }, [yearSession]);
+
+  useEffect(() => {
+    if (openId) localStorage.setItem('qi.openId', openId);
+  }, [openId]);
+
+  useEffect(() => {
     if (!sortedExams.length) return;
     const hasExam = sortedExams.some(e => e.code === examCode);
     if (!examCode || !hasExam) {
@@ -1858,6 +1974,13 @@ function QuestionInspector({ pushToast }) {
   }, [sortedSubjects, subjects.loading, subjectCode, settingsCode]);
 
   useEffect(() => {
+    if (!currentExamId) return;
+    if (previousExamId.current === null) {
+      previousExamId.current = currentExamId;
+      return;
+    }
+    if (previousExamId.current === currentExamId) return;
+    previousExamId.current = currentExamId;
     setSubjectCode(null);
     setSettingsCode(null);
     setYearSession(null);
@@ -1866,6 +1989,13 @@ function QuestionInspector({ pushToast }) {
   }, [currentExamId]);
 
   useEffect(() => {
+    if (!selectedSubjectId) return;
+    if (previousSubjectId.current === null) {
+      previousSubjectId.current = selectedSubjectId;
+      return;
+    }
+    if (previousSubjectId.current === selectedSubjectId) return;
+    previousSubjectId.current = selectedSubjectId;
     setYearSession(null);
     setOpenId(null);
     setActiveTabPerCard({});
@@ -1885,6 +2015,10 @@ function QuestionInspector({ pushToast }) {
 
   const handleExamSelect = (code) => {
     if (code === examCode) return;
+    localStorage.setItem('qi.examCode', code);
+    localStorage.removeItem('qi.subjectCode');
+    localStorage.removeItem('qi.yearSession');
+    localStorage.removeItem('qi.openId');
     setExamCode(code);
     setSubjectCode(null);
     setSettingsCode(null);
@@ -1894,11 +2028,21 @@ function QuestionInspector({ pushToast }) {
   };
 
   const handleSubjectSelect = (code) => {
+    localStorage.setItem('qi.subjectCode', code);
+    localStorage.removeItem('qi.yearSession');
+    localStorage.removeItem('qi.openId');
     setSubjectCode(code);
     setYearSession(null);
     setOpenId(null);
     setActiveTabPerCard({});
     setSettingsCode(c => c || code);
+  };
+
+  const handleQuestionToggle = (questionId) => {
+    const nextId = openId === questionId ? null : questionId;
+    if (nextId) localStorage.setItem('qi.openId', nextId);
+    else localStorage.removeItem('qi.openId');
+    setOpenId(nextId);
   };
 
   const handleQuestionsChanged = () => {
@@ -1978,7 +2122,14 @@ function QuestionInspector({ pushToast }) {
           className="field-input"
           style={{minWidth:150, padding:'6px 10px', fontSize:12}}
           value={yearSession || ''}
-          onChange={e => { setYearSession(e.target.value ? Number(e.target.value) : null); setOpenId(null); }}
+          onChange={e => {
+            const nextSession = e.target.value ? Number(e.target.value) : null;
+            if (nextSession) localStorage.setItem('qi.yearSession', String(nextSession));
+            else localStorage.removeItem('qi.yearSession');
+            localStorage.removeItem('qi.openId');
+            setYearSession(nextSession);
+            setOpenId(null);
+          }}
           disabled={!selectedSubjectId || sessions.loading}
         >
           <option value="">{sessions.loading ? '회차 불러오는 중...' : '회차 선택'}</option>
@@ -2013,7 +2164,7 @@ function QuestionInspector({ pushToast }) {
               subject={selectedSubject}
               exam={currentExam}
               open={openId === q.id}
-              onToggle={() => setOpenId(openId === q.id ? null : q.id)}
+              onToggle={() => handleQuestionToggle(q.id)}
               activeTab={activeTabPerCard[q.id] || 'edit'}
               setActiveTab={(tab) => setCardTab(q.id, tab)}
               onChanged={handleQuestionsChanged}
@@ -2108,12 +2259,8 @@ function QuestionInspectionItem({ question, subject, exam, open, onToggle, activ
   const q = normalizeInspectionQuestion(question);
   const choices = questionChoices(q);
   const correctIdx = 'ABCDE'.indexOf(q.correct_answer || '');
-  const status = q.check_status || 'unchecked';
-  const statusMeta = {
-    unchecked: ['badge-neutral', '미검수', 'var(--fg-faint)'],
-    checked: ['badge-success', '검수 완료', 'var(--success)'],
-    stale: ['badge-warning', '재검수', 'var(--warning)'],
-  }[status] || ['badge-neutral', status, 'var(--fg-faint)'];
+  const status = inspectionCheckStatus(q);
+  const statusMeta = inspectionStatusMeta(status);
 
   const copyGeminiPrompt = async () => {
     const text = buildGeminiPrompt(subject, q);
@@ -2172,6 +2319,7 @@ function QuestionInspectionItem({ question, subject, exam, open, onToggle, activ
               setEditing={setEditing}
               onSaved={() => { setEditing(false); onChanged(); pushToast('문항이 수정되었습니다'); }}
               pushToast={pushToast}
+              showTabs={false}
             />
           ) : (
             <div className="q-box">
@@ -2269,6 +2417,1320 @@ function fallbackCopyText(text) {
   ta.select();
   document.execCommand('copy');
   document.body.removeChild(ta);
+}
+
+/* ─── Concept Inspector ─── */
+function ConceptInspector({ pushToast, setSection }) {
+  const exams = useAsync(() => rpc('admin_get_exams'));
+  const [examCode, setExamCode] = useState(localStorage.getItem('ci.examCode') || null);
+  const [subjectCode, setSubjectCode] = useState(localStorage.getItem('ci.subjectCode') || null);
+  const [unitId, setUnitId] = useState(localStorage.getItem('ci.unitId') || null);
+  const [openId, setOpenId] = useState(null);
+  const [activeTabPerCard, setActiveTabPerCard] = useState({});
+
+  const sortedExams = useMemo(() => [...(exams.data || [])], [exams.data]);
+  const currentExam = useMemo(() => {
+    return sortedExams.find(exam => exam.code === examCode) || sortedExams[0] || null;
+  }, [sortedExams, examCode]);
+  const currentExamId = currentExam?.exam_id_prefix || null;
+
+  const subjects = useAsync(
+    () => currentExamId ? rpc('admin_get_concept_subjects', { p_exam_id: currentExamId }) : Promise.resolve([]),
+    [currentExamId]
+  );
+  const sortedSubjects = useMemo(() => {
+    return [...(subjects.data || [])].sort((a, b) => {
+      const levelDiff = (a.level ?? 0) - (b.level ?? 0);
+      return levelDiff || (a.sort_order ?? 0) - (b.sort_order ?? 0) || String(a.code || '').localeCompare(String(b.code || ''));
+    });
+  }, [subjects.data]);
+  const selectedSubject = useMemo(() => {
+    return sortedSubjects.find(subject => subject.code === subjectCode) || null;
+  }, [sortedSubjects, subjectCode]);
+  const selectedSubjectId = selectedSubject?.id || null;
+
+  const units = useAsync(
+    () => selectedSubjectId ? rpc('admin_get_concept_units', { p_subject_id: selectedSubjectId }) : Promise.resolve([]),
+    [selectedSubjectId]
+  );
+  const sortedUnits = useMemo(() => {
+    return [...(units.data || [])].sort((a, b) => {
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0) || String(a.code || '').localeCompare(String(b.code || ''));
+    });
+  }, [units.data]);
+  const selectedUnit = useMemo(() => sortedUnits.find(unit => unit.id === unitId) || null, [sortedUnits, unitId]);
+  const selectedUnitId = selectedUnit?.id || null;
+
+  const concepts = useAsync(
+    () => (selectedSubjectId && selectedUnitId)
+      ? rpc('admin_get_concepts_for_inspection', { p_subject_id: selectedSubjectId, p_category_id: selectedUnitId })
+      : Promise.resolve([]),
+    [selectedSubjectId, selectedUnitId]
+  );
+
+  useEffect(() => {
+    if (examCode) localStorage.setItem('ci.examCode', examCode);
+  }, [examCode]);
+
+  useEffect(() => {
+    if (subjectCode) localStorage.setItem('ci.subjectCode', subjectCode);
+  }, [subjectCode]);
+
+  useEffect(() => {
+    if (unitId) localStorage.setItem('ci.unitId', unitId);
+  }, [unitId]);
+
+  useEffect(() => {
+    if (!sortedExams.length) return;
+    if (!examCode || !sortedExams.some(exam => exam.code === examCode)) {
+      setExamCode(sortedExams[0].code);
+    }
+  }, [sortedExams, examCode]);
+
+  useEffect(() => {
+    if (subjects.error || subjects.loading) return;
+    if (!sortedSubjects.length) {
+      setSubjectCode(null);
+      return;
+    }
+    if (!subjectCode || !sortedSubjects.some(subject => subject.code === subjectCode)) {
+      setSubjectCode(sortedSubjects[0].code);
+    }
+  }, [sortedSubjects, subjects.loading, subjects.error, subjectCode]);
+
+  useEffect(() => {
+    if (units.error || units.loading) return;
+    if (!sortedUnits.length) {
+      setUnitId(null);
+      return;
+    }
+    if (!unitId || !sortedUnits.some(unit => unit.id === unitId)) {
+      setUnitId(sortedUnits[0].id);
+    }
+  }, [sortedUnits, units.loading, units.error, unitId]);
+
+  useEffect(() => {
+    setOpenId(null);
+    setActiveTabPerCard({});
+  }, [selectedSubjectId, selectedUnitId]);
+
+  const handleExamSelect = (code) => {
+    if (code === examCode) return;
+    localStorage.setItem('ci.examCode', code);
+    localStorage.removeItem('ci.subjectCode');
+    localStorage.removeItem('ci.unitId');
+    setExamCode(code);
+    setSubjectCode(null);
+    setUnitId(null);
+    setOpenId(null);
+    setActiveTabPerCard({});
+  };
+
+  const handleSubjectSelect = (code) => {
+    localStorage.setItem('ci.subjectCode', code);
+    localStorage.removeItem('ci.unitId');
+    setSubjectCode(code);
+    setUnitId(null);
+    setOpenId(null);
+    setActiveTabPerCard({});
+  };
+
+  const handleUnitSelect = (nextUnitId) => {
+    if (nextUnitId) localStorage.setItem('ci.unitId', nextUnitId);
+    else localStorage.removeItem('ci.unitId');
+    setUnitId(nextUnitId || null);
+    setOpenId(null);
+    setActiveTabPerCard({});
+  };
+
+  const handleConceptsChanged = () => {
+    concepts.refetch();
+    units.refetch();
+  };
+
+  const conceptRows = concepts.data || [];
+  const total = conceptRows.length;
+  const checked = conceptRows.filter(concept => inspectionCheckStatus(concept) === 'checked').length;
+  const stale = conceptRows.filter(concept => inspectionCheckStatus(concept) === 'stale').length;
+  const unchecked = conceptRows.filter(concept => inspectionCheckStatus(concept) === 'unchecked').length;
+  const checkedPct = total ? (checked / total) * 100 : 0;
+  const stalePct = total ? (stale / total) * 100 : 0;
+
+  return (
+    <>
+      <div className="toolbar qi-exam-tabs">
+        {exams.loading ? <span style={{fontSize:12, color:'var(--fg-subtle)'}}>시험 불러오는 중...</span> :
+          sortedExams.map(exam => (
+            <div
+              key={exam.code}
+              className={"filter-chip " + (currentExam?.code === exam.code ? 'active' : '')}
+              onClick={() => handleExamSelect(exam.code)}
+              title={exam.exam_id_prefix || 'ID prefix 없음'}
+            >
+              {exam.name || exam.code}
+            </div>
+          ))
+        }
+        <div style={{flex:1}}/>
+        <button className="icon-btn" onClick={() => { exams.refetch(); subjects.refetch(); units.refetch(); concepts.refetch(); }} title="새로고침"><Icon name="refresh"/></button>
+      </div>
+
+      {currentExam && !currentExamId && !exams.error && (
+        <div className="subj-warning qi-warning">
+          <Icon name="info" size={14}/>
+          선택한 시험의 ID prefix가 없어 개념 과목을 불러올 수 없습니다.
+        </div>
+      )}
+
+      <div className="toolbar qi-subject-tabs">
+        {subjects.loading ? <span style={{fontSize:12, color:'var(--fg-subtle)'}}>과목 불러오는 중...</span> :
+          sortedSubjects.length === 0 ? <span style={{fontSize:12, color:'var(--fg-subtle)'}}>표시할 과목이 없습니다</span> :
+          sortedSubjects.map(subject => (
+            <div
+              key={subject.id || subject.code}
+              className={"filter-chip " + (subjectCode === subject.code ? 'active' : '')}
+              onClick={() => handleSubjectSelect(subject.code)}
+              title={`${subject.name || subject.code} · 개념 ${fmtNum(subject.concept_count || 0)}개`}
+            >
+              {subject.name || SUBJECT_SHORT[subject.code] || subject.code}
+            </div>
+          ))
+        }
+      </div>
+
+      <div className="toolbar" style={{alignItems:'center'}}>
+        <select
+          className="field-input"
+          style={{minWidth:220, padding:'6px 10px', fontSize:12}}
+          value={selectedUnitId || ''}
+          onChange={event => handleUnitSelect(event.target.value)}
+          disabled={!selectedSubjectId || units.loading}
+        >
+          <option value="">{units.loading ? '단원 불러오는 중...' : '단원 선택'}</option>
+          {sortedUnits.map(unit => (
+            <option key={unit.id} value={unit.id}>
+              {unit.name || unit.code} · 개념 {fmtNum(unit.concept_count || 0)} · 문항 {fmtNum(unit.question_count || 0)}
+            </option>
+          ))}
+        </select>
+        <div className="qi-progress" style={{flex:1}}>
+          <div className="qi-stat"><span>총</span><strong>{fmtNum(total)}</strong><span>개념</span></div>
+          <div className="qi-stat checked"><span>검수</span><strong>{fmtNum(checked)}</strong></div>
+          <div className="qi-stat stale"><span>재검수</span><strong>{fmtNum(stale)}</strong></div>
+          <div className="qi-stat unchecked"><span>미검수</span><strong>{fmtNum(unchecked)}</strong></div>
+          <div className="qi-progress-bar" aria-label="개념 검수 진행률">
+            <span className="seg seg-checked" style={{width: checkedPct + '%'}}/>
+            <span className="seg seg-stale" style={{width: stalePct + '%'}}/>
+          </div>
+        </div>
+      </div>
+
+      {exams.error ? <RpcNotApplied message="시험 목록 RPC가 아직 적용되지 않았습니다." error={exams.error} retry={exams.refetch}/> :
+       !currentExam ? <EmptyState icon="book" title="시험이 없습니다"/> :
+       subjects.error ? <RpcNotApplied message="개념 과목 RPC가 아직 적용되지 않았습니다." error={subjects.error} retry={subjects.refetch}/> :
+       !selectedSubjectId ? <EmptyState icon="book" title="과목을 선택하세요"/> :
+       units.error ? <RpcNotApplied message="개념 단원 RPC가 아직 적용되지 않았습니다." error={units.error} retry={units.refetch}/> :
+       units.loading && !sortedUnits.length ? <Loader label="단원 불러오는 중..."/> :
+       !selectedUnitId ? <EmptyState icon="book" title="단원이 없습니다" sub="선택한 과목에 등록된 단원이 없습니다."/> :
+       concepts.loading ? <Loader label="개념 불러오는 중..."/> :
+       concepts.error ? <RpcNotApplied message="개념 검수 목록 RPC가 아직 적용되지 않았습니다." error={concepts.error} retry={concepts.refetch}/> :
+       conceptRows.length === 0 ? <EmptyState icon="book" title="개념이 없습니다" sub="선택한 단원에 검수할 개념이 없습니다."/> :
+        <div className="item-list">
+          {conceptRows.map(concept => (
+            <ConceptInspectionItem
+              key={concept.id}
+              concept={concept}
+              unit={selectedUnit}
+              subject={selectedSubject}
+              exam={currentExam}
+              open={openId === concept.id}
+              onToggle={() => setOpenId(openId === concept.id ? null : concept.id)}
+              activeTab={activeTabPerCard[concept.id] || 'edit'}
+              setActiveTab={tab => setActiveTabPerCard(tabs => ({ ...tabs, [concept.id]: tab }))}
+              onChanged={handleConceptsChanged}
+              pushToast={pushToast}
+              setSection={setSection}
+            />
+          ))}
+        </div>
+      }
+    </>
+  );
+}
+
+function ConceptInspectionItem({ concept, unit, subject, exam, open, onToggle, activeTab, setActiveTab, onChanged, pushToast, setSection }) {
+  const [title, setTitle] = useState(concept.title || '');
+  const [summary, setSummary] = useState(concept.summary || '');
+  const [definition, setDefinition] = useState(concept.definition || '');
+  const [examPoint, setExamPoint] = useState(concept.exam_point || '');
+  const [realLifeExample, setRealLifeExample] = useState(concept.real_life_example || '');
+  const [keyPointsText, setKeyPointsText] = useState(() => formatJsonDraft(concept.key_points));
+  const [relatedLaws, setRelatedLaws] = useState(() => normalizeRelatedLawDrafts(concept.related_laws));
+  const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [rpcError, setRpcError] = useState(null);
+
+  useEffect(() => {
+    setTitle(concept.title || '');
+    setSummary(concept.summary || '');
+    setDefinition(concept.definition || '');
+    setExamPoint(concept.exam_point || '');
+    setRealLifeExample(concept.real_life_example || '');
+    setKeyPointsText(formatJsonDraft(concept.key_points));
+    setRelatedLaws(normalizeRelatedLawDrafts(concept.related_laws));
+    setRpcError(null);
+  }, [concept]);
+
+  const keyPointsJson = useMemo(() => parseJsonDraft(keyPointsText, '핵심 포인트'), [keyPointsText]);
+  const serializedRelatedLaws = useMemo(() => serializeRelatedLaws(relatedLaws), [relatedLaws]);
+  const relatedLawsError = useMemo(() => validateRelatedLaws(serializedRelatedLaws), [serializedRelatedLaws]);
+  const previewConcept = useMemo(() => ({
+    ...concept,
+    title,
+    summary,
+    definition,
+    exam_point: examPoint,
+    real_life_example: realLifeExample,
+    key_points: keyPointsJson.error ? concept.key_points : keyPointsJson.value,
+    related_laws: serializedRelatedLaws,
+  }), [concept, title, summary, definition, examPoint, realLifeExample, keyPointsJson, serializedRelatedLaws]);
+  const status = inspectionCheckStatus(concept);
+  const statusMeta = inspectionStatusMeta(status);
+  const unitName = concept.category_name || unit?.name || concept.chapter_label || concept.page_title || '단원 미지정';
+
+  const linkedQuestions = useAsync(
+    () => (open && activeTab === 'questions')
+      ? rpc('admin_get_concept_questions', { p_concept_id: concept.id })
+      : Promise.resolve([]),
+    [open, activeTab, concept.id]
+  );
+  const sortedQuestions = useMemo(() => {
+    return [...(linkedQuestions.data || [])].sort((a, b) => {
+      return Number(a.year_session || 0) - Number(b.year_session || 0)
+        || Number(a.question_number || 0) - Number(b.question_number || 0)
+        || String(a.question_id || '').localeCompare(String(b.question_id || ''));
+    });
+  }, [linkedQuestions.data]);
+
+  const addRelatedLaw = () => {
+    setRelatedLaws(current => renumberRelatedLaws([...current, createEmptyRelatedLawDraft()]));
+  };
+
+  const updateRelatedLaw = (index, field, value) => {
+    setRelatedLaws(current => current.map((law, lawIndex) => {
+      if (lawIndex !== index) return law;
+      if (field !== 'title') return { ...law, [field]: value };
+      return { ...law, title: value, id: relatedLawIdFromTitle(value) || law.id || createCustomRelatedLawId() };
+    }));
+  };
+
+  const moveRelatedLaw = (index, direction) => {
+    setRelatedLaws(current => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= current.length) return current;
+      const next = [...current];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return renumberRelatedLaws(next);
+    });
+  };
+
+  const removeRelatedLaw = (index) => {
+    setRelatedLaws(current => renumberRelatedLaws(current.filter((_, lawIndex) => lawIndex !== index)));
+  };
+
+  const save = async () => {
+    if (keyPointsJson.error || relatedLawsError) return;
+    setBusy(true);
+    setRpcError(null);
+    try {
+      await rpc('admin_update_concept_note', {
+        p_id: concept.id,
+        p_title: title.trim(),
+        p_summary: nullableText(summary),
+        p_definition: nullableText(definition),
+        p_key_points: keyPointsJson.value,
+        p_exam_point: nullableText(examPoint),
+        p_real_life_example: nullableText(realLifeExample),
+        p_related_laws: serializedRelatedLaws,
+      });
+      pushToast('개념노트가 수정되었습니다');
+      onChanged();
+    } catch (error) {
+      setRpcError(error);
+      pushToast(error.message, 'info');
+    } finally { setBusy(false); }
+  };
+
+  const toggleCheck = async () => {
+    if (checking) return;
+    const isChecked = status !== 'unchecked';
+    setChecking(true);
+    setRpcError(null);
+    try {
+      if (isChecked) {
+        await rpc('admin_unmark_concept_checked', { p_concept_id: concept.id });
+        pushToast('개념 검수 해제됨');
+      } else {
+        await rpc('admin_mark_concept_checked', { p_concept_id: concept.id });
+        pushToast('개념 검수 완료');
+      }
+      onChanged();
+    } catch (error) {
+      setRpcError(error);
+      pushToast(error.message, 'info');
+    } finally { setChecking(false); }
+  };
+
+  return (
+    <div className={"item " + (open ? 'open' : '')}>
+      <div className="item-head" onClick={onToggle}>
+        <div className="dot" style={{background:statusMeta[2]}}/>
+        <div className="item-meta">
+          <div className="item-title">{concept.title || '(제목 없는 개념)'}</div>
+          <div className="item-sub">{unitName} · {concept.page_title || concept.chapter_label || '개념노트'} · 수정 {relativeTime(concept.updated_at) || '이력 없음'}</div>
+        </div>
+        <div className="item-right">
+          <span className="badge badge-info">{fmtNum(concept.question_count || 0)}문항</span>
+          <span className={"badge " + statusMeta[0]}>{statusMeta[1]}</span>
+          <span className="item-time">#{String(concept.id || '').slice(0,8)}</span>
+          <span className="chev">›</span>
+        </div>
+      </div>
+      {open && (
+        <div className="item-body">
+          <div className="qi-tabs">
+            <div className={"qi-tab " + (activeTab === 'edit' ? 'active' : '')} onClick={() => setActiveTab('edit')}>편집</div>
+            <div className={"qi-tab " + (activeTab === 'preview' ? 'active' : '')} onClick={() => setActiveTab('preview')}>미리보기</div>
+            <div className={"qi-tab " + (activeTab === 'questions' ? 'active' : '')} onClick={() => setActiveTab('questions')}>기출</div>
+          </div>
+
+          {activeTab === 'edit' ? (
+            <div className="q-box">
+              <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:12}}>
+                <div>
+                  <div className="field-label">제목</div>
+                  <input className="field-input" style={{width:'100%'}} value={title} onChange={event => setTitle(event.target.value)}/>
+                </div>
+                <div>
+                  <div className="field-label">요약</div>
+                  <textarea style={{minHeight:90}} value={summary} onChange={event => setSummary(event.target.value)}/>
+                </div>
+              </div>
+              <div style={{marginTop:14}}>
+                <div className="field-label">정의</div>
+                <ConceptDefinitionEditor value={definition} onChange={setDefinition}/>
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:12, marginTop:14}}>
+                <div>
+                  <div className="field-label">구별</div>
+                  <textarea
+                    style={{minHeight:130}}
+                    value={examPoint}
+                    onChange={event => setExamPoint(event.target.value)}
+                    placeholder={'**설정 전후를 묻지 않는다**\n  ○ 저당권 설정 후에 부합한 물건에도 미친다\n  × 설정 당시 존재한 것에만 미친다'}
+                  />
+                </div>
+                <div>
+                  <div className="field-label">실생활 예시</div>
+                  <textarea style={{minHeight:110}} value={realLifeExample} onChange={event => setRealLifeExample(event.target.value)}/>
+                </div>
+              </div>
+              <RelatedLawsEditor
+                laws={relatedLaws}
+                onAdd={addRelatedLaw}
+                onUpdate={updateRelatedLaw}
+                onMove={moveRelatedLaw}
+                onRemove={removeRelatedLaw}
+                error={relatedLawsError}
+              />
+              <details className="concept-advanced">
+                <summary>고급 (JSON 직접 편집)</summary>
+                <div className="concept-advanced-body">
+                  <div className="field-label">핵심 포인트</div>
+                  <textarea className="qi-tpl-textarea" style={{minHeight:180}} value={keyPointsText} onChange={event => setKeyPointsText(event.target.value)} placeholder="[]"/>
+                  {keyPointsJson.error && <div className="concept-field-error">{keyPointsJson.error}</div>}
+                </div>
+              </details>
+            </div>
+          ) : activeTab === 'preview' ? (
+            <ConceptPreview concept={previewConcept}/>
+          ) : (
+            <div className="q-box">
+              {linkedQuestions.loading ? <Loader label="기출 문항 불러오는 중..."/> :
+               linkedQuestions.error ? <RpcNotApplied message="개념 연결 문항 RPC가 아직 적용되지 않았습니다." error={linkedQuestions.error} retry={linkedQuestions.refetch}/> :
+               sortedQuestions.length === 0 ? <EmptyState icon="edit" title="연결된 기출이 없습니다" sub="이 개념에 매핑된 문항이 없습니다."/> :
+                <div style={{display:'flex', flexDirection:'column', gap:8}}>
+                  {sortedQuestions.map(question => (
+                    <ConceptQuestionAccordion
+                      key={question.question_id}
+                      question={question}
+                      subject={subject}
+                      exam={exam}
+                      setSection={setSection}
+                    />
+                  ))}
+                </div>
+              }
+            </div>
+          )}
+
+          {rpcError && <RpcNotApplied message="개념노트 RPC가 아직 적용되지 않았습니다." error={rpcError}/>}
+          <div className="qi-actions" style={{justifyContent:'flex-end'}}>
+            <button className={"btn btn-sm " + (status === 'unchecked' ? 'btn-success' : '')} onClick={toggleCheck} disabled={checking}>
+              {checking ? '처리 중...' : status === 'unchecked' ? '✓ 검수 완료' : '검수 해제'}
+            </button>
+            <button className="btn btn-sm btn-primary" onClick={save} disabled={busy || Boolean(keyPointsJson.error || relatedLawsError)}>
+              {busy ? '저장 중...' : '저장'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+let relatedLawDraftSequence = 0;
+let lastCustomRelatedLawTimestamp = 0;
+
+function nextRelatedLawDraftKey() {
+  relatedLawDraftSequence += 1;
+  return `related-law-${relatedLawDraftSequence}`;
+}
+
+function createCustomRelatedLawId() {
+  const timestamp = Math.max(Date.now(), lastCustomRelatedLawTimestamp + 1);
+  lastCustomRelatedLawTimestamp = timestamp;
+  return `custom_${timestamp}`;
+}
+
+function relatedLawIdFromTitle(title) {
+  const match = String(title || '').match(/^\s*(.+?법)\s+(제\s*\d+\s*조(?:\s*의\s*\d+)?)(?=\s|\(|$)/);
+  if (!match) return null;
+  return `${match[1].trim()} ${match[2].trim()}`.replace(/\s+/g, '_');
+}
+
+function normalizeRelatedLawDrafts(value) {
+  let source = value;
+  if (typeof source === 'string') {
+    try { source = JSON.parse(source); }
+    catch (error) { source = []; }
+  }
+  if (!Array.isArray(source)) return [];
+  const drafts = source.map((item, index) => {
+    const law = item && typeof item === 'object' && !Array.isArray(item) ? item : {};
+    const title = String(law.title ?? '');
+    const parsedSortOrder = law.sort_order == null || law.sort_order === '' ? index + 1 : Number(law.sort_order);
+    return {
+      ...law,
+      _editorKey: nextRelatedLawDraftKey(),
+      id: relatedLawIdFromTitle(title) || String(law.id || '') || createCustomRelatedLawId(),
+      title,
+      article_text: String(law.article_text ?? ''),
+      commentary: law.commentary == null ? '' : String(law.commentary),
+      sort_order: Number.isFinite(parsedSortOrder) ? parsedSortOrder : index + 1,
+      real_life_example: Object.prototype.hasOwnProperty.call(law, 'real_life_example') ? law.real_life_example : null,
+    };
+  });
+  return drafts
+    .map((law, sourceIndex) => ({ law, sourceIndex }))
+    .sort((a, b) => a.law.sort_order - b.law.sort_order || a.sourceIndex - b.sourceIndex)
+    .map(({ law }) => law);
+}
+
+function createEmptyRelatedLawDraft() {
+  return {
+    _editorKey: nextRelatedLawDraftKey(),
+    id: createCustomRelatedLawId(),
+    title: '',
+    article_text: '',
+    commentary: '',
+    sort_order: 1,
+    real_life_example: null,
+  };
+}
+
+function renumberRelatedLaws(laws) {
+  return laws.map((law, index) => ({ ...law, sort_order: index + 1 }));
+}
+
+function serializeRelatedLaws(laws) {
+  return laws.map((draft, index) => {
+    const { _editorKey, ...law } = draft;
+    const title = String(law.title ?? '').trim();
+    return {
+      ...law,
+      id: relatedLawIdFromTitle(title) || String(law.id || '') || createCustomRelatedLawId(),
+      title,
+      article_text: String(law.article_text ?? '').trim(),
+      commentary: nullableText(law.commentary),
+      sort_order: index + 1,
+      real_life_example: Object.prototype.hasOwnProperty.call(law, 'real_life_example') ? law.real_life_example : null,
+    };
+  });
+}
+
+function validateRelatedLaws(laws) {
+  const usedIds = new Set();
+  for (let index = 0; index < laws.length; index += 1) {
+    const law = laws[index];
+    if (!law.title) return `조문 ${index + 1}의 제목을 입력하세요.`;
+    if (!law.article_text) return `조문 ${index + 1}의 조문 본문을 입력하세요.`;
+    if (usedIds.has(law.id)) return `같은 조문이 두 번 등록되어 있습니다: ${law.title}`;
+    usedIds.add(law.id);
+  }
+  return null;
+}
+
+function RelatedLawsEditor({ laws, onAdd, onUpdate, onMove, onRemove, error }) {
+  return (
+    <section className="concept-laws-editor">
+      <div className="concept-laws-toolbar">
+        <div>
+          <div className="field-label">관련 법령</div>
+          <div className="concept-laws-help">조문은 위에서부터 앱에 표시됩니다.</div>
+        </div>
+        <button type="button" className="btn btn-xs" onClick={onAdd}>+ 조문 추가</button>
+      </div>
+
+      <div className="concept-law-list">
+        {laws.length === 0 && <div className="concept-law-empty">등록된 조문이 없습니다.</div>}
+        {laws.map((law, index) => (
+          <div className="concept-law-card" key={law._editorKey}>
+            <div className="concept-law-card-head">
+              <strong>조문 {index + 1}</strong>
+              <div className="concept-law-actions">
+                <button type="button" className="btn btn-xs" onClick={() => onMove(index, -1)} disabled={index === 0}>위로</button>
+                <button type="button" className="btn btn-xs" onClick={() => onMove(index, 1)} disabled={index === laws.length - 1}>아래로</button>
+                <button type="button" className="btn btn-xs btn-danger" onClick={() => onRemove(index)}>삭제</button>
+              </div>
+            </div>
+            <label className="concept-law-field">
+              <span className="field-label">제목</span>
+              <input
+                className="field-input"
+                value={law.title}
+                onChange={event => onUpdate(index, 'title', event.target.value)}
+                placeholder="민법 제358조 (저당권의 효력의 범위)"
+              />
+            </label>
+            <label className="concept-law-field">
+              <span className="field-label">조문 본문</span>
+              <textarea
+                value={law.article_text}
+                onChange={event => onUpdate(index, 'article_text', event.target.value)}
+                placeholder="제358조(저당권의 효력의 범위) 저당권의 효력은 …"
+              />
+            </label>
+            <label className="concept-law-field">
+              <span className="field-label">해설</span>
+              <textarea
+                value={law.commentary}
+                onChange={event => onUpdate(index, 'commentary', event.target.value)}
+                placeholder="비워둘 수 있습니다."
+              />
+            </label>
+          </div>
+        ))}
+      </div>
+
+      {error && <div className="concept-field-error">{error}</div>}
+      <button type="button" className="btn btn-xs concept-law-add-bottom" onClick={onAdd}>+ 조문 추가</button>
+    </section>
+  );
+}
+
+function ConceptDefinitionEditor({ value, onChange }) {
+  const wrapperRef = useRef(null);
+  const cursorOffsetRef = useRef(String(value || '').length);
+  const pointerOpenedRef = useRef(false);
+  const [tableDialog, setTableDialog] = useState(null);
+  const [editorRevision, setEditorRevision] = useState(0);
+  const [editorNotice, setEditorNotice] = useState(null);
+  const editorModel = useMemo(() => createConceptDefinitionEditorModel(value), [value]);
+
+  useEffect(() => {
+    cursorOffsetRef.current = Math.min(cursorOffsetRef.current, String(value || '').length);
+  }, [value]);
+
+  useEffect(() => {
+    const root = wrapperRef.current;
+    if (!root) return undefined;
+    const enableConceptTableButton = () => {
+      const button = [...root.querySelectorAll('.md-toolbar button')]
+        .find(candidate => candidate.textContent.trim() === 'Table');
+      if (button?.disabled) button.disabled = false;
+      if (button) button.title = '표 편집';
+    };
+    enableConceptTableButton();
+    const observer = new MutationObserver(enableConceptTableButton);
+    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const rememberCursor = () => {
+    cursorOffsetRef.current = conceptDefinitionCursorOffset(wrapperRef.current, editorModel, cursorOffsetRef.current);
+  };
+
+  const handleDefinitionChange = nextValue => {
+    if (!conceptTablePlaceholdersIntact(editorModel, nextValue)) {
+      setEditorNotice('표는 자리표시자를 수정하지 말고 Table 버튼으로 편집하세요.');
+      setEditorRevision(revision => revision + 1);
+      return;
+    }
+    setEditorNotice(null);
+    onChange(restoreConceptTablePlaceholders(editorModel, nextValue));
+  };
+
+  const openTableDialog = () => {
+    const source = String(value || '');
+    const cursorOffset = conceptDefinitionCursorOffset(wrapperRef.current, editorModel, cursorOffsetRef.current);
+    cursorOffsetRef.current = cursorOffset;
+    const block = findConceptTableBlock(source, cursorOffset);
+    setTableDialog(block ? {
+      start: block.start,
+      end: block.end,
+      insertAt: block.start,
+      originalBlock: block.full,
+      sourceAtOpen: source,
+      rows: parseConceptTableRows(block.content),
+    } : {
+      start: null,
+      end: null,
+      insertAt: cursorOffset,
+      sourceAtOpen: source,
+      rows: createEmptyConceptTable(),
+    });
+  };
+
+  const isTableToolbarTarget = target => {
+    const button = target instanceof Element ? target.closest('.md-toolbar button') : null;
+    return Boolean(button && button.textContent.trim() === 'Table');
+  };
+
+  const interceptTablePointer = event => {
+    if (!isTableToolbarTarget(event.target)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    pointerOpenedRef.current = true;
+    openTableDialog();
+    window.setTimeout(() => { pointerOpenedRef.current = false; }, 0);
+  };
+
+  const interceptTableClick = event => {
+    if (!isTableToolbarTarget(event.target)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent?.stopImmediatePropagation?.();
+    if (!pointerOpenedRef.current) openTableDialog();
+  };
+
+  const closeTableDialog = () => {
+    setTableDialog(null);
+    window.requestAnimationFrame(() => {
+      const button = [...(wrapperRef.current?.querySelectorAll('.md-toolbar button') || [])]
+        .find(candidate => candidate.textContent.trim() === 'Table');
+      button?.focus();
+    });
+  };
+
+  const applyTable = rows => {
+    const source = String(value || '');
+    const block = serializeConceptTable(rows);
+    let nextValue;
+    let nextCursor;
+    if (tableDialog.start == null && source !== tableDialog.sourceAtOpen) {
+      setEditorNotice('정의 내용이 바뀌었습니다. 표를 다시 열어 추가하세요.');
+      closeTableDialog();
+      return;
+    }
+    if (tableDialog.start != null && tableDialog.end != null) {
+      let start = tableDialog.start;
+      let end = tableDialog.end;
+      if (source.slice(start, end) !== tableDialog.originalBlock) {
+        const currentBlock = tableBlockMatches(source).find(match => match.full === tableDialog.originalBlock);
+        if (!currentBlock) {
+          setEditorNotice('정의 내용이 바뀌었습니다. 표를 다시 열어 편집하세요.');
+          closeTableDialog();
+          return;
+        }
+        start = currentBlock.start;
+        end = currentBlock.end;
+      }
+      nextValue = source.slice(0, start) + block + source.slice(end);
+      nextCursor = start + block.length;
+    } else {
+      const insertAt = Math.max(0, Math.min(tableDialog.insertAt ?? source.length, source.length));
+      const before = source.slice(0, insertAt);
+      const after = source.slice(insertAt);
+      const prefix = !before ? '' : before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n';
+      const suffix = !after ? '' : after.startsWith('\n\n') ? '' : after.startsWith('\n') ? '\n' : '\n\n';
+      nextValue = before + prefix + block + suffix + after;
+      nextCursor = before.length + prefix.length + block.length;
+    }
+    cursorOffsetRef.current = nextCursor;
+    onChange(nextValue);
+    closeTableDialog();
+  };
+
+  return (
+    <>
+      <div
+        ref={wrapperRef}
+        className="concept-definition-editor"
+        onPointerDownCapture={interceptTablePointer}
+        onClickCapture={interceptTableClick}
+        onKeyUpCapture={rememberCursor}
+        onMouseUpCapture={rememberCursor}
+        onSelectCapture={rememberCursor}
+      >
+        <MarkdownEditor key={editorRevision} value={editorModel.editorValue} onChange={handleDefinitionChange} placeholder="정의를 입력하세요. 표는 도구 모음의 Table 버튼으로 편집할 수 있습니다."/>
+      </div>
+      {editorNotice && <div className="concept-field-error">{editorNotice}</div>}
+      {tableDialog && (
+        <ConceptTableEditorModal
+          rows={tableDialog.rows}
+          editing={tableDialog.start != null}
+          onCancel={closeTableDialog}
+          onApply={applyTable}
+        />
+      )}
+    </>
+  );
+}
+
+function conceptDefinitionCursorOffset(root, editorModel, fallback) {
+  const source = editorModel.source;
+  const editorValue = editorModel.editorValue;
+  const fallbackSourceOffset = Math.min(fallback ?? source.length, source.length);
+  if (!root) return fallbackSourceOffset;
+
+  const rawTextarea = root.querySelector('.md-raw-textarea');
+  if (rawTextarea && document.activeElement === rawTextarea) {
+    const editorOffset = rawTextarea.selectionStart ?? editorValue.length;
+    const selectedTable = editorModel.tableMappings.find(mapping => (
+      editorOffset >= mapping.editorStart && editorOffset < mapping.editorEnd
+    ));
+    if (selectedTable) return selectedTable.sourceStart;
+    return conceptEditorOffsetToSource(editorModel, safeMarkdownBlockEnd(editorValue, editorOffset));
+  }
+
+  if (document.activeElement instanceof Element && document.activeElement.closest('.md-toolbar') && root.contains(document.activeElement)) {
+    return fallbackSourceOffset;
+  }
+
+  const selection = window.getSelection();
+  const editor = root.querySelector('.ProseMirror');
+  if (!selection?.rangeCount || !selection.anchorNode || !editor?.contains(selection.anchorNode)) {
+    return fallbackSourceOffset;
+  }
+
+  try {
+    const anchorElement = selection.anchorNode.nodeType === Node.ELEMENT_NODE
+      ? selection.anchorNode
+      : selection.anchorNode.parentElement;
+    const renderedBlock = anchorElement?.closest('p, h1, h2, h3, li, pre, blockquote') || editor;
+    const range = document.createRange();
+    range.setStart(renderedBlock, 0);
+    range.setEnd(selection.anchorNode, selection.anchorOffset);
+    const renderedOffset = range.toString().length;
+    const renderedText = renderedBlock.textContent || '';
+
+    for (const mapping of editorModel.tableMappings) {
+      const tokenOffset = renderedText.indexOf(mapping.token);
+      if (tokenOffset !== -1 && renderedOffset >= tokenOffset && renderedOffset <= tokenOffset + mapping.token.length) {
+        return mapping.sourceStart;
+      }
+    }
+
+    const editorChildren = [...editor.children];
+    let directChild = selection.anchorNode.nodeType === Node.ELEMENT_NODE
+      ? selection.anchorNode
+      : selection.anchorNode.parentElement;
+    while (directChild?.parentElement && directChild.parentElement !== editor) directChild = directChild.parentElement;
+    const blockIndex = directChild?.parentElement === editor ? editorChildren.indexOf(directChild) : -1;
+    if (blockIndex >= 0) {
+      const blockRanges = markdownBlockRanges(editorValue);
+      const blockRange = blockRanges[blockIndex];
+      if (blockRange) return conceptEditorOffsetToSource(editorModel, blockRange.end);
+    }
+    return source.length;
+  } catch (error) {
+    // Selection mapping is best-effort; a safe previous block boundary is retained.
+  }
+
+  return fallbackSourceOffset;
+}
+
+function markdownBlockRanges(value) {
+  const ranges = [];
+  let offset = 0;
+  for (const token of marked.lexer(String(value || ''))) {
+    const raw = String(token.raw || '');
+    const start = offset;
+    offset += raw.length;
+    if (token.type !== 'space') ranges.push({ start, end: offset });
+  }
+  return ranges;
+}
+
+function safeMarkdownBlockEnd(value, cursorOffset) {
+  const safeOffset = Math.max(0, Math.min(cursorOffset, String(value || '').length));
+  for (const range of markdownBlockRanges(value)) {
+    if (safeOffset >= range.start && safeOffset <= range.end) return range.end;
+  }
+  return safeOffset;
+}
+
+function tableBlockMatches(value) {
+  const matches = [];
+  const pattern = /\[TABLE\]([\s\S]*?)\[\/TABLE\]/g;
+  let match;
+  while ((match = pattern.exec(String(value || ''))) !== null) {
+    matches.push({ full: match[0], content: match[1], start: match.index, end: match.index + match[0].length });
+  }
+  return matches;
+}
+
+function createConceptDefinitionEditorModel(value) {
+  const source = String(value || '');
+  const blocks = tableBlockMatches(source);
+  const tableMappings = [];
+  let editorValue = '';
+  let sourceOffset = 0;
+  blocks.forEach((block, index) => {
+    editorValue += source.slice(sourceOffset, block.start);
+    const invisibleKey = '\u2060'.repeat(index + 1);
+    const token = `${invisibleKey}〈표 ${index + 1} · Table 버튼으로 편집〉${invisibleKey}`;
+    const editorStart = editorValue.length;
+    editorValue += token;
+    const beforeBlock = source.slice(0, block.start);
+    const afterBlock = source.slice(block.end);
+    const isolatedBefore = !beforeBlock.trim() || /\n[ \t]*\n[ \t]*$/.test(beforeBlock);
+    const isolatedAfter = !afterBlock.trim() || /^[ \t]*\n[ \t]*\n/.test(afterBlock);
+    tableMappings.push({
+      token,
+      full: block.full,
+      standalone: isolatedBefore && isolatedAfter,
+      sourceStart: block.start,
+      sourceEnd: block.end,
+      editorStart,
+      editorEnd: editorStart + token.length,
+    });
+    sourceOffset = block.end;
+  });
+  editorValue += source.slice(sourceOffset);
+  return { source, editorValue, tableMappings };
+}
+
+function conceptTablePlaceholdersIntact(editorModel, nextValue) {
+  const text = String(nextValue || '');
+  return editorModel.tableMappings.every(mapping => {
+    const occurrences = text.split(mapping.token).length - 1;
+    if (occurrences !== 1) return false;
+    if (!mapping.standalone) return true;
+    return text.split(/\r?\n/).some(line => line.trim() === mapping.token);
+  });
+}
+
+function restoreConceptTablePlaceholders(editorModel, nextValue) {
+  let restored = String(nextValue || '');
+  editorModel.tableMappings.forEach(mapping => {
+    restored = restored.replace(mapping.token, mapping.full);
+  });
+  return restored;
+}
+
+function conceptEditorOffsetToSource(editorModel, editorOffset) {
+  const safeOffset = Math.max(0, Math.min(editorOffset, editorModel.editorValue.length));
+  let lengthDelta = 0;
+  for (const mapping of editorModel.tableMappings) {
+    if (safeOffset < mapping.editorStart) return safeOffset + lengthDelta;
+    if (safeOffset < mapping.editorEnd) return mapping.sourceStart;
+    if (safeOffset === mapping.editorEnd) return mapping.sourceEnd;
+    lengthDelta += mapping.full.length - mapping.token.length;
+  }
+  return Math.min(safeOffset + lengthDelta, editorModel.source.length);
+}
+
+function findConceptTableBlock(value, cursorOffset) {
+  return tableBlockMatches(value).find(match => cursorOffset >= match.start && cursorOffset < match.end) || null;
+}
+
+function createEmptyConceptTable() {
+  return Array.from({ length: 2 }, () => Array(3).fill(''));
+}
+
+function sanitizeConceptTableCell(value) {
+  return String(value ?? '').replace(/\[\/?TABLE\]/g, '').replace(/[|\r\n]/g, '');
+}
+
+function normalizeConceptTableRows(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return createEmptyConceptTable();
+  const columnCount = Math.max(1, ...rows.map(row => Array.isArray(row) ? row.length : 0));
+  return rows.map(row => Array.from({ length: columnCount }, (_, index) => (
+    sanitizeConceptTableCell(Array.isArray(row) ? row[index] : '')
+  )));
+}
+
+function parseConceptTableRows(content) {
+  const body = String(content || '').replace(/^\s*\r?\n/, '').replace(/\r?\n\s*$/, '');
+  if (body === '') return [['']];
+  return normalizeConceptTableRows(body.split(/\r?\n/).map(row => row.split('|')));
+}
+
+function serializeConceptTable(rows) {
+  const normalized = normalizeConceptTableRows(rows);
+  return `[TABLE]${normalized.map(row => row.map(sanitizeConceptTableCell).join('|')).join('\n')}[/TABLE]`;
+}
+
+function ConceptTableEditorModal({ rows: initialRows, editing, onCancel, onApply }) {
+  const [rows, setRows] = useState(() => normalizeConceptTableRows(initialRows));
+  const [activeCell, setActiveCell] = useState({ row: 0, column: 0 });
+  const firstCellRef = useRef(null);
+  const onCancelRef = useRef(onCancel);
+  const columnCount = rows[0]?.length || 1;
+
+  useEffect(() => { onCancelRef.current = onCancel; }, [onCancel]);
+
+  useEffect(() => {
+    firstCellRef.current?.focus();
+    const handleKeyDown = event => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      onCancelRef.current();
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, []);
+
+  const updateCell = (rowIndex, columnIndex, value) => {
+    setRows(current => current.map((row, index) => index === rowIndex
+      ? row.map((cell, cellIndex) => cellIndex === columnIndex ? sanitizeConceptTableCell(value) : cell)
+      : row
+    ));
+  };
+
+  const addRow = () => setRows(current => [...current, Array(current[0]?.length || 1).fill('')]);
+  const addColumn = () => setRows(current => current.map(row => [...row, '']));
+  const removeRow = () => {
+    if (rows.length <= 1) return;
+    setRows(current => current.filter((_, index) => index !== activeCell.row));
+    setActiveCell(current => ({ ...current, row: Math.min(current.row, rows.length - 2) }));
+  };
+  const removeColumn = () => {
+    if (columnCount <= 1) return;
+    setRows(current => current.map(row => row.filter((_, index) => index !== activeCell.column)));
+    setActiveCell(current => ({ ...current, column: Math.min(current.column, columnCount - 2) }));
+  };
+
+  return (
+    <div className="palette-backdrop concept-table-backdrop" onMouseDown={onCancel}>
+      <form
+        className="concept-table-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="concept-table-title"
+        onMouseDown={event => event.stopPropagation()}
+        onKeyDown={event => {
+          if (event.key === 'Enter' && event.target?.tagName === 'INPUT') event.preventDefault();
+        }}
+        onSubmit={event => { event.preventDefault(); onApply(rows); }}
+      >
+        <div className="concept-table-modal-head">
+          <div>
+            <div className="panel-title" id="concept-table-title">{editing ? '표 편집' : '표 추가'}</div>
+            <div className="panel-sub">첫 행은 머리글입니다. 삭제는 현재 선택한 칸의 행·열에 적용됩니다.</div>
+          </div>
+          <button type="button" onClick={onCancel} aria-label="닫기"><Icon name="x" size={16}/></button>
+        </div>
+        <div className="concept-table-modal-body">
+          <div className="concept-table-tools">
+            <button type="button" className="btn btn-xs" onClick={addRow}>행 추가</button>
+            <button type="button" className="btn btn-xs" onClick={addColumn}>열 추가</button>
+            <button type="button" className="btn btn-xs" onClick={removeRow} disabled={rows.length <= 1}>행 삭제</button>
+            <button type="button" className="btn btn-xs" onClick={removeColumn} disabled={columnCount <= 1}>열 삭제</button>
+            <span>{rows.length}행 × {columnCount}열</span>
+          </div>
+          <div className="concept-table-grid-wrap">
+            <div className="concept-table-grid" style={{gridTemplateColumns:`repeat(${columnCount}, minmax(150px, 1fr))`}}>
+              {rows.flatMap((row, rowIndex) => row.map((cell, columnIndex) => (
+                <input
+                  key={`${rowIndex}-${columnIndex}`}
+                  ref={rowIndex === 0 && columnIndex === 0 ? firstCellRef : null}
+                  className={'field-input ' + (rowIndex === 0 ? 'header-cell ' : '') + (activeCell.row === rowIndex && activeCell.column === columnIndex ? 'active-cell' : '')}
+                  value={cell}
+                  onChange={event => updateCell(rowIndex, columnIndex, event.target.value)}
+                  onFocus={() => setActiveCell({ row: rowIndex, column: columnIndex })}
+                  aria-label={`${rowIndex + 1}행 ${columnIndex + 1}열`}
+                  placeholder={rowIndex === 0 ? '머리글' : '내용'}
+                />
+              )))}
+            </div>
+          </div>
+        </div>
+        <div className="concept-table-modal-foot">
+          <button type="button" className="btn btn-sm" onClick={onCancel}>취소</button>
+          <button type="submit" className="btn btn-sm btn-primary">적용</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function formatJsonDraft(value) {
+  if (value == null || value === '') return '';
+  try { return JSON.stringify(value, null, 2); }
+  catch (error) { return String(value); }
+}
+
+function parseJsonDraft(text, fieldName) {
+  const value = String(text || '').trim();
+  if (!value) return { value: null, error: null };
+  try { return { value: JSON.parse(value), error: null }; }
+  catch (error) { return { value: null, error: `${fieldName}: 형식이 올바르지 않습니다 (${error.message})` }; }
+}
+
+function ConceptPreview({ concept }) {
+  return (
+    <div className="q-box">
+      <div style={{fontFamily:'var(--font-serif)', fontSize:24, fontWeight:700, lineHeight:1.35}}>{concept.title || '(제목 없는 개념)'}</div>
+      {concept.summary && <div style={{marginTop:10, color:'var(--fg-muted)', fontSize:14, lineHeight:1.7, whiteSpace:'pre-wrap'}}>{concept.summary}</div>}
+
+      <div className="det-section">
+        <div className="det-label">핵심 개념</div>
+        <ConceptDefinitionPreview value={concept.definition}/>
+      </div>
+
+      {concept.exam_point && (
+        <div className="det-section">
+          <div className="det-label">구별</div>
+          <ConceptExamPointPreview value={concept.exam_point}/>
+        </div>
+      )}
+
+      {concept.real_life_example && (
+        <div className="det-section">
+          <div className="det-label">실생활 예시</div>
+          <div style={{padding:'14px 16px', background:'var(--warning-soft)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', color:'var(--fg-muted)', lineHeight:1.75, whiteSpace:'pre-wrap'}}>{concept.real_life_example}</div>
+        </div>
+      )}
+
+      {concept.key_points != null && (
+        <div className="det-section">
+          <div className="det-label">핵심 포인트</div>
+          <ConceptJsonPreview value={concept.key_points}/>
+        </div>
+      )}
+
+      {concept.related_laws != null && (
+        <div className="det-section">
+          <div className="det-label">관련 법령</div>
+          <ConceptRelatedLawsPreview value={concept.related_laws}/>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConceptDefinitionPreview({ value }) {
+  const segments = parseConceptDefinition(value || '');
+  if (!segments.length) return <div style={{fontSize:12, color:'var(--fg-faint)'}}>등록된 정의가 없습니다.</div>;
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap:12}}>
+      {segments.map((segment, index) => segment.type === 'table' ? (
+        <div key={index} style={{overflowX:'auto', border:'1px solid var(--border)', borderRadius:'var(--r-sm)'}}>
+          <table style={{width:'100%', borderCollapse:'collapse', fontSize:13}}>
+            <tbody>
+              {segment.rows.map((row, rowIndex) => (
+                <tr key={rowIndex} style={rowIndex === 0 ? {background:'var(--surface-2)'} : null}>
+                  {row.map((cell, cellIndex) => {
+                    const Cell = rowIndex === 0 ? 'th' : 'td';
+                    return <Cell key={cellIndex} style={{borderRight:'1px solid var(--border)', borderBottom:'1px solid var(--border)', padding:'9px 11px', textAlign:'center', whiteSpace:'pre-wrap'}}>{cell}</Cell>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div key={index} className="det-text" style={{lineHeight:1.8}} dangerouslySetInnerHTML={{__html:marked.parse(segment.text)}}/>
+      ))}
+    </div>
+  );
+}
+
+function ConceptExamPointPreview({ value }) {
+  const lines = String(value || '').split(/\r?\n/);
+  return (
+    <div className="concept-exam-point-preview">
+      {lines.map((line, index) => {
+        const trimmed = line.trim();
+        const boldMatch = trimmed.match(/^\*\*(.+)\*\*$/);
+        const marker = line.trimStart().charAt(0);
+        const className = marker === '○' ? 'correct' : marker === '×' ? 'incorrect' : '';
+        return (
+          <div key={index} className={className}>
+            {boldMatch ? <strong>{boldMatch[1]}</strong> : (line || '\u00a0')}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ConceptRelatedLawsPreview({ value }) {
+  const laws = Array.isArray(value) ? value : [];
+  if (!laws.length) return <div style={{fontSize:12, color:'var(--fg-faint)'}}>등록된 법령이 없습니다.</div>;
+  return (
+    <div className="concept-law-preview-list">
+      {laws.map((law, index) => (
+        <div className="concept-law-preview-card" key={`${law?.id || 'law'}-${index}`}>
+          <div className="concept-law-preview-title">{law?.title || `조문 ${index + 1}`}</div>
+          {law?.article_text && <div className="concept-law-preview-article">{law.article_text}</div>}
+          {law?.commentary && (
+            <div className="concept-law-preview-commentary">
+              <span>해설</span>
+              {law.commentary}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function parseConceptDefinition(value) {
+  const text = String(value || '');
+  const pattern = /\[TABLE\]([\s\S]*?)\[\/TABLE\]/g;
+  const segments = [];
+  let lastEnd = 0;
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    const before = text.slice(lastEnd, match.index).trim();
+    if (before) segments.push({ type: 'text', text: before });
+    const tableBody = match[1].replace(/^\r?\n/, '').replace(/\r?\n$/, '');
+    const rows = tableBody.split(/\r?\n/).map(row => row.split('|').map(cell => cell.trim()));
+    if (rows.length) segments.push({ type: 'table', rows });
+    lastEnd = match.index + match[0].length;
+  }
+  const after = text.slice(lastEnd).trim();
+  if (after) segments.push({ type: 'text', text: after });
+  return segments;
+}
+
+function ConceptJsonPreview({ value }) {
+  const entries = Array.isArray(value)
+    ? value.map((item, index) => [String(index + 1), item])
+    : value && typeof value === 'object' ? Object.entries(value) : [['', value]];
+  if (!entries.length) return <div style={{fontSize:12, color:'var(--fg-faint)'}}>등록된 내용이 없습니다.</div>;
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap:7}}>
+      {entries.map(([label, item], index) => {
+        const isObject = item && typeof item === 'object' && !Array.isArray(item);
+        const heading = isObject ? (item.title || item.name || item.label || label) : label;
+        const detail = isObject
+          ? Object.entries(item).filter(([key]) => !['title','name','label'].includes(key)).map(([key, nested]) => `${key}: ${jsonPreviewText(nested)}`).join('\n')
+          : jsonPreviewText(item);
+        return (
+          <div key={`${label}-${index}`} style={{padding:'10px 12px', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', lineHeight:1.65}}>
+            {heading && <div style={{fontWeight:600, color:'var(--fg)', marginBottom:detail ? 3 : 0}}>{heading}</div>}
+            {detail && <div style={{fontSize:12.5, color:'var(--fg-muted)', whiteSpace:'pre-wrap'}}>{detail}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function jsonPreviewText(value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  try { return JSON.stringify(value, null, 2); }
+  catch (error) { return String(value); }
+}
+
+function ConceptQuestionAccordion({ question, subject, exam, setSection }) {
+  const [expanded, setExpanded] = useState(false);
+  const choices = questionChoices(question);
+  const correctIndex = 'ABCDE'.indexOf(question.correct_answer || '');
+
+  const openInQuestionInspector = (event) => {
+    event.stopPropagation();
+    if (exam?.code) localStorage.setItem('qi.examCode', exam.code);
+    if (subject?.code) localStorage.setItem('qi.subjectCode', subject.code);
+    localStorage.setItem('qi.yearSession', String(question.year_session));
+    localStorage.setItem('qi.openId', String(question.question_id));
+    setSection?.('question-inspector');
+  };
+
+  return (
+    <div style={{border:'1px solid var(--border)', borderRadius:'var(--r-sm)', background:'var(--surface)', overflow:'hidden'}}>
+      <div onClick={() => setExpanded(value => !value)} style={{display:'flex', alignItems:'center', gap:10, padding:'10px 12px', cursor:'pointer'}}>
+        <span style={{fontFamily:'var(--font-mono)', fontWeight:600}}>{question.year_session}회 · {question.question_number}번</span>
+        {question.is_primary && <span className="badge badge-violet">주개념</span>}
+        <span style={{flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'var(--fg-muted)'}}>{firstLine(question.stem)}</span>
+        <button className="btn btn-xs" onClick={openInQuestionInspector}>문제 전수조사에서 열기</button>
+        <span style={{color:'var(--fg-faint)', transform:expanded ? 'rotate(90deg)' : 'none', transition:'transform .15s'}}>›</span>
+      </div>
+      {expanded && (
+        <div style={{padding:'0 12px 12px', borderTop:'1px solid var(--border)'}}>
+          <div className="q-stem" style={{paddingTop:14, paddingRight:0}}>{question.stem}</div>
+          {Array.isArray(question.stem_givens) && question.stem_givens.length > 0 && (
+            <div style={{margin:'8px 0 14px'}}>
+              {question.stem_givens.map((box, boxIndex) => {
+                const { boxed, label } = givenPreviewBoxMeta(box);
+                return (
+                  <div key={boxIndex} style={boxed ? {border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'10px 12px', marginBottom:6, background:'var(--surface-2)'} : {padding:'2px 0', marginBottom:6}}>
+                    {label && <div style={{fontSize:11, color:'var(--fg-subtle)', fontFamily:'var(--font-mono)', marginBottom:6}}>〈{label}〉</div>}
+                    {(box.items || []).map((item, itemIndex) => {
+                      const hasKey = String(item.key ?? '').trim() !== '';
+                      return (
+                        <div key={itemIndex} style={{display:'grid', gridTemplateColumns:hasKey ? '40px minmax(0, 1fr)' : 'minmax(0, 1fr)', gap:8, alignItems:'start', fontSize:14, lineHeight:1.7}}>
+                          {hasKey && <b>{String(item.key ?? '')}</b>}
+                          <GivenPreviewText text={item.text} markdown={Boolean(box.markdown_enabled)}/>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <ul className="choices-list">
+            {choices.map((choice, index) => {
+              const text = typeof choice === 'string' ? choice : (choice.text || '');
+              return (
+                <li key={index} className={"choice-item " + (index === correctIndex ? 'correct' : '')}>
+                  <span className="choice-id">{'①②③④⑤'[index] || `${index + 1}.`}</span> {text}
+                  {index === correctIndex && <span style={{marginLeft:'auto', fontSize:10}}>정답</span>}
+                </li>
+              );
+            })}
+          </ul>
+          {question.explanation && <div className="exp-box">{question.explanation}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RpcNotApplied({ message, error, retry }) {
+  return (
+    <div className="q-box" style={{borderColor:'var(--warning)', marginBottom:12}}>
+      <div style={{display:'flex', gap:10, alignItems:'flex-start'}}>
+        <Icon name="info" size={15} style={{color:'var(--warning)', flexShrink:0, marginTop:2}}/>
+        <div style={{flex:1, minWidth:0}}>
+          <div style={{fontWeight:600, color:'var(--fg)'}}>RPC 미적용</div>
+          <div style={{fontSize:12, color:'var(--fg-muted)', marginTop:3}}>{message || '필요한 관리자 RPC가 아직 적용되지 않았습니다.'}</div>
+          {error && <div style={{fontFamily:'var(--font-mono)', fontSize:10.5, color:'var(--fg-faint)', marginTop:5, overflowWrap:'anywhere'}}>{error.message || String(error)}</div>}
+        </div>
+        {retry && <button className="btn btn-xs" onClick={retry}>다시 시도</button>}
+      </div>
+    </div>
+  );
 }
 
 /* ─── Exam Dates ─── */
@@ -2928,6 +4390,7 @@ function CommandPalette({ onClose, setSection }) {
       { label: '분석', icon:'chart', action: () => setSection('analytics') },
       { label: '신고 관리', icon:'flag', action: () => setSection('reports') },
       { label: '문제 전수조사', icon:'edit', action: () => setSection('question-inspector') },
+      { label: '개념노트 편집', icon:'book', action: () => setSection('concept-inspector') },
       { label: '공지 · 업데이트', icon:'megaphone', action: () => setSection('announcements') },
       { label: '구독 관리', icon:'users', action: () => setSection('subscriptions') },
       { label: '시험 과목', icon:'book', action: () => setSection('subjects') },
@@ -2986,6 +4449,7 @@ function ShortcutsModal({ onClose }) {
     ['명령 팔레트', ['⌘', 'K']], ['단축키 도움말', ['?']],
     ['개요로 이동', ['G', 'O']], ['분석으로 이동', ['G', 'A']],
     ['신고 관리로 이동', ['G', 'R']], ['문제 전수조사로 이동', ['G', 'I']],
+    ['개념노트 편집으로 이동', ['G', 'C']],
     ['공지사항으로 이동', ['G', 'N']],
     ['감사 로그로 이동', ['G', 'U']], ['설정으로 이동', ['G', 'S']],
     ['모달/패널 닫기', ['ESC']],
@@ -3051,7 +4515,7 @@ function NotifPanel({ onClose, onBadgeChange }) {
 }
 
 export {
-  Overview, Analytics, Reports, QuestionInspector, Announcements, Subjects,
+  Overview, Analytics, Reports, QuestionInspector, ConceptInspector, Announcements, Subjects,
   Exams, ExamDates, AppVersion, Subscriptions, Admins, AuditLog, Settings,
   CommandPalette, ShortcutsModal, NotifPanel,
   actionLabel,

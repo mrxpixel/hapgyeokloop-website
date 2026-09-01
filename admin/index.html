@@ -591,9 +591,66 @@
   .qi-tpl-textarea { width: 100%; min-height: 240px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); font-family: var(--font-mono); font-size: 11.5px; color: var(--fg); line-height: 1.5; resize: vertical; }
   .qi-tpl-vars { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-faint); margin-top: 6px; }
 
+  /* concept note editor */
+  .concept-laws-editor { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .concept-laws-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .concept-laws-help { margin-top: -2px; color: var(--fg-faint); font-size: 11px; }
+  .concept-law-list { display: flex; flex-direction: column; gap: 10px; }
+  .concept-law-card { padding: 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); }
+  .concept-law-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .concept-law-card-head strong { font-size: 12px; }
+  .concept-law-actions { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+  .concept-law-field { display: block; margin-top: 10px; }
+  .concept-law-field:first-of-type { margin-top: 0; }
+  .concept-law-field .field-input { width: 100%; }
+  .q-box .concept-law-field textarea { min-height: 92px; font-size: 13px; line-height: 1.65; }
+  .concept-law-field:last-child textarea { min-height: 78px; }
+  .concept-law-empty { padding: 20px; border: 1px dashed var(--border-strong); border-radius: var(--r-sm); color: var(--fg-faint); font-size: 12px; text-align: center; }
+  .concept-law-add-bottom { margin-top: 10px; }
+  .concept-advanced { margin-top: 18px; border-top: 1px solid var(--border); }
+  .concept-advanced summary { padding: 13px 2px 0; color: var(--fg-subtle); cursor: pointer; font-size: 12px; font-weight: 600; list-style: none; user-select: none; }
+  .concept-advanced summary::-webkit-details-marker { display: none; }
+  .concept-advanced summary::before { content: '▸'; display: inline-block; margin-right: 6px; transition: transform .15s; }
+  .concept-advanced[open] summary::before { transform: rotate(90deg); }
+  .concept-advanced[open] summary { color: var(--fg-muted); }
+  .concept-advanced-body { margin-top: 10px; padding: 13px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); }
+  .concept-field-error { margin-top: 6px; color: var(--danger); font-size: 11px; }
+
+  .concept-table-backdrop { align-items: center; padding: 16px; }
+  .concept-table-modal { width: min(920px, calc(100vw - 32px)); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; overflow: hidden; }
+  .concept-table-modal-head { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+  .concept-table-modal-body { padding: 16px 18px; overflow: auto; overscroll-behavior: contain; }
+  .concept-table-tools { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .concept-table-tools span { margin-left: auto; color: var(--fg-faint); font-family: var(--font-mono); font-size: 10.5px; }
+  .concept-table-grid-wrap { overflow-x: auto; padding-bottom: 4px; }
+  .concept-table-grid { display: grid; gap: 6px; min-width: 100%; }
+  .concept-table-grid .field-input { width: 100%; min-width: 0; }
+  .concept-table-grid .header-cell { background: var(--surface-2); font-weight: 600; }
+  .concept-table-grid .active-cell { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .concept-table-modal-foot { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
+
+  .concept-exam-point-preview { padding: 13px 15px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); line-height: 1.8; white-space: pre-wrap; }
+  .concept-exam-point-preview .correct { color: var(--success); }
+  .concept-exam-point-preview .incorrect { color: var(--danger); }
+  .concept-law-preview-list { display: flex; flex-direction: column; gap: 8px; }
+  .concept-law-preview-card { padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); }
+  .concept-law-preview-title { font-weight: 700; color: var(--fg); }
+  .concept-law-preview-article { margin-top: 7px; color: var(--fg-muted); line-height: 1.75; white-space: pre-wrap; }
+  .concept-law-preview-commentary { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--border); color: var(--fg-subtle); line-height: 1.7; white-space: pre-wrap; }
+  .concept-law-preview-commentary span { display: block; margin-bottom: 3px; color: var(--fg-faint); font-family: var(--font-mono); font-size: 10px; font-weight: 600; }
+
+  @media (max-width: 640px) {
+    .concept-law-card-head, .concept-laws-toolbar { align-items: stretch; flex-direction: column; }
+    .concept-law-actions { justify-content: flex-start; }
+    .concept-table-backdrop { padding: 8px; }
+    .concept-table-modal { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
+    .concept-table-modal-head, .concept-table-modal-body, .concept-table-modal-foot { padding-left: 12px; padding-right: 12px; }
+    .concept-table-tools span { flex-basis: 100%; margin-left: 0; }
+  }
+
   .qi-md-pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 14px 16px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.7; color: var(--fg-muted); white-space: pre-wrap; overflow-x: auto; }
 </style>
-  <script type="module" crossorigin src="./assets/index-DwKl1uE1.js"></script>
+  <script type="module" crossorigin src="./assets/index-DD3uOCVP.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-D_mCvlB0.css">
 </head>
 <body>
