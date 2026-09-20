@@ -585,6 +585,8 @@
   .qi-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
   .qi-actions .btn-gemini { background: var(--violet-soft); color: var(--violet); border-color: rgba(168,85,247,.32); }
   .qi-actions .btn-gemini:hover { filter: brightness(1.08); }
+  .question-stem-editor-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .question-stem-editor-tools .field-label { margin: 0; }
 
   .qi-tpl-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 12px; overflow: hidden; }
   .qi-tpl-tabs { display: flex; gap: 4px; padding: 12px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
@@ -622,11 +624,22 @@
   .concept-table-modal-body { padding: 16px 18px; overflow: auto; overscroll-behavior: contain; }
   .concept-table-tools { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .concept-table-tools span { margin-left: auto; color: var(--fg-faint); font-family: var(--font-mono); font-size: 10.5px; }
+  .concept-table-merge-tools { display: flex; align-items: center; gap: 6px; margin: -4px 0 12px; padding: 9px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); flex-wrap: wrap; }
+  .concept-table-merge-help { margin-left: auto; color: var(--fg-faint); font-size: 10.5px; }
   .concept-table-grid-wrap { overflow-x: auto; padding-bottom: 4px; }
-  .concept-table-grid { display: grid; gap: 6px; min-width: 100%; }
-  .concept-table-grid .field-input { width: 100%; min-width: 0; }
-  .concept-table-grid .header-cell { background: var(--surface-2); font-weight: 600; }
-  .concept-table-grid .active-cell { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .concept-table-grid { display: grid; min-width: 100%; border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); background: var(--surface); }
+  .concept-table-grid-cell { position: relative; min-width: 0; min-height: 48px; border-top: 1px solid var(--border-strong); border-left: 1px solid var(--border-strong); background: var(--surface); }
+  .concept-table-grid-cell.header-cell { background: var(--surface-2); font-weight: 600; }
+  .concept-table-grid-cell.merged-up { border-top-color: transparent; }
+  .concept-table-grid-cell.active-cell { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); z-index: 1; box-shadow: inset 0 0 0 2px var(--accent); }
+  .concept-table-cell-input { display: block; width: 100%; height: 100%; min-height: 47px; padding: 10px 11px; border: 0; outline: 0; background: transparent; color: var(--fg); font: inherit; text-align: center; }
+  .concept-table-cell-input::placeholder { color: var(--fg-faint); font-weight: 400; }
+  .concept-table-merged-placeholder { width: 100%; height: 100%; min-height: 47px; outline: 0; cursor: cell; }
+  .concept-table-diagonal-editor { position: relative; width: 100%; min-height: 82px; background: linear-gradient(to top right, transparent calc(50% - .7px), var(--border-strong) 50%, transparent calc(50% + .7px)); }
+  .concept-table-diagonal-editor input { position: absolute; width: calc(62% - 10px); padding: 4px 6px; border: 0; border-radius: 4px; outline: 0; background: color-mix(in srgb, var(--surface-2) 82%, transparent); color: var(--fg); font: inherit; font-size: 11px; }
+  .concept-table-diagonal-editor input:focus { box-shadow: 0 0 0 2px var(--accent-soft); }
+  .concept-table-diagonal-column { top: 5px; right: 5px; text-align: right; }
+  .concept-table-diagonal-row { bottom: 5px; left: 5px; text-align: left; }
   .concept-table-modal-foot { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
 
   .concept-exam-point-preview { padding: 13px 15px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); line-height: 1.8; white-space: pre-wrap; }
@@ -646,11 +659,12 @@
     .concept-table-modal { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
     .concept-table-modal-head, .concept-table-modal-body, .concept-table-modal-foot { padding-left: 12px; padding-right: 12px; }
     .concept-table-tools span { flex-basis: 100%; margin-left: 0; }
+    .concept-table-merge-help { flex-basis: 100%; margin-left: 0; }
   }
 
   .qi-md-pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 14px 16px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.7; color: var(--fg-muted); white-space: pre-wrap; overflow-x: auto; }
 </style>
-  <script type="module" crossorigin src="./assets/index-DD3uOCVP.js"></script>
+  <script type="module" crossorigin src="./assets/index-Cp7BePMZ.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-D_mCvlB0.css">
 </head>
 <body>

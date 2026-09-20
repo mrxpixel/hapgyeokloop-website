@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "node --test src/lib/*.test.js",
     "prebuild": "rm -rf assets",
     "build": "vite build",
     "preview": "vite preview"
