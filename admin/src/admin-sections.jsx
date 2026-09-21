@@ -15,13 +15,26 @@ import {
   unmergeConceptTableSelection,
   createConceptTableCell,
   createEmptyConceptTable,
-  listConceptTableBlocks,
+  conceptTableMergeGroups,
   normalizeConceptTableRows,
   parseConceptTableRows,
   sanitizeConceptTableCell,
   sanitizeConceptTableDiagonalLabel,
   serializeConceptTable,
+  listConceptTableBlocks,
 } from './lib/concept-table.js'
+import {
+  choiceHeadersTruncation,
+  deleteStemBlock,
+  insertStemBlock,
+  MAX_CHOICE_HEADER_COLUMNS,
+  moveStemBlock,
+  parseStemBlocks,
+  resizeChoiceHeaders,
+  serializeStemBlocks,
+  updateStemBlock,
+  validateStemBlocksForSave,
+} from './lib/stem-blocks.js'
 
 // marked 옵션은 MarkdownEditor.jsx에서 단일 설정 (중복 setOptions 금지)
 
@@ -881,10 +894,245 @@ function inspectionStatusMeta(status) {
   }[status] || ['badge-neutral', status || '미검수', 'var(--fg-faint)'];
 }
 
+let stemEditorBlockSequence = 0;
+const STEM_BLOCK_MARKER_INPUT_PATTERN = /\[\/?(?:TABLE|CHOICE_HEADERS|SVG)\]/;
+
+function stemEditorBlocks(source) {
+  return parseStemBlocks(source).map(block => ({
+    ...block,
+    _editorKey: `stem-block-${++stemEditorBlockSequence}`,
+  }));
+}
+
+function newStemEditorBlock(block) {
+  return {
+    ...block,
+    _editorKey: `stem-block-${++stemEditorBlockSequence}`,
+  };
+}
+
+function AutoHeightTextarea({ value, onChange, className = '', ...props }) {
+  const textareaRef = useRef(null);
+
+  const resize = textarea => {
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  };
+
+  useEffect(() => { resize(textareaRef.current); }, [value]);
+
+  return (
+    <textarea
+      {...props}
+      ref={textareaRef}
+      className={className}
+      value={value}
+      onChange={event => {
+        resize(event.currentTarget);
+        onChange(event);
+      }}
+    />
+  );
+}
+
+function StemTablePreview({ rows }) {
+  const normalizedRows = normalizeConceptTableRows(rows);
+  const headerRows = conceptTableHeaderRows(normalizedRows);
+  const cellsByRow = normalizedRows.map(() => []);
+
+  conceptTableMergeGroups(normalizedRows).forEach(group => {
+    const row = Math.min(...group.map(cell => cell.row));
+    const column = Math.min(...group.map(cell => cell.column));
+    const rowEnd = Math.max(...group.map(cell => cell.row));
+    const columnEnd = Math.max(...group.map(cell => cell.column));
+    cellsByRow[row].push({
+      row,
+      column,
+      rowSpan: rowEnd - row + 1,
+      columnSpan: columnEnd - column + 1,
+      cell: normalizedRows[row][column],
+    });
+  });
+  cellsByRow.forEach(cells => cells.sort((a, b) => a.column - b.column));
+
+  return (
+    <div className="stem-table-preview-wrap">
+      <table className="stem-table-preview" aria-label="표 미리보기">
+        <tbody>
+          {cellsByRow.map((cells, rowIndex) => (
+            <tr key={rowIndex}>
+              {cells.map(({ cell, column, rowSpan, columnSpan }) => {
+                const Cell = headerRows[rowIndex] ? 'th' : 'td';
+                return (
+                  <Cell key={column} rowSpan={rowSpan} colSpan={columnSpan}>
+                    {cell.diagonal ? (
+                      <div className="stem-table-diagonal-preview">
+                        <span className="column-label">{cell.diagonal.columnLabel || '\u00a0'}</span>
+                        <span className="row-label">{cell.diagonal.rowLabel || '\u00a0'}</span>
+                      </div>
+                    ) : (cell.value || '\u00a0')}
+                  </Cell>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function StemBlockInsertControls({ index, onInsertText, onInsertTable }) {
+  return (
+    <div className="stem-block-insert" aria-label={`${index + 1}번째 위치에 블록 삽입`}>
+      <span />
+      <button type="button" className="btn btn-xs" onClick={() => onInsertText(index)}>+ 텍스트</button>
+      <button type="button" className="btn btn-xs" onClick={() => onInsertTable(index)}>+ 표</button>
+      <span />
+    </div>
+  );
+}
+
+function StemBlockEditor({
+  blocks,
+  onUpdateText,
+  onUpdateFigure,
+  onUpdateChoiceHeader,
+  onResizeChoiceHeaders,
+  onEditTable,
+  onInsertText,
+  onInsertTable,
+  onDelete,
+  onMove,
+}) {
+  const kindLabel = {
+    text: '텍스트',
+    table: '표',
+    choiceHeaders: '선택지 헤더',
+    figure: '도형',
+  };
+
+  return (
+    <div className="stem-block-editor">
+      {blocks.length === 0 && <div className="stem-block-empty">지문 블록이 없습니다. 텍스트 또는 표를 추가하세요.</div>}
+      {blocks.map((block, index) => (
+        <React.Fragment key={block._editorKey || `${block.kind}-${index}`}>
+          <StemBlockInsertControls index={index} onInsertText={onInsertText} onInsertTable={onInsertTable}/>
+          <section className={`stem-block-card stem-block-${block.kind}`}>
+            <div className="stem-block-head">
+              <div className="stem-block-title">
+                <span className={`badge ${block.kind === 'figure' ? 'badge-info' : 'badge-neutral'}`}>
+                  {block.kind === 'figure' ? 'SVG' : kindLabel[block.kind] || block.kind}
+                </span>
+                <span>블록 {index + 1}</span>
+              </div>
+              <div className="stem-block-actions">
+                {block.kind === 'table' && (
+                  <button type="button" className="btn btn-xs btn-primary" onClick={() => onEditTable(index)}>편집</button>
+                )}
+                <button type="button" className="btn btn-xs" onClick={() => onMove(index, -1)} disabled={index === 0}>위</button>
+                <button type="button" className="btn btn-xs" onClick={() => onMove(index, 1)} disabled={index === blocks.length - 1}>아래</button>
+                <button type="button" className="btn btn-xs btn-danger" onClick={() => onDelete(index)}>삭제</button>
+              </div>
+            </div>
+            <div className="stem-block-body">
+              {block.kind === 'text' && (
+                <AutoHeightTextarea
+                  className="stem-block-textarea"
+                  value={block.text || ''}
+                  onChange={event => onUpdateText(index, event.target.value)}
+                  aria-label={`텍스트 블록 ${index + 1}`}
+                  placeholder="지문 텍스트"
+                />
+              )}
+              {block.kind === 'table' && <StemTablePreview rows={block.rows}/>}
+              {block.kind === 'choiceHeaders' && (
+                <div className="stem-choice-headers" aria-label="선택지 헤더">
+                  <div className="stem-choice-headers-toolbar">
+                    <span>열 수</span>
+                    <button
+                      type="button"
+                      className="btn btn-xs"
+                      aria-label={`선택지 헤더 블록 ${index + 1} 열 하나 줄이기`}
+                      disabled={(block.headers || []).length <= 1}
+                      onClick={() => onResizeChoiceHeaders(index, Math.max(1, (block.headers || []).length - 1))}
+                    >−</button>
+                    <input
+                      type="number"
+                      min="1"
+                      max={MAX_CHOICE_HEADER_COLUMNS}
+                      step="1"
+                      value={Math.max(1, (block.headers || []).length)}
+                      onChange={event => {
+                        const nextCount = Number(event.target.value);
+                        if (Number.isInteger(nextCount)
+                          && nextCount >= 1
+                          && nextCount <= MAX_CHOICE_HEADER_COLUMNS) {
+                          onResizeChoiceHeaders(index, nextCount);
+                        }
+                      }}
+                      aria-label={`선택지 헤더 블록 ${index + 1} 열 수`}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-xs"
+                      aria-label={`선택지 헤더 블록 ${index + 1} 열 하나 늘리기`}
+                      disabled={(block.headers || []).length >= MAX_CHOICE_HEADER_COLUMNS}
+                      onClick={() => onResizeChoiceHeaders(index, Math.max(1, (block.headers || []).length) + 1)}
+                    >+</button>
+                  </div>
+                  <div
+                    className="stem-choice-header-fields"
+                    style={{ gridTemplateColumns: `repeat(${Math.max(1, (block.headers || []).length)}, minmax(110px, 1fr))` }}
+                  >
+                    {((block.headers || []).length ? block.headers : ['']).map((header, headerIndex) => (
+                      <label key={headerIndex}>
+                        <span>{headerIndex + 1}열</span>
+                        <input
+                          className="field-input"
+                          value={header ?? ''}
+                          onChange={event => onUpdateChoiceHeader(index, headerIndex, event.target.value)}
+                          aria-label={`선택지 헤더 블록 ${index + 1} 라벨 ${headerIndex + 1}`}
+                          placeholder={`라벨 ${headerIndex + 1}`}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <div className="stem-choice-headers-help">헤더 라벨만 편집합니다. 선지 본문의 열 구분은 변경하지 않습니다.</div>
+                </div>
+              )}
+              {block.kind === 'figure' && (
+                <details className="stem-figure-details">
+                  <summary>SVG 내용 원문 {block.standalone ? '(자리표시자)' : ''}</summary>
+                  <textarea
+                    className="stem-figure-source"
+                    value={block.content || ''}
+                    onChange={event => onUpdateFigure(index, event.target.value)}
+                    aria-label={`SVG 블록 ${index + 1} 원문`}
+                    placeholder="SVG 내용을 입력하세요."
+                    spellCheck={false}
+                  />
+                </details>
+              )}
+            </div>
+          </section>
+        </React.Fragment>
+      ))}
+      <StemBlockInsertControls index={blocks.length} onInsertText={onInsertText} onInsertTable={onInsertTable}/>
+    </div>
+  );
+}
+
 function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, showTabs = true }) {
-  const [stem, setStem] = useState(q.stem || '');
+  const initialStem = String(q.stem ?? '');
+  const originalStemRef = useRef(initialStem);
+  const [stem, setStem] = useState(initialStem);
+  const [stemBlocks, setStemBlocks] = useState(() => stemEditorBlocks(initialStem));
+  const [stemEditorMode, setStemEditorMode] = useState('blocks');
+  const [stemTouched, setStemTouched] = useState(false);
   const stemTextareaRef = useRef(null);
-  const stemCursorOffsetRef = useRef(String(q.stem || '').length);
+  const stemCursorOffsetRef = useRef(initialStem.length);
   const stemCursorKnownRef = useRef(false);
   const [stemTableDialog, setStemTableDialog] = useState(null);
   const stemTableBlocks = useMemo(() => listConceptTableBlocks(stem), [stem]);
@@ -914,6 +1162,18 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
   }, [q.id]);
 
   useEffect(() => {
+    const source = String(q.stem ?? '');
+    originalStemRef.current = source;
+    setStem(source);
+    setStemBlocks(stemEditorBlocks(source));
+    setStemEditorMode('blocks');
+    setStemTouched(false);
+    setStemTableDialog(null);
+    stemCursorKnownRef.current = false;
+    stemCursorOffsetRef.current = source.length;
+  }, [q.id]);
+
+  useEffect(() => {
     setCheckStatus(inspectionCheckStatus(q));
   }, [q.id, q.check_status, q.admin_checked_at, q.updated_at]);
 
@@ -938,7 +1198,32 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
     });
   };
 
-  const openStemTableDialog = (block = null) => {
+  const commitStemBlocks = nextBlocks => {
+    const nextStem = serializeStemBlocks(nextBlocks);
+    setStemBlocks(nextBlocks);
+    setStem(nextStem);
+    setStemTouched(true);
+  };
+
+  const switchStemEditorMode = nextMode => {
+    if (nextMode === stemEditorMode) return;
+
+    try {
+      if (nextMode === 'source') {
+        const source = serializeStemBlocks(stemBlocks);
+        setStem(source);
+        stemCursorKnownRef.current = false;
+        stemCursorOffsetRef.current = source.length;
+      } else {
+        setStemBlocks(stemEditorBlocks(stem));
+      }
+      setStemEditorMode(nextMode);
+    } catch {
+      pushToast?.('지문 편집 모드를 전환하지 못했습니다. 원문을 확인하세요.', 'info');
+    }
+  };
+
+  const openSourceStemTableDialog = (block = null) => {
     const source = String(stem || '');
     const textareaOffset = stemCursorKnownRef.current
       ? stemTextareaRef.current?.selectionStart
@@ -949,13 +1234,16 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
     ));
     stemCursorOffsetRef.current = cursorOffset;
     setStemTableDialog(block ? {
+      editorMode: 'source',
       start: block.start,
       end: block.end,
       insertAt: block.start,
       originalBlock: block.full,
+      canonicalBlockAtOpen: serializeConceptTable(parseConceptTableRows(block.content)),
       sourceAtOpen: source,
       rows: parseConceptTableRows(block.content),
     } : {
+      editorMode: 'source',
       start: null,
       end: null,
       insertAt: cursorOffset,
@@ -964,18 +1252,84 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
     });
   };
 
+  const openBlockStemTableDialog = blockIndex => {
+    const block = stemBlocks[blockIndex];
+    if (block?.kind !== 'table') return;
+    setStemTableDialog({
+      editorMode: 'blocks',
+      blockIndex,
+      insertIndex: null,
+      sourceAtOpen: serializeStemBlocks(stemBlocks),
+      canonicalBlockAtOpen: serializeConceptTable(block.rows),
+      rows: block.rows,
+    });
+  };
+
+  const openNewBlockStemTableDialog = insertIndex => {
+    setStemTableDialog({
+      editorMode: 'blocks',
+      blockIndex: null,
+      insertIndex,
+      sourceAtOpen: serializeStemBlocks(stemBlocks),
+      rows: createEmptyConceptTable(),
+    });
+  };
+
   const closeStemTableDialog = () => {
     const returnOffset = stemTableDialog?.insertAt ?? stemCursorOffsetRef.current;
+    const returnToSource = stemTableDialog?.editorMode === 'source';
     setStemTableDialog(null);
-    focusStemAt(returnOffset);
+    if (returnToSource) focusStemAt(returnOffset);
   };
 
   const applyStemTable = rows => {
     if (!stemTableDialog) return;
+    const containsStemBlockMarker = rows.some(row => row.some(cell => (
+      STEM_BLOCK_MARKER_INPUT_PATTERN.test(String(cell?.value ?? ''))
+      || STEM_BLOCK_MARKER_INPUT_PATTERN.test(String(cell?.diagonal?.rowLabel ?? ''))
+      || STEM_BLOCK_MARKER_INPUT_PATTERN.test(String(cell?.diagonal?.columnLabel ?? ''))
+    )));
+    if (containsStemBlockMarker) {
+      pushToast?.('표 셀에는 지문 블록 마커를 입력할 수 없습니다. 필요하면 원문 편집을 사용하세요.', 'info');
+      return;
+    }
+
+    if (stemTableDialog.editorMode === 'blocks') {
+      if (serializeStemBlocks(stemBlocks) !== stemTableDialog.sourceAtOpen) {
+        pushToast?.('지문 블록이 바뀌었습니다. 표를 다시 열어 편집하세요.', 'info');
+        setStemTableDialog(null);
+        return;
+      }
+
+      const nextTableBlock = serializeConceptTable(rows);
+      if (stemTableDialog.blockIndex != null
+        && nextTableBlock === stemTableDialog.canonicalBlockAtOpen) {
+        setStemTableDialog(null);
+        return;
+      }
+
+      const nextBlocks = stemTableDialog.blockIndex == null
+        ? insertStemBlock(
+          stemBlocks,
+          stemTableDialog.insertIndex,
+          newStemEditorBlock({ kind: 'table', rows }),
+        )
+        : updateStemBlock(stemBlocks, stemTableDialog.blockIndex, { rows });
+      commitStemBlocks(nextBlocks);
+      setStemTableDialog(null);
+      return;
+    }
+
     const source = String(stem || '');
     const tableBlock = serializeConceptTable(rows);
     let nextStem;
     let nextCursor;
+
+    if (stemTableDialog.start != null
+      && tableBlock === stemTableDialog.canonicalBlockAtOpen) {
+      closeStemTableDialog();
+      return;
+    }
 
     if (stemTableDialog.start == null) {
       if (source !== stemTableDialog.sourceAtOpen) {
@@ -999,8 +1353,86 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
 
     stemCursorOffsetRef.current = nextCursor;
     setStem(nextStem);
+    setStemTouched(true);
     setStemTableDialog(null);
     focusStemAt(nextCursor);
+  };
+
+  const updateStemTextBlock = (blockIndex, text) => {
+    if (STEM_BLOCK_MARKER_INPUT_PATTERN.test(text)) {
+      pushToast?.('텍스트 블록에는 지문 블록 마커를 입력할 수 없습니다. 필요하면 원문 편집을 사용하세요.', 'info');
+      return;
+    }
+    commitStemBlocks(updateStemBlock(stemBlocks, blockIndex, { text }));
+  };
+
+  const updateStemFigureBlock = (blockIndex, content) => {
+    if (STEM_BLOCK_MARKER_INPUT_PATTERN.test(content)) {
+      pushToast?.('SVG 내용에는 지문 블록 마커를 입력할 수 없습니다. 필요하면 원문 편집을 사용하세요.', 'info');
+      return;
+    }
+    commitStemBlocks(updateStemBlock(stemBlocks, blockIndex, {
+      content,
+      // Editing a standalone [SVG] placeholder promotes it to a paired block,
+      // otherwise serializeStemBlocks would intentionally discard its content.
+      standalone: false,
+    }));
+  };
+
+  const updateStemChoiceHeader = (blockIndex, headerIndex, value) => {
+    if (value.includes('|') || STEM_BLOCK_MARKER_INPUT_PATTERN.test(value)) {
+      pushToast?.('헤더 라벨에는 | 또는 지문 블록 마커를 입력할 수 없습니다.', 'info');
+      return;
+    }
+    const block = stemBlocks[blockIndex];
+    const headers = [...(block?.headers?.length ? block.headers : [''])];
+    headers[headerIndex] = value;
+    commitStemBlocks(updateStemBlock(stemBlocks, blockIndex, { headers }));
+  };
+
+  const resizeStemChoiceHeaders = (blockIndex, nextCount) => {
+    const block = stemBlocks[blockIndex];
+    if (block?.kind !== 'choiceHeaders'
+      || !Number.isInteger(nextCount)
+      || nextCount < 1
+      || nextCount > MAX_CHOICE_HEADER_COLUMNS) return;
+    const headers = block.headers?.length ? block.headers : [''];
+    if (headers.length === nextCount) return;
+
+    if (nextCount < headers.length) {
+      const removedColumnCount = headers.length - nextCount;
+      const truncated = choiceHeadersTruncation(headers, nextCount);
+      const labelNotice = truncated.count > 0
+        ? `\n삭제될 라벨 ${truncated.count}개: ${truncated.labels.join(', ')}`
+        : '\n삭제될 열의 라벨은 모두 비어 있습니다.';
+      const confirmed = window.confirm(
+        `열 수를 ${headers.length}개에서 ${nextCount}개로 줄이면 뒤의 ${removedColumnCount}개 열이 삭제됩니다.${labelNotice}\n\n계속하시겠습니까?`,
+      );
+      if (!confirmed) return;
+    }
+
+    commitStemBlocks(updateStemBlock(stemBlocks, blockIndex, {
+      headers: resizeChoiceHeaders(headers, nextCount),
+    }));
+  };
+
+  const insertStemTextBlock = insertIndex => {
+    commitStemBlocks(insertStemBlock(
+      stemBlocks,
+      insertIndex,
+      newStemEditorBlock({ kind: 'text', text: '' }),
+    ));
+  };
+
+  const deleteStemEditorBlock = blockIndex => {
+    if (!window.confirm(`블록 ${blockIndex + 1}을 삭제하시겠습니까?`)) return;
+    commitStemBlocks(deleteStemBlock(stemBlocks, blockIndex));
+  };
+
+  const moveStemEditorBlock = (blockIndex, direction) => {
+    const targetIndex = blockIndex + direction;
+    if (targetIndex < 0 || targetIndex >= stemBlocks.length) return;
+    commitStemBlocks(moveStemBlock(stemBlocks, blockIndex, targetIndex));
   };
 
   const updateBox  = (bi, fn) => setBoxes(bs => bs.map((b, i) => i === bi ? fn(b) : b));
@@ -1030,14 +1462,30 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
   const save = async () => {
     setBusy(true);
     try {
+      const blocksForSave = stemEditorMode === 'blocks'
+        ? stemBlocks
+        : parseStemBlocks(stem);
+      const stemValidation = validateStemBlocksForSave(
+        originalStemRef.current,
+        blocksForSave,
+        !stemTouched,
+      );
+      if (!stemValidation.ok) {
+        pushToast?.('지문 안전 검증에 실패했습니다. 저장하지 않았습니다.', 'info');
+        return;
+      }
+
       const p_choices = choices.map(c => c.text ? c : { text: String(c) });
       const p_correct_answer = String.fromCharCode(65 + correct);
       const { payload, error } = serializeGivens(boxes);
       if (error) { pushToast(error, 'info'); return; }
       await rpc('admin_update_question_v2', {
-        p_id: q.id, p_stem: stem, p_stem_givens: payload,
+        p_id: q.id, p_stem: stemValidation.stem, p_stem_givens: payload,
         p_choices, p_correct_answer, p_explanation: explanation,
       });
+      originalStemRef.current = stemValidation.stem;
+      setStem(stemValidation.stem);
+      setStemTouched(false);
       setCheckStatus(status => status === 'checked' ? 'stale' : status);
       onSaved();
     } catch (e) { pushToast(e.message, 'info'); }
@@ -1086,32 +1534,68 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
       <div className="q-box">
         <div className="question-stem-editor-tools" style={{ flexWrap: 'wrap' }}>
           <div className="field-label">문항 지문</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {stemTableBlocks.map(block => {
-              const firstRow = (block.content.split(/\r?\n/).find(row => row.trim()) || '')
-                .split('|').map(cell => cell.trim()).join(' | ');
-              const preview = firstRow.length > 30 ? firstRow.slice(0, 29) + '…' : firstRow;
-              return (
-                <button type="button" className="btn btn-xs" key={block.start}
-                  onClick={() => openStemTableDialog(block)}>
-                  표 {block.index + 1} 편집{preview ? ` · ${preview}` : ''}
-                </button>
-              );
-            })}
-            <button type="button" className="btn btn-xs" onClick={() => openStemTableDialog()}>
-              {stemTableBlocks.length ? '+ 새 표' : '표 삽입'}
-            </button>
+          <div className="stem-editor-mode-toggle" role="group" aria-label="지문 편집 방식">
+            <button
+              type="button"
+              className={stemEditorMode === 'blocks' ? 'active' : ''}
+              aria-pressed={stemEditorMode === 'blocks'}
+              onClick={() => switchStemEditorMode('blocks')}
+            >블록 편집</button>
+            <button
+              type="button"
+              className={stemEditorMode === 'source' ? 'active' : ''}
+              aria-pressed={stemEditorMode === 'source'}
+              onClick={() => switchStemEditorMode('source')}
+            >원문 편집</button>
           </div>
         </div>
-        <textarea
-          ref={stemTextareaRef}
-          value={stem}
-          onChange={event => { setStem(event.target.value); rememberStemCursor(event); }}
-          onSelect={rememberStemCursor}
-          onClick={rememberStemCursor}
-          onKeyUp={rememberStemCursor}
-          style={{marginBottom:14, minHeight:150}}
-        />
+        {stemEditorMode === 'blocks' ? (
+          <StemBlockEditor
+            blocks={stemBlocks}
+            onUpdateText={updateStemTextBlock}
+            onUpdateFigure={updateStemFigureBlock}
+            onUpdateChoiceHeader={updateStemChoiceHeader}
+            onResizeChoiceHeaders={resizeStemChoiceHeaders}
+            onEditTable={openBlockStemTableDialog}
+            onInsertText={insertStemTextBlock}
+            onInsertTable={openNewBlockStemTableDialog}
+            onDelete={deleteStemEditorBlock}
+            onMove={moveStemEditorBlock}
+          />
+        ) : (
+          <div className="stem-source-editor">
+            <div className="stem-source-table-tools">
+              {stemTableBlocks.map(block => {
+                const firstRow = (block.content.split(/\r?\n/).find(row => row.trim()) || '')
+                  .split('|').map(cell => cell.trim()).join(' | ');
+                const preview = firstRow.length > 30 ? firstRow.slice(0, 29) + '…' : firstRow;
+                return (
+                  <button type="button" className="btn btn-xs" key={block.start}
+                    onClick={() => openSourceStemTableDialog(block)}>
+                    표 {block.index + 1} 편집{preview ? ` · ${preview}` : ''}
+                  </button>
+                );
+              })}
+              <button type="button" className="btn btn-xs" onClick={() => openSourceStemTableDialog()}>
+                {stemTableBlocks.length ? '+ 새 표' : '표 삽입'}
+              </button>
+            </div>
+            <textarea
+              ref={stemTextareaRef}
+              value={stem}
+              onChange={event => {
+                setStem(event.target.value);
+                setStemTouched(true);
+                rememberStemCursor(event);
+              }}
+              onSelect={rememberStemCursor}
+              onClick={rememberStemCursor}
+              onKeyUp={rememberStemCursor}
+              aria-label="문항 지문 원문"
+              spellCheck={false}
+            />
+          </div>
+        )}
         {hasGivensField && (
           <div style={{ marginBottom: 14 }}>
             <div className="field-label">보기 박스 (stem_givens)</div>
@@ -1232,7 +1716,9 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
       {stemTableDialog && (
         <ConceptTableEditorModal
           rows={stemTableDialog.rows}
-          editing={stemTableDialog.start != null}
+          editing={stemTableDialog.editorMode === 'blocks'
+            ? stemTableDialog.blockIndex != null
+            : stemTableDialog.start != null}
           onCancel={closeStemTableDialog}
           onApply={applyStemTable}
         />

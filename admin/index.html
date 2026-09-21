@@ -587,6 +587,45 @@
   .qi-actions .btn-gemini:hover { filter: brightness(1.08); }
   .question-stem-editor-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
   .question-stem-editor-tools .field-label { margin: 0; }
+  .stem-editor-mode-toggle { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--r-sm); overflow: hidden; }
+  .stem-editor-mode-toggle button { padding: 5px 11px; border-right: 1px solid var(--border); color: var(--fg-muted); font-size: 11.5px; font-weight: 600; }
+  .stem-editor-mode-toggle button:last-child { border-right: 0; }
+  .stem-editor-mode-toggle button:hover { background: var(--surface-2); color: var(--fg); }
+  .stem-editor-mode-toggle button.active { background: var(--accent-soft); color: var(--accent); }
+  .stem-block-editor, .stem-source-editor { margin-bottom: 14px; }
+  .stem-source-table-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 7px; }
+  .q-box .stem-source-editor textarea { min-height: 180px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.65; }
+  .stem-block-empty { padding: 18px; border: 1px dashed var(--border-strong); border-radius: var(--r-sm); color: var(--fg-faint); text-align: center; }
+  .stem-block-insert { display: grid; grid-template-columns: minmax(16px, 1fr) auto auto minmax(16px, 1fr); align-items: center; gap: 5px; min-height: 30px; }
+  .stem-block-insert span { height: 1px; background: var(--border); }
+  .stem-block-insert .btn { padding: 2px 7px; opacity: .74; }
+  .stem-block-insert:hover .btn, .stem-block-insert:focus-within .btn { opacity: 1; }
+  .stem-block-card { overflow: hidden; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface-2); }
+  .stem-block-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .stem-block-title, .stem-block-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .stem-block-title { min-width: 0; color: var(--fg-subtle); font-family: var(--font-mono); font-size: 10.5px; }
+  .stem-block-actions { justify-content: flex-end; }
+  .stem-block-body { padding: 10px; }
+  .q-box .stem-block-textarea, .q-box .stem-figure-source { min-height: 88px; background: var(--surface); font-size: 14px; line-height: 1.65; }
+  .stem-table-preview-wrap { max-width: 100%; overflow-x: auto; }
+  .stem-table-preview { width: 100%; min-width: 360px; border-collapse: collapse; table-layout: fixed; background: var(--surface); }
+  .stem-table-preview th, .stem-table-preview td { min-width: 80px; padding: 8px 10px; border: 1px solid var(--border-strong); color: var(--fg-muted); font-size: 12px; font-weight: 400; text-align: center; white-space: pre-wrap; }
+  .stem-table-preview th { background: var(--surface-3); color: var(--fg); font-weight: 600; }
+  .stem-table-diagonal-preview { position: relative; min-height: 48px; background: linear-gradient(to top right, transparent calc(50% - .7px), var(--border-strong) 50%, transparent calc(50% + .7px)); }
+  .stem-table-diagonal-preview span { position: absolute; width: 48%; font-size: 10.5px; }
+  .stem-table-diagonal-preview .column-label { top: 0; right: 0; text-align: right; }
+  .stem-table-diagonal-preview .row-label { bottom: 0; left: 0; text-align: left; }
+  .stem-choice-headers { display: flex; flex-direction: column; gap: 9px; }
+  .stem-choice-headers-toolbar { display: flex; align-items: center; gap: 5px; color: var(--fg-subtle); font-family: var(--font-mono); font-size: 10.5px; }
+  .stem-choice-headers-toolbar input { width: 62px; height: 27px; padding: 3px 5px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); color: var(--fg); text-align: center; outline: none; }
+  .stem-choice-headers-toolbar input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .stem-choice-header-fields { display: grid; gap: 7px; overflow-x: auto; padding-bottom: 2px; }
+  .stem-choice-header-fields label { display: block; min-width: 110px; }
+  .stem-choice-header-fields label > span { display: block; margin-bottom: 4px; color: var(--fg-faint); font-family: var(--font-mono); font-size: 9.5px; }
+  .q-box .stem-choice-header-fields .field-input { width: 100%; padding: 7px 8px; font-size: 13px; }
+  .stem-choice-headers-help { color: var(--fg-faint); font-size: 10.5px; }
+  .stem-figure-details summary { color: var(--fg-muted); cursor: pointer; font-size: 11.5px; }
+  .stem-figure-details[open] summary { margin-bottom: 8px; }
 
   .qi-tpl-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 12px; overflow: hidden; }
   .qi-tpl-tabs { display: flex; gap: 4px; padding: 12px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
@@ -664,7 +703,7 @@
 
   .qi-md-pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 14px 16px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.7; color: var(--fg-muted); white-space: pre-wrap; overflow-x: auto; }
 </style>
-  <script type="module" crossorigin src="./assets/index-BgMqL_XM.js"></script>
+  <script type="module" crossorigin src="./assets/index-B6C6bcIM.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-D_mCvlB0.css">
 </head>
 <body>
