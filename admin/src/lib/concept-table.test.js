@@ -10,10 +10,72 @@ import {
   selectConceptTableRange,
   unmergeConceptTableSelection,
   createEmptyConceptTable,
+  listConceptTableBlocks,
   parseConceptTableRows,
   sanitizeConceptTableCell,
   serializeConceptTable,
 } from './concept-table.js';
+
+const twoTableStem = `(주)감평은 20x1년 1월 1일에 공장건물을 신축하여 … 자본화할 차입원가는?
+(1) 공사비 지출
+[TABLE]일자|금액
+20x1. 1. 1.|₩600,000
+20x1. 7. 1.|500,000[/TABLE]
+(2) 차입금 현황
+[TABLE]종류|차입금액|차입기간|연이자율
+특정차입금|₩300,000|20x1. 4. 1. - 20x1. 12. 31.|3%[/TABLE]`;
+
+test('lists both stem tables in document order with exact source ranges', () => {
+  const blocks = listConceptTableBlocks(twoTableStem);
+  assert.equal(blocks.length, 2);
+  let searchFrom = 0;
+  blocks.forEach((block, index) => {
+    const start = twoTableStem.indexOf('[TABLE]', searchFrom);
+    const end = twoTableStem.indexOf('[/TABLE]', start) + 8;
+    assert.deepEqual(block, {
+      index, start, end,
+      full: twoTableStem.slice(start, end),
+      content: twoTableStem.slice(start + 7, end - 8),
+    });
+    searchFrom = end;
+  });
+});
+
+test('returns no tables for plain text and other stem markers', () => {
+  for (const source of ['', '문항 지문\n○ 보기줄\n[CHOICE_HEADERS]A|B[/CHOICE_HEADERS]\n[SVG]<svg/>[/SVG]']) {
+    assert.deepEqual(listConceptTableBlocks(source), []);
+  }
+});
+
+test('replacing only the second table preserves every surrounding character', () => {
+  const source = twoTableStem + '\n○ 보기줄\n[CHOICE_HEADERS]A|B[/CHOICE_HEADERS]\n[SVG]<svg/>[/SVG]\n';
+  const [first, second] = listConceptTableBlocks(source);
+  const rows = parseConceptTableRows(second.content);
+  rows[1][1].value = '₩400,000';
+  const replacement = serializeConceptTable(rows);
+  const updated = source.slice(0, second.start) + replacement + source.slice(second.end);
+  assert.equal(updated.slice(0, second.start), source.slice(0, second.start));
+  assert.equal(updated.slice(second.start + replacement.length), source.slice(second.end));
+  assert.deepEqual(listConceptTableBlocks(updated)[0], first);
+  assert.equal(listConceptTableBlocks(updated)[1].full, replacement);
+  assert.equal(updated, source.replace('₩300,000', '₩400,000'));
+});
+
+test('ignores unclosed tables without throwing or swallowing preceding valid tables', () => {
+  assert.deepEqual(listConceptTableBlocks('[TABLE]A|B'), []);
+  assert.deepEqual(listConceptTableBlocks(twoTableStem + '\n[TABLE]broken'), listConceptTableBlocks(twoTableStem));
+});
+
+test('rejects nested and overlapping regions and resumes after balanced invalid regions', () => {
+  const invalid = '[/TABLE][TABLE]outer[TABLE]inner[/TABLE][/TABLE]';
+  assert.deepEqual(listConceptTableBlocks(invalid), []);
+  assert.deepEqual(listConceptTableBlocks('[TABLE]outer[TABLE]inner[/TABLE]'), []);
+  const valid = '[TABLE]A|B[/TABLE]';
+  assert.deepEqual(listConceptTableBlocks(invalid + valid), [{
+    index: 0, start: invalid.length, end: invalid.length + valid.length,
+    full: valid, content: 'A|B',
+  }]);
+});
 
 function roundTrip(block) {
   const match = /^\[TABLE\]([\s\S]*)\[\/TABLE\]$/.exec(block);

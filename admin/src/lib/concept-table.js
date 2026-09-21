@@ -1,6 +1,39 @@
 export const CONCEPT_TABLE_MERGE_LEFT = 'left';
 export const CONCEPT_TABLE_MERGE_UP = 'up';
 
+export function listConceptTableBlocks(source) {
+  const text = String(source ?? '');
+  const blocks = [];
+  let depth = 0;
+  let start = 0;
+  let nested = false;
+  // Reject an entire nested region rather than exposing ambiguous edit ranges.
+  for (const match of text.matchAll(/\[\/?TABLE\]/g)) {
+    if (match[0] === '[TABLE]') {
+      if (depth === 0) {
+        start = match.index;
+        nested = false;
+      } else {
+        nested = true;
+      }
+      depth += 1;
+    } else if (depth > 0) {
+      depth -= 1;
+      if (depth === 0 && !nested) {
+        const end = match.index + match[0].length;
+        blocks.push({
+          index: blocks.length,
+          start,
+          end,
+          full: text.slice(start, end),
+          content: text.slice(start + '[TABLE]'.length, match.index),
+        });
+      }
+    }
+  }
+  return blocks;
+}
+
 export function sanitizeConceptTableCell(value) {
   return String(value ?? '')
     .replace(/\[\/?TABLE\]/g, '')

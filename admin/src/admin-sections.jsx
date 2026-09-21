@@ -15,6 +15,7 @@ import {
   unmergeConceptTableSelection,
   createConceptTableCell,
   createEmptyConceptTable,
+  listConceptTableBlocks,
   normalizeConceptTableRows,
   parseConceptTableRows,
   sanitizeConceptTableCell,
@@ -886,6 +887,7 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
   const stemCursorOffsetRef = useRef(String(q.stem || '').length);
   const stemCursorKnownRef = useRef(false);
   const [stemTableDialog, setStemTableDialog] = useState(null);
+  const stemTableBlocks = useMemo(() => listConceptTableBlocks(stem), [stem]);
   const [choices, setChoices] = useState(() => {
     const cs = Array.isArray(q.choices) ? q.choices : (q.choices?.options || []);
     return cs.map((c, i) => typeof c === 'string' ? { text: c } : c);
@@ -936,7 +938,7 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
     });
   };
 
-  const openStemTableDialog = () => {
+  const openStemTableDialog = (block = null) => {
     const source = String(stem || '');
     const textareaOffset = stemCursorKnownRef.current
       ? stemTextareaRef.current?.selectionStart
@@ -946,7 +948,6 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
       source.length,
     ));
     stemCursorOffsetRef.current = cursorOffset;
-    const block = findConceptTableBlock(source, cursorOffset);
     setStemTableDialog(block ? {
       start: block.start,
       end: block.end,
@@ -986,17 +987,11 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
       nextStem = source.slice(0, insertAt) + tableBlock + source.slice(insertAt);
       nextCursor = insertAt + tableBlock.length;
     } else {
-      let start = stemTableDialog.start;
-      let end = stemTableDialog.end;
-      if (source.slice(start, end) !== stemTableDialog.originalBlock) {
-        const currentBlock = tableBlockMatches(source).find(match => match.full === stemTableDialog.originalBlock);
-        if (!currentBlock) {
-          pushToast?.('지문 내용이 바뀌었습니다. 표를 다시 열어 편집하세요.', 'info');
-          closeStemTableDialog();
-          return;
-        }
-        start = currentBlock.start;
-        end = currentBlock.end;
+      const { start, end } = stemTableDialog;
+      if (source !== stemTableDialog.sourceAtOpen) {
+        pushToast?.('지문 내용이 바뀌었습니다. 표를 다시 열어 편집하세요.', 'info');
+        closeStemTableDialog();
+        return;
       }
       nextStem = source.slice(0, start) + tableBlock + source.slice(end);
       nextCursor = start + tableBlock.length;
@@ -1089,9 +1084,24 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
       <>
       {tabs}
       <div className="q-box">
-        <div className="question-stem-editor-tools">
+        <div className="question-stem-editor-tools" style={{ flexWrap: 'wrap' }}>
           <div className="field-label">문항 지문</div>
-          <button type="button" className="btn btn-xs" onClick={openStemTableDialog}>표 삽입/편집</button>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {stemTableBlocks.map(block => {
+              const firstRow = (block.content.split(/\r?\n/).find(row => row.trim()) || '')
+                .split('|').map(cell => cell.trim()).join(' | ');
+              const preview = firstRow.length > 30 ? firstRow.slice(0, 29) + '…' : firstRow;
+              return (
+                <button type="button" className="btn btn-xs" key={block.start}
+                  onClick={() => openStemTableDialog(block)}>
+                  표 {block.index + 1} 편집{preview ? ` · ${preview}` : ''}
+                </button>
+              );
+            })}
+            <button type="button" className="btn btn-xs" onClick={() => openStemTableDialog()}>
+              {stemTableBlocks.length ? '+ 새 표' : '표 삽입'}
+            </button>
+          </div>
         </div>
         <textarea
           ref={stemTextareaRef}
