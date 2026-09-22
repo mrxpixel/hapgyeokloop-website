@@ -627,6 +627,30 @@
   .stem-figure-details summary { color: var(--fg-muted); cursor: pointer; font-size: 11.5px; }
   .stem-figure-details[open] summary { margin-bottom: 8px; }
 
+  .question-image-editor { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .question-image-preview { display: flex; flex-direction: column; gap: 7px; padding: 10px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface-2); }
+  /* align-self 가 없으면 flex column 의 stretch 가 크롭을 원본보다 크게 늘려 흐려진다. */
+  .question-image-preview img { display: block; align-self: flex-start; max-width: 100%; height: auto; border-radius: var(--r-sm); background: #fff; }
+  .question-image-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--fg-subtle); font-family: var(--font-mono); font-size: 10.5px; }
+  .question-image-empty { padding: 14px 10px; border: 1px dashed var(--border-strong); border-radius: var(--r-sm); color: var(--fg-faint); font-size: 11.5px; text-align: center; }
+  .question-image-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .question-image-help { color: var(--fg-faint); font-size: 10.5px; }
+  .question-image-note { color: var(--fg-muted); font-size: 10.5px; line-height: 1.5; }
+
+  .choice-editor { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .choice-editor-toolbar { display: flex; align-items: center; gap: 7px; }
+  .choice-editor-state { color: var(--fg-subtle); font-family: var(--font-mono); font-size: 10.5px; }
+  .choice-editor-warning { display: flex; align-items: flex-start; gap: 8px; padding: 7px 9px; border: 1px solid var(--warning); border-radius: var(--r-sm); background: var(--surface-2); color: var(--fg-muted); font-size: 11px; line-height: 1.5; }
+  .choice-editor-warning button { flex-shrink: 0; }
+  .choice-editor-header-row { display: grid; gap: 7px; margin-left: 26px; overflow-x: auto; color: var(--fg-faint); font-family: var(--font-mono); font-size: 9.5px; }
+  .choice-editor-header-row > span { min-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .choice-editor-header-row .choice-editor-extra-label { color: var(--warning); }
+  .choice-editor-row { display: flex; gap: 10px; align-items: center; }
+  .choice-editor-columns { display: grid; flex: 1; gap: 7px; overflow-x: auto; padding-bottom: 2px; }
+  .q-box .choice-editor-columns .field-input { width: 100%; min-width: 110px; padding: 7px 8px; font-size: 13px; }
+  .q-box .choice-editor-columns .choice-editor-extra { border-color: var(--warning); }
+  .q-box .choice-editor-single { flex: 1; padding: 9px 11px; font-size: 14px; }
+
   .qi-tpl-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 12px; overflow: hidden; }
   .qi-tpl-tabs { display: flex; gap: 4px; padding: 12px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
   .qi-tpl-textarea { width: 100%; min-height: 240px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); font-family: var(--font-mono); font-size: 11.5px; color: var(--fg); line-height: 1.5; resize: vertical; }

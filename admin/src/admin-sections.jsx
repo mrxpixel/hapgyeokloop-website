@@ -35,6 +35,32 @@ import {
   updateStemBlock,
   validateStemBlocksForSave,
 } from './lib/stem-blocks.js'
+import {
+  CHOICE_COLUMN_SEPARATOR,
+  DEFAULT_CHOICE_COLUMNS,
+  MAX_CHOICE_COLUMNS,
+  appendChoiceHeadersBlock,
+  choiceColumnMismatches,
+  choiceColumnsTruncation,
+  choiceColumnsWithLineBreak,
+  choiceForSave,
+  choiceLabel,
+  choiceText,
+  removeChoiceHeadersBlock,
+  resizeAllChoiceColumns,
+  resizeChoiceColumns,
+  setChoiceColumn,
+  splitChoiceColumns,
+} from './lib/choice-columns.js'
+import {
+  MAX_QUESTION_IMAGE_BYTES,
+  QUESTION_IMAGE_MAX_WIDTH,
+  fitQuestionImageSize,
+  formatByteSize,
+  parseQuestionImage,
+  questionImageAcceptAttribute,
+  questionImageForSave,
+} from './lib/question-image.js'
 
 // marked 옵션은 MarkdownEditor.jsx에서 단일 설정 (중복 setOptions 금지)
 
@@ -473,6 +499,7 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
     subject_id: r.subject_id,
     stem: r.q_stem,
     stem_givens: r.q_stem_givens,
+    image_url: r.q_image_url,
     choices: r.q_choices,
     correct_index: r.q_correct_answer ? 'ABCDE'.indexOf(r.q_correct_answer) : 0,
     correct_answer: r.q_correct_answer,
@@ -911,6 +938,48 @@ function newStemEditorBlock(block) {
   };
 }
 
+/**
+ * 고른 파일을 권장 가로폭으로 줄여 PNG data URI 로 만든다.
+ *
+ * 캔버스·FileReader 경로라 브라우저에서만 동작한다. 그래서 순수 계산(크기 환산·검증)은
+ * lib/question-image.js 에 두고, 여기는 브라우저 API 호출만 남긴다.
+ */
+function questionImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read-failed'));
+    reader.onload = () => {
+      const image = new window.Image();
+      image.onerror = () => reject(new Error('decode-failed'));
+      image.onload = () => {
+        const { width, height } = fitQuestionImageSize(image.naturalWidth, image.naturalHeight);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d');
+        if (!context) {
+          reject(new Error('canvas-unavailable'));
+          return;
+        }
+        // 기출 도형은 흰 바탕이 기본이다. 투명 PNG 를 그대로 두면 다크 테마에서 선이 묻힌다.
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      image.src = String(reader.result ?? '');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/** Names the exact choice content a narrower column count would delete. */
+function describeDroppedChoiceColumns(columns) {
+  return columns
+    .map(column => `${column.label} ${column.columnIndex + 1}칸: ${column.value}`)
+    .join(', ');
+}
+
 function AutoHeightTextarea({ value, onChange, className = '', ...props }) {
   const textareaRef = useRef(null);
 
@@ -1099,7 +1168,7 @@ function StemBlockEditor({
                       </label>
                     ))}
                   </div>
-                  <div className="stem-choice-headers-help">헤더 라벨만 편집합니다. 선지 본문의 열 구분은 변경하지 않습니다.</div>
+                  <div className="stem-choice-headers-help">열 수를 바꾸면 아래 선지 본문의 칸 수도 함께 맞춰집니다.</div>
                 </div>
               )}
               {block.kind === 'figure' && (
@@ -1124,6 +1193,241 @@ function StemBlockEditor({
   );
 }
 
+/**
+ * 기출 원본 사진 편집기.
+ *
+ * questions.image_url 은 stem 문자열이 아니라 별도 컬럼이라 지문 블록으로 만들 수 없다.
+ * 보기 박스(stem_givens)와 같은 자리, 같은 모양의 독립 섹션으로 둔다.
+ */
+function QuestionImageEditor({ imageUrl, hasSvgBlock, busy, onPick, onClear }) {
+  const parsed = parseQuestionImage(imageUrl);
+  const inputRef = useRef(null);
+  // 형식 검사를 통과해도 바이트가 깨져 있으면 브라우저가 디코드에 실패한다.
+  // 어드민에서는 조용히 넘기면 안 되는 상태라 드러낸다.
+  const [decodeFailed, setDecodeFailed] = useState(false);
+
+  useEffect(() => { setDecodeFailed(false); }, [imageUrl]);
+
+  return (
+    <div className="question-image-editor">
+      <div className="field-label">기출 원본 사진 (image_url)</div>
+
+      {parsed.ok ? (
+        <div className="question-image-preview">
+          {decodeFailed ? (
+            <div className="question-image-empty">
+              저장된 값이 PNG·JPEG 로 열리지 않습니다 (데이터 손상). 새 사진을 올리거나 제거하세요.
+            </div>
+          ) : (
+            <img
+              src={parsed.dataUrl}
+              alt="문항에 첨부된 기출 원본 사진"
+              onError={() => setDecodeFailed(true)}
+            />
+          )}
+          <div className="question-image-meta">
+            <span>{parsed.mime === 'image/png' ? 'PNG' : 'JPEG'} · {formatByteSize(parsed.byteLength)}</span>
+            <button type="button" className="btn btn-xs btn-danger" disabled={busy} onClick={onClear}>사진 제거</button>
+          </div>
+        </div>
+      ) : (
+        <div className="question-image-empty">
+          {parsed.reason === 'empty'
+            ? '첨부된 사진이 없습니다.'
+            : '저장된 값이 PNG·JPEG data URI 가 아닙니다. 새 사진을 올리거나 제거하세요.'}
+        </div>
+      )}
+
+      <div className="question-image-actions">
+        <input
+          ref={inputRef}
+          type="file"
+          accept={questionImageAcceptAttribute()}
+          style={{ display: 'none' }}
+          onChange={event => {
+            const file = event.target.files?.[0];
+            // 같은 파일을 다시 골라도 change 가 뜨도록 값을 비운다.
+            event.target.value = '';
+            if (file) onPick(file);
+          }}
+        />
+        <button
+          type="button"
+          className="btn btn-sm"
+          disabled={busy}
+          onClick={() => inputRef.current?.click()}
+        >
+          <Icon name="plus" size={12} /> {parsed.ok ? '사진 교체' : '사진 올리기'}
+        </button>
+        <span className="question-image-help">
+          PNG·JPEG. 가로 {QUESTION_IMAGE_MAX_WIDTH}px 로 줄여 PNG 로 저장합니다 (최대 {formatByteSize(MAX_QUESTION_IMAGE_BYTES)}).
+        </span>
+      </div>
+
+      {hasSvgBlock && (
+        <div className="question-image-note">
+          이 문항에는 [SVG] 도형 블록이 있습니다. 사진을 넣어도 지문의 SVG 는 지우지 마세요 — 앱 렌더러가
+          붙으면 사진이 있을 때 SVG 를 가리도록 되어 있고, 구버전 앱은 계속 SVG 를 그립니다.
+        </div>
+      )}
+      <div className="question-image-note">
+        🚧 앱 렌더러는 아직 없습니다. 지금 올린 사진은 DB 에만 저장되고 앱 화면에는 나오지 않습니다.
+      </div>
+    </div>
+  );
+}
+
+/**
+ * One choice rendered as one input per column.
+ *
+ * A choice carrying more columns than the header declares keeps those extra
+ * inputs on screen, so overflow can be read and fixed instead of being hidden
+ * behind a warning the author cannot act on.
+ */
+function ChoiceColumnInputs({ choice, index, columnCount, renderedCount, onChangeColumn }) {
+  const stored = splitChoiceColumns(choiceText(choice));
+  const label = choiceLabel(choice, index);
+
+  return (
+    <div
+      className="choice-editor-columns"
+      style={{ gridTemplateColumns: `repeat(${renderedCount}, minmax(110px, 1fr))` }}
+    >
+      {resizeChoiceColumns(stored, renderedCount).map((column, columnIndex) => {
+        const isExtra = columnIndex >= columnCount;
+        return (
+          <input
+            key={columnIndex}
+            className={`field-input${isExtra ? ' choice-editor-extra' : ''}`}
+            value={column}
+            onChange={event => onChangeColumn(index, columnIndex, event.target.value)}
+            aria-label={`선지 ${label} ${columnIndex + 1}칸${isExtra ? ' (헤더에 없는 열)' : ''}`}
+            placeholder={`${columnIndex + 1}칸`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Choice editor. Without choice headers this stays the original single input
+ * per choice. With headers it splits each choice into one input per column, so
+ * the separator never has to be typed by hand.
+ */
+function ChoiceListEditor({
+  choices,
+  correct,
+  headers,
+  onSelectCorrect,
+  onChangeText,
+  onChangeColumn,
+  onAddHeaders,
+  onRemoveHeaders,
+  onSyncColumns,
+}) {
+  // Clamped because a throw here would take the whole admin screen down, and
+  // header width comes straight from stored stem text.
+  const columnCount = headers
+    ? Math.min(MAX_CHOICE_COLUMNS, Math.max(1, headers.length))
+    : 0;
+  // One grid width for the label row and every choice row, widened to the
+  // widest choice so overflow columns stay aligned and readable.
+  const renderedCount = headers
+    ? Math.min(MAX_CHOICE_COLUMNS, choices.reduce(
+      (widest, choice) => Math.max(widest, splitChoiceColumns(choiceText(choice)).length),
+      columnCount,
+    ))
+    : 0;
+  const mismatches = headers ? choiceColumnMismatches(choices, columnCount) : [];
+  const lineBreaks = headers ? choiceColumnsWithLineBreak(choices) : [];
+
+  return (
+    <div className="choice-editor">
+      <div className="choice-editor-toolbar">
+        {headers ? (
+          <>
+            <span className="choice-editor-state">선택지 헤더 {columnCount}열</span>
+            <button type="button" className="btn btn-xs" onClick={onRemoveHeaders}>헤더 제거</button>
+          </>
+        ) : (
+          <>
+            <span className="choice-editor-state">선지를 열로 나누지 않습니다</span>
+            <button type="button" className="btn btn-xs" onClick={onAddHeaders}>선택지 헤더 추가</button>
+          </>
+        )}
+      </div>
+
+      {mismatches.length > 0 && (
+        <div className="choice-editor-warning">
+          <span>
+            칸 수가 헤더와 다른 선지 {mismatches.length}개:{' '}
+            {mismatches.map(item => `${item.label}(${item.columnCount}칸)`).join(', ')}.
+            모자란 칸은 빈 칸으로 보여주며, 입력하기 전에는 저장값이 바뀌지 않습니다.
+          </span>
+          <button type="button" className="btn btn-xs" onClick={onSyncColumns}>{columnCount}열로 맞추기</button>
+        </div>
+      )}
+
+      {lineBreaks.length > 0 && (
+        <div className="choice-editor-warning">
+          <span>
+            줄바꿈이 들어 있는 칸 {lineBreaks.length}개:{' '}
+            {lineBreaks.map(item => `${item.label} ${item.columnIndex + 1}칸`).join(', ')}.
+            입력칸에는 줄바꿈이 보이지 않으며, 그 칸을 편집하면 줄바꿈이 사라집니다.
+          </span>
+        </div>
+      )}
+
+      {headers && (
+        <div
+          className="choice-editor-header-row"
+          style={{ gridTemplateColumns: `repeat(${renderedCount}, minmax(110px, 1fr))` }}
+        >
+          {Array.from({ length: renderedCount }, (_, headerIndex) => (
+            <span
+              key={headerIndex}
+              className={headerIndex >= columnCount ? 'choice-editor-extra-label' : ''}
+            >
+              {headerIndex >= columnCount
+                ? '헤더 없음'
+                : String(headers[headerIndex] ?? '').trim() || `${headerIndex + 1}열`}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {choices.map((choice, index) => (
+        <div key={index} className="choice-editor-row">
+          <input
+            type="radio"
+            name="correct-q"
+            checked={correct === index}
+            onChange={() => onSelectCorrect(index)}
+            aria-label={`선지 ${choiceLabel(choice, index)} 정답으로 지정`}
+          />
+          {headers ? (
+            <ChoiceColumnInputs
+              choice={choice}
+              index={index}
+              columnCount={columnCount}
+              renderedCount={renderedCount}
+              onChangeColumn={onChangeColumn}
+            />
+          ) : (
+            <input
+              className="field-input choice-editor-single"
+              value={choiceText(choice)}
+              onChange={event => onChangeText(index, event.target.value)}
+              aria-label={`선지 ${choiceLabel(choice, index)} 본문`}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, showTabs = true }) {
   const initialStem = String(q.stem ?? '');
   const originalStemRef = useRef(initialStem);
@@ -1141,12 +1445,29 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
     return cs.map((c, i) => typeof c === 'string' ? { text: c } : c);
   });
   const [correct, setCorrect] = useState(q.correct_index ?? 0);
+  // Derived from the stem string rather than stemBlocks so the choice editor
+  // stays correct in source mode too, where stemBlocks is intentionally stale.
+  // The app honours only the first marker, so extra ones are ignored here too.
+  const choiceHeaderLabels = useMemo(() => {
+    const block = parseStemBlocks(stem).find(candidate => candidate.kind === 'choiceHeaders');
+    if (!block) return null;
+    return block.headers?.length ? block.headers : [''];
+  }, [stem]);
   const [explanation, setExplanation] = useState(q.explanation || '');
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [checkStatus, setCheckStatus] = useState(() => inspectionCheckStatus(q));
   // Inspection RPC returns stem_givens (so it's defined here); the Reports path does not
   // (q built from report fields → undefined). Only enable the givens editor + v2 RPC when loaded.
+  // 신고 화면이 쓰는 admin_get_reports 는 image_url 을 안 내려준다. 값이 없는 채로 저장하면
+  // 사진이 지워지므로, 이 필드가 실려 온 경로(검수 화면)에서만 편집·저장한다.
+  const hasImageField = q.image_url !== undefined;
+  const [imageUrl, setImageUrl] = useState(() => questionImageForSave(q.image_url));
+  const [imageBusy, setImageBusy] = useState(false);
+  const stemHasFigure = useMemo(
+    () => parseStemBlocks(stem).some(block => block.kind === 'figure'),
+    [stem],
+  );
   const hasGivensField = q.stem_givens !== undefined;
   const [boxes, setBoxes] = useState(() => normalizeGivens(q.stem_givens));
   const [legacyImportHidden, setLegacyImportHidden] = useState(false);
@@ -1159,6 +1480,8 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
 
   useEffect(() => {
     setLegacyImportHidden(false);
+    setImageUrl(questionImageForSave(q.image_url));
+    setImageBusy(false);
   }, [q.id]);
 
   useEffect(() => {
@@ -1405,8 +1728,12 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
       const labelNotice = truncated.count > 0
         ? `\n삭제될 라벨 ${truncated.count}개: ${truncated.labels.join(', ')}`
         : '\n삭제될 열의 라벨은 모두 비어 있습니다.';
+      const droppedColumns = choiceColumnsTruncation(choices, nextCount);
+      const choiceNotice = droppedColumns.count > 0
+        ? `\n삭제될 선지 내용 ${droppedColumns.count}개: ${describeDroppedChoiceColumns(droppedColumns.columns)}`
+        : '\n삭제될 선지 칸은 모두 비어 있습니다.';
       const confirmed = window.confirm(
-        `열 수를 ${headers.length}개에서 ${nextCount}개로 줄이면 뒤의 ${removedColumnCount}개 열이 삭제됩니다.${labelNotice}\n\n계속하시겠습니까?`,
+        `열 수를 ${headers.length}개에서 ${nextCount}개로 줄이면 뒤의 ${removedColumnCount}개 열이 삭제됩니다.${labelNotice}${choiceNotice}\n\n계속하시겠습니까?`,
       );
       if (!confirmed) return;
     }
@@ -1414,6 +1741,71 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
     commitStemBlocks(updateStemBlock(stemBlocks, blockIndex, {
       headers: resizeChoiceHeaders(headers, nextCount),
     }));
+    // Header width and choice column count must move together: the app renders
+    // each side from its own count and never cross-checks them.
+    setChoices(current => resizeAllChoiceColumns(current, nextCount));
+  };
+
+  // Mirrors save(): in source mode the stem string is authoritative and
+  // stemBlocks is stale, so re-parse before touching the block array.
+  const editableStemBlocks = () => (
+    stemEditorMode === 'blocks' ? stemBlocks : stemEditorBlocks(stem)
+  );
+
+  // Named apart from the imported block helpers: a handler sharing their name
+  // shadows the import and silently recurses into itself.
+  const addChoiceHeaders = () => {
+    const blocks = editableStemBlocks();
+    if (blocks.some(block => block.kind === 'choiceHeaders')) {
+      pushToast?.('이미 선택지 헤더가 있습니다.', 'info');
+      return;
+    }
+
+    commitStemBlocks(appendChoiceHeadersBlock(blocks, DEFAULT_CHOICE_COLUMNS, newStemEditorBlock));
+  };
+
+  const removeChoiceHeaders = () => {
+    const blocks = editableStemBlocks();
+    const blockIndex = blocks.findIndex(block => block.kind === 'choiceHeaders');
+    if (blockIndex < 0) return;
+
+    const pipedCount = choices.filter(
+      choice => splitChoiceColumns(choiceText(choice)).length > 1,
+    ).length;
+    const choiceNotice = pipedCount > 0
+      ? `\n\n선지 ${pipedCount}개에 남아 있는 ${CHOICE_COLUMN_SEPARATOR} 는 그대로 유지됩니다. 헤더 없이는 그 기호가 본문에 그대로 보입니다.`
+      : '';
+    if (!window.confirm(`선택지 헤더를 제거하시겠습니까?${choiceNotice}`)) return;
+
+    commitStemBlocks(removeChoiceHeadersBlock(blocks));
+  };
+
+  const updateChoiceText = (choiceIndex, value) => {
+    setChoices(current => current.map((choice, index) => (
+      index === choiceIndex ? { ...choice, text: value } : choice
+    )));
+  };
+
+  const updateChoiceColumn = (choiceIndex, columnIndex, value) => {
+    if (value.includes(CHOICE_COLUMN_SEPARATOR)) {
+      pushToast?.(`선지 칸에는 ${CHOICE_COLUMN_SEPARATOR} 를 입력할 수 없습니다. 열을 늘리려면 헤더의 열 수를 바꾸세요.`, 'info');
+      return;
+    }
+    setChoices(current => setChoiceColumn(current, choiceIndex, columnIndex, value));
+  };
+
+  const syncChoiceColumns = () => {
+    const columnCount = choiceHeaderLabels?.length;
+    if (!columnCount) return;
+
+    const droppedColumns = choiceColumnsTruncation(choices, columnCount);
+    if (droppedColumns.count > 0) {
+      const confirmed = window.confirm(
+        `선지 칸을 ${columnCount}개로 맞추면 내용 ${droppedColumns.count}개가 삭제됩니다.\n${describeDroppedChoiceColumns(droppedColumns.columns)}\n\n계속하시겠습니까?`,
+      );
+      if (!confirmed) return;
+    }
+    setChoices(current => resizeAllChoiceColumns(current, columnCount));
   };
 
   const insertStemTextBlock = insertIndex => {
@@ -1453,6 +1845,31 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
     const j = bi + dir; if (j < 0 || j >= bs.length) return bs;
     const c = [...bs]; [c[bi], c[j]] = [c[j], c[bi]]; return c;
   });
+  const pickQuestionImage = async file => {
+    if (imageBusy) return;
+    setImageBusy(true);
+    try {
+      const parsed = parseQuestionImage(await questionImageFromFile(file));
+      if (!parsed.ok) {
+        pushToast?.(parsed.reason === 'too-large'
+          ? `사진이 너무 큽니다 (${formatByteSize(parsed.byteLength)}). 최대 ${formatByteSize(MAX_QUESTION_IMAGE_BYTES)} 입니다.`
+          : '사진을 PNG 로 변환하지 못했습니다.', 'info');
+        return;
+      }
+      setImageUrl(parsed.dataUrl);
+      pushToast?.(`사진을 불러왔습니다 (${formatByteSize(parsed.byteLength)}). 저장을 눌러야 반영됩니다.`, 'info');
+    } catch {
+      pushToast?.('사진 파일을 읽지 못했습니다. PNG 또는 JPEG 인지 확인하세요.', 'info');
+    } finally {
+      setImageBusy(false);
+    }
+  };
+
+  const clearQuestionImage = () => {
+    if (!window.confirm('첨부된 기출 원본 사진을 제거하시겠습니까?\n\n저장을 눌러야 DB 에 반영됩니다.')) return;
+    setImageUrl(null);
+  };
+
   const importLegacyGivens = () => {
     setBoxes(normalizeGivens(legacyGivens));
     setLegacyImportHidden(true);
@@ -1475,14 +1892,21 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
         return;
       }
 
-      const p_choices = choices.map(c => c.text ? c : { text: String(c) });
+      // Object entries pass through untouched so a blank column keeps its id —
+      // the app matches correct_answer against that id when grading.
+      const p_choices = choices.map(choiceForSave);
       const p_correct_answer = String.fromCharCode(65 + correct);
       const { payload, error } = serializeGivens(boxes);
       if (error) { pushToast(error, 'info'); return; }
-      await rpc('admin_update_question_v2', {
+      const common = {
         p_id: q.id, p_stem: stemValidation.stem, p_stem_givens: payload,
         p_choices, p_correct_answer, p_explanation: explanation,
-      });
+      };
+      // image_url 을 싣고 온 경로에서만 v3 을 쓴다. 신고 화면은 그 값을 못 받으므로
+      // v2 로 보내 image_url 을 건드리지 않는다.
+      await (hasImageField
+        ? rpc('admin_update_question_v3', { ...common, p_image_url: questionImageForSave(imageUrl) })
+        : rpc('admin_update_question_v2', common));
       originalStemRef.current = stemValidation.stem;
       setStem(stemValidation.stem);
       setStemTouched(false);
@@ -1697,14 +2121,26 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
             </div>
           </div>
         )}
-        <div style={{display:'flex', flexDirection:'column', gap:8, marginBottom:14}}>
-          {choices.map((c, i) => (
-            <div key={i} style={{display:'flex', gap:10, alignItems:'center'}}>
-              <input type="radio" name="correct-q" checked={correct === i} onChange={() => setCorrect(i)}/>
-              <input className="field-input" style={{flex:1, padding:'9px 11px', fontSize:14}} value={c.text || ''} onChange={e => setChoices(cs => cs.map((x, j) => j === i ? { ...x, text: e.target.value } : x))}/>
-            </div>
-          ))}
-        </div>
+        {hasImageField && (
+          <QuestionImageEditor
+            imageUrl={imageUrl}
+            hasSvgBlock={stemHasFigure}
+            busy={imageBusy}
+            onPick={pickQuestionImage}
+            onClear={clearQuestionImage}
+          />
+        )}
+        <ChoiceListEditor
+          choices={choices}
+          correct={correct}
+          headers={choiceHeaderLabels}
+          onSelectCorrect={setCorrect}
+          onChangeText={updateChoiceText}
+          onChangeColumn={updateChoiceColumn}
+          onAddHeaders={addChoiceHeaders}
+          onRemoveHeaders={removeChoiceHeaders}
+          onSyncColumns={syncChoiceColumns}
+        />
         <div className="field-label">해설</div>
         <textarea value={explanation} onChange={e=>setExplanation(e.target.value)} style={{minHeight:220}}/>
         <div style={{display:'flex', gap:6, justifyContent:'flex-end', marginTop:10}}>
