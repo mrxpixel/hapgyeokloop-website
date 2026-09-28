@@ -250,6 +250,26 @@ test('rebuilds dirty text, choice-header, and figure payloads', () => {
   );
 });
 
+test('stores choice-header line breaks as \\n tokens and restores them when parsed', () => {
+  const serialized = serializeStemBlocks([{
+    kind: 'choiceHeaders',
+    raw: null,
+    headers: ['가격\n탄력성', '대체\r\n관계', ''],
+  }]);
+
+  assert.equal(
+    serialized,
+    String.raw`[CHOICE_HEADERS]가격\n탄력성|대체\n관계|[/CHOICE_HEADERS]`,
+  );
+  assert.equal(serialized.includes('\n'), false, 'stored marker content must not contain a real line break');
+
+  const [parsed] = parseStemBlocks(serialized);
+  assert.deepEqual(parsed.headers, ['가격\n탄력성', '대체\n관계', '']);
+
+  parsed.raw = null;
+  assert.equal(serializeStemBlocks([parsed]), serialized);
+});
+
 test('resizes choice headers up and down without mutating the source blocks', () => {
   const source = '앞  \r\n[CHOICE_HEADERS] (A) | (B) [/CHOICE_HEADERS]\r\n뒤 ';
   const blocks = parseStemBlocks(source);

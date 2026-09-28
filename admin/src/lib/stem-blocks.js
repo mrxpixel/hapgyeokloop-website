@@ -50,7 +50,7 @@ function choiceHeadersBlock(source, opener, closer) {
   return {
     kind: 'choiceHeaders',
     raw: source.slice(opener.start, closer.end),
-    headers: content.split('|').map(header => header.trim()),
+    headers: content.split('|').map(header => header.trim().replace(/\\n/g, '\n')),
   };
 }
 
@@ -196,7 +196,10 @@ function serializePayload(block, index) {
       return serializeConceptTable(block.rows);
     case 'choiceHeaders': {
       const headers = Array.isArray(block.headers) ? block.headers : [];
-      return `[CHOICE_HEADERS]${headers.map(header => String(header ?? '')).join('|')}[/CHOICE_HEADERS]`;
+      const serializedHeaders = headers.map(header => (
+        String(header ?? '').replace(/\r\n?|\n/g, '\\n')
+      ));
+      return `[CHOICE_HEADERS]${serializedHeaders.join('|')}[/CHOICE_HEADERS]`;
     }
     case 'figure':
       if (block.format !== 'svg') {

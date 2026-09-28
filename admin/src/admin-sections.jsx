@@ -1158,8 +1158,9 @@ function StemBlockEditor({
                     {((block.headers || []).length ? block.headers : ['']).map((header, headerIndex) => (
                       <label key={headerIndex}>
                         <span>{headerIndex + 1}열</span>
-                        <input
-                          className="field-input"
+                        <AutoHeightTextarea
+                          rows={1}
+                          className="field-input stem-choice-header-input"
                           value={header ?? ''}
                           onChange={event => onUpdateChoiceHeader(index, headerIndex, event.target.value)}
                           aria-label={`선택지 헤더 블록 ${index + 1} 라벨 ${headerIndex + 1}`}
