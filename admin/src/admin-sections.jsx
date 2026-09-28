@@ -361,8 +361,12 @@ function Reports({ pushToast }) {
   const [openId, setOpenId] = useState(null);
 
   const subjects = useAsync(() => rpc('admin_get_subjects'));
+  const inspectionSubjects = useAsync(() => rpc('admin_get_inspection_subjects', { p_exam_id: null }));
   const reports = useAsync(() => rpc('admin_get_reports'), [subjectCode]);
   const savedViews = useAsync(() => rpc('admin_get_saved_views', { p_scope: 'reports' }));
+  const inspectionSubjectById = useMemo(() => new Map(
+    (inspectionSubjects.data || []).map(subject => [subject.id, subject]),
+  ), [inspectionSubjects.data]);
 
   const filtered = useMemo(() => {
     let rs = reports.data || [];
@@ -469,6 +473,7 @@ function Reports({ pushToast }) {
             {filtered.map(r => (
               <ReportItem key={r.report_id} r={r} open={openId === r.report_id} onToggle={() => setOpenId(openId === r.report_id ? null : r.report_id)}
                 selected={selected.has(r.report_id)} onSelect={() => toggleSelect(r.report_id)}
+                subject={inspectionSubjectById.get(r.subject_id)}
                 onChanged={() => { reports.refetch(); }} pushToast={pushToast}/>
             ))}
           </div>
@@ -490,8 +495,7 @@ function shortSubject(id) {
   return SUBJECT_SHORT[suffix] || id;
 }
 
-function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToast }) {
-  const [editing, setEditing] = useState(false);
+function ReportItem({ r, subject, open, onToggle, selected, onSelect, onChanged, pushToast }) {
   const [resolving, setResolving] = useState(false);
   const [replyText, setReplyText] = useState('');
   const reportQuestion = r.question || {
@@ -590,9 +594,8 @@ function ReportItem({ r, open, onToggle, selected, onSelect, onChanged, pushToas
                 <RpcNotApplied message="문항 상세를 불러오지 못해 안전한 편집을 중단했습니다." error={questionDetail.error} retry={questionDetail.refetch}/> :
                 <QuestionBlock
                   q={q}
-                  editing={editing}
-                  setEditing={setEditing}
-                  onSaved={() => { setEditing(false); onChanged(); pushToast('문항이 수정되었습니다'); }}
+                  subject={subject}
+                  onSaved={() => { onChanged(); pushToast('문항이 수정되었습니다'); }}
                   onChanged={onChanged}
                   pushToast={pushToast}
                 />
@@ -1444,8 +1447,10 @@ export function ChoiceListEditor({
   );
 }
 
-function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, showTabs = true }) {
+function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast }) {
   const initialStem = String(q.stem ?? '');
+  const [editing, setEditing] = useState(false);
+  const [previewQuestion, setPreviewQuestion] = useState(q);
   const originalStemRef = useRef(initialStem);
   const [stem, setStem] = useState(initialStem);
   const [stemBlocks, setStemBlocks] = useState(() => stemEditorBlocks(initialStem));
@@ -1488,20 +1493,15 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
   const [boxes, setBoxes] = useState(() => normalizeGivens(q.stem_givens));
   const [legacyImportHidden, setLegacyImportHidden] = useState(false);
   const legacyGivens = useMemo(() => {
-    if (!hasGivensField || q.stem_givens !== null) return [];
+    if (!hasGivensField || previewQuestion.stem_givens !== null) return [];
     const stemWithoutTables = stem.replace(/\[TABLE\][\s\S]*?\[\/TABLE\]/g, '');
     return parseStemGivens(stemWithoutTables);
-  }, [hasGivensField, q.stem_givens, stem]);
-  const showLegacyImport = hasGivensField && q.stem_givens === null && !legacyImportHidden && legacyGivens.length > 0;
+  }, [hasGivensField, previewQuestion.stem_givens, stem]);
+  const showLegacyImport = hasGivensField && previewQuestion.stem_givens === null && !legacyImportHidden && legacyGivens.length > 0;
 
-  useEffect(() => {
-    setLegacyImportHidden(false);
-    setImageUrl(questionImageForSave(q.image_url));
-    setImageBusy(false);
-  }, [q.id]);
-
-  useEffect(() => {
-    const source = String(q.stem ?? '');
+  const resetDraft = sourceQuestion => {
+    const source = String(sourceQuestion.stem ?? '');
+    const sourceCorrectIndex = sourceQuestion.correct_index ?? 'ABCDE'.indexOf(sourceQuestion.correct_answer || '');
     originalStemRef.current = source;
     setStem(source);
     setStemBlocks(stemEditorBlocks(source));
@@ -1510,7 +1510,21 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
     setStemTableDialog(null);
     stemCursorKnownRef.current = false;
     stemCursorOffsetRef.current = source.length;
-  }, [q.id]);
+    setChoices(questionChoices(sourceQuestion).map(choice => (
+      typeof choice === 'string' ? { text: choice } : choice
+    )));
+    setCorrect(sourceCorrectIndex >= 0 ? sourceCorrectIndex : 0);
+    setExplanation(sourceQuestion.explanation || '');
+    setBoxes(normalizeGivens(sourceQuestion.stem_givens));
+    setLegacyImportHidden(false);
+    setImageUrl(questionImageForSave(sourceQuestion.image_url));
+    setImageBusy(false);
+  };
+
+  useEffect(() => {
+    setPreviewQuestion(q);
+    resetDraft(q);
+  }, [q.id, q.updated_at]);
 
   useEffect(() => {
     setCheckStatus(inspectionCheckStatus(q));
@@ -1519,6 +1533,16 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
   useEffect(() => {
     stemCursorOffsetRef.current = Math.min(stemCursorOffsetRef.current, stem.length);
   }, [stem]);
+
+  const beginEditing = () => {
+    resetDraft(previewQuestion);
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    resetDraft(previewQuestion);
+    setEditing(false);
+  };
 
   const rememberStemCursor = event => {
     stemCursorKnownRef.current = true;
@@ -1930,11 +1954,25 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
       await (hasImageField
         ? rpc('admin_update_question_v3', { ...common, p_image_url: questionImageForSave(imageUrl) })
         : rpc('admin_update_question_v2', common));
+      const savedCheckStatus = checkStatus === 'checked' ? 'stale' : checkStatus;
+      const savedQuestion = {
+        ...previewQuestion,
+        stem: stemValidation.stem,
+        stem_givens: payload,
+        choices: p_choices,
+        correct_answer: p_correct_answer,
+        correct_index: correct,
+        explanation,
+        check_status: savedCheckStatus,
+        ...(hasImageField ? { image_url: questionImageForSave(imageUrl) } : {}),
+      };
       originalStemRef.current = stemValidation.stem;
       setStem(stemValidation.stem);
       setStemTouched(false);
-      setCheckStatus(status => status === 'checked' ? 'stale' : status);
-      onSaved();
+      setPreviewQuestion(savedQuestion);
+      setCheckStatus(savedCheckStatus);
+      setEditing(false);
+      onSaved?.(savedQuestion);
     } catch (e) { pushToast(e.message, 'info'); }
     finally { setBusy(false); }
   };
@@ -1959,25 +1997,43 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
   };
 
   const statusMeta = inspectionStatusMeta(checkStatus);
-  const tabs = showTabs ? (
-    <div className="qi-tabs">
-      <div className={"qi-tab " + (editing ? 'active' : '')} onClick={() => setEditing(true)}>편집</div>
-      <div className={"qi-tab " + (!editing ? 'active' : '')} onClick={() => setEditing(false)}>미리보기</div>
-      <span className={"badge " + statusMeta[0]} style={{marginLeft:'auto', alignSelf:'center'}}>{statusMeta[1]}</span>
-    </div>
-  ) : null;
-  const checkAction = showTabs ? (
-    <div className="qi-actions" style={{justifyContent:'flex-end'}}>
+  const hasGeminiTemplate = Boolean(subject?.gemini_prompt_template?.trim());
+  const previewChoices = questionChoices(previewQuestion);
+  const copyGeminiPrompt = async () => {
+    if (!hasGeminiTemplate) return;
+    const text = buildGeminiPrompt(subject, previewQuestion);
+    try {
+      await navigator.clipboard.writeText(text);
+      pushToast?.('🤖 Gemini 프롬프트 복사됨');
+    } catch {
+      fallbackCopyText(text);
+      pushToast?.('🤖 Gemini 프롬프트 복사됨');
+    }
+  };
+  const actionBar = (
+    <div className="qi-actions question-block-actions" style={{marginTop:0, marginBottom:14, alignItems:'center'}}>
+      <button type="button" className="btn btn-sm" onClick={beginEditing}>✏️ 편집</button>
+      <button
+        type="button"
+        className="btn btn-sm btn-gemini"
+        onClick={copyGeminiPrompt}
+        disabled={!hasGeminiTemplate}
+        title={hasGeminiTemplate ? undefined : '과목에 Gemini 템플릿 없음'}
+      >🤖 Gemini에 보내기</button>
+      <button type="button" className="btn btn-sm" onClick={() => {
+        downloadMd(subject, previewQuestion, exam);
+        pushToast?.('.md 다운로드 생성됨');
+      }}>💾 .md 다운로드</button>
       <button className={"btn btn-sm " + (checkStatus === 'unchecked' ? 'btn-success' : '')} onClick={toggleCheck} disabled={checking}>
         {checking ? '처리 중...' : checkStatus === 'unchecked' ? '✓ 검수 완료' : '검수 해제'}
       </button>
+      <span className={"badge " + statusMeta[0]} style={{marginLeft:'auto'}}>{statusMeta[1]}</span>
     </div>
-  ) : null;
+  );
 
   if (editing) {
     return (
       <>
-      {tabs}
       <div className="q-box">
         <div className="question-stem-editor-tools" style={{ flexWrap: 'wrap' }}>
           <div className="field-label">문항 지문</div>
@@ -2168,11 +2224,10 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
         <div className="field-label">해설</div>
         <textarea value={explanation} onChange={e=>setExplanation(e.target.value)} style={{minHeight:220}}/>
         <div style={{display:'flex', gap:6, justifyContent:'flex-end', marginTop:10}}>
-          <button className="btn btn-sm" onClick={() => setEditing(false)}>취소</button>
+          <button className="btn btn-sm" onClick={cancelEditing}>취소</button>
           <button className="btn btn-sm btn-primary" onClick={save} disabled={busy}>{busy ? '저장 중...' : '저장'}</button>
         </div>
       </div>
-      {checkAction}
       {stemTableDialog && (
         <ConceptTableEditorModal
           rows={stemTableDialog.rows}
@@ -2188,13 +2243,12 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
   }
   return (
     <>
-    {tabs}
+    {actionBar}
     <div className="q-box">
-      {!showTabs && <button className="btn btn-xs q-edit" onClick={() => setEditing(true)}><Icon name="edit" size={10}/> 편집</button>}
-      <div className="q-stem">{q.stem}</div>
-      {Array.isArray(q.stem_givens) && q.stem_givens.length > 0 && (
+      <div className="q-stem">{previewQuestion.stem}</div>
+      {Array.isArray(previewQuestion.stem_givens) && previewQuestion.stem_givens.length > 0 && (
         <div style={{ margin: '8px 0 14px' }}>
-          {q.stem_givens.map((box, bi) => {
+          {previewQuestion.stem_givens.map((box, bi) => {
             const { boxed, label } = givenPreviewBoxMeta(box);
             return (
               <div key={bi} style={boxed ? { border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px', marginBottom: 6, background: 'var(--surface-2)' } : { padding: '2px 0', marginBottom: 6 }}>
@@ -2214,19 +2268,18 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
         </div>
       )}
       <ul className="choices-list">
-        {choices.map((c, i) => {
+        {previewChoices.map((c, i) => {
           const text = typeof c === 'string' ? c : (c.text || '');
           return (
-            <li key={i} className={"choice-item " + (i === (q.correct_index ?? -1) ? 'correct' : '')}>
-              <span className="choice-id">{String.fromCharCode(65 + i)}.</span> {text}
-              {i === (q.correct_index ?? -1) && <span style={{marginLeft:'auto', fontSize:10}}>정답</span>}
+            <li key={i} className={"choice-item " + (i === (previewQuestion.correct_index ?? -1) ? 'correct' : '')}>
+              <span className="choice-id">{'①②③④⑤'[i]}</span> {text}
+              {i === (previewQuestion.correct_index ?? -1) && <span style={{marginLeft:'auto', fontSize:10}}>정답</span>}
             </li>
           );
         })}
       </ul>
-      {q.explanation && <div className="exp-box">{q.explanation}</div>}
+      {previewQuestion.explanation && <div className="exp-box">{previewQuestion.explanation}</div>}
     </div>
-    {checkAction}
     </>
   );
 }
@@ -2985,7 +3038,6 @@ function QuestionInspector({ pushToast }) {
   const [openId, setOpenId] = useState(localStorage.getItem('qi.openId') || null);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsCode, setSettingsCode] = useState(null);
-  const [activeTabPerCard, setActiveTabPerCard] = useState({});
   const previousExamId = useRef(null);
   const previousSubjectId = useRef(null);
 
@@ -3075,7 +3127,6 @@ function QuestionInspector({ pushToast }) {
     setSettingsCode(null);
     setYearSession(null);
     setOpenId(null);
-    setActiveTabPerCard({});
   }, [currentExamId]);
 
   useEffect(() => {
@@ -3088,7 +3139,6 @@ function QuestionInspector({ pushToast }) {
     previousSubjectId.current = selectedSubjectId;
     setYearSession(null);
     setOpenId(null);
-    setActiveTabPerCard({});
   }, [selectedSubjectId]);
 
   useEffect(() => {
@@ -3098,10 +3148,6 @@ function QuestionInspector({ pushToast }) {
       setYearSession(sessions.data[0].year_session);
     }
   }, [sessions.data, yearSession]);
-
-  const setCardTab = (questionId, tab) => {
-    setActiveTabPerCard(m => ({ ...m, [questionId]: tab }));
-  };
 
   const handleExamSelect = (code) => {
     if (code === examCode) return;
@@ -3114,7 +3160,6 @@ function QuestionInspector({ pushToast }) {
     setSettingsCode(null);
     setYearSession(null);
     setOpenId(null);
-    setActiveTabPerCard({});
   };
 
   const handleSubjectSelect = (code) => {
@@ -3124,7 +3169,6 @@ function QuestionInspector({ pushToast }) {
     setSubjectCode(code);
     setYearSession(null);
     setOpenId(null);
-    setActiveTabPerCard({});
     setSettingsCode(c => c || code);
   };
 
@@ -3255,8 +3299,6 @@ function QuestionInspector({ pushToast }) {
               exam={currentExam}
               open={openId === q.id}
               onToggle={() => handleQuestionToggle(q.id)}
-              activeTab={activeTabPerCard[q.id] || 'edit'}
-              setActiveTab={(tab) => setCardTab(q.id, tab)}
               onChanged={handleQuestionsChanged}
               pushToast={pushToast}
             />
@@ -3344,38 +3386,10 @@ function QuestionInspectorSettings({ subjects, activeCode, setActiveCode, onSave
   );
 }
 
-function QuestionInspectionItem({ question, subject, exam, open, onToggle, activeTab, setActiveTab, onChanged, pushToast }) {
-  const [editing, setEditing] = useState(false);
+function QuestionInspectionItem({ question, subject, exam, open, onToggle, onChanged, pushToast }) {
   const q = normalizeInspectionQuestion(question);
-  const choices = questionChoices(q);
-  const correctIdx = 'ABCDE'.indexOf(q.correct_answer || '');
   const status = inspectionCheckStatus(q);
   const statusMeta = inspectionStatusMeta(status);
-
-  const copyGeminiPrompt = async () => {
-    const text = buildGeminiPrompt(subject, q);
-    try {
-      await navigator.clipboard.writeText(text);
-      pushToast('🤖 Gemini 프롬프트 복사됨');
-    } catch (e) {
-      fallbackCopyText(text);
-      pushToast('🤖 Gemini 프롬프트 복사됨');
-    }
-  };
-
-  const toggleCheck = async () => {
-    const isChecked = q.check_status !== 'unchecked';
-    try {
-      if (isChecked) {
-        await rpc('admin_unmark_question_checked', { p_question_id: q.id });
-        pushToast('검수 해제됨');
-      } else {
-        await rpc('admin_mark_question_checked', { p_question_id: q.id });
-        pushToast('검수 완료');
-      }
-      onChanged();
-    } catch (e) { pushToast(e.message, 'info'); }
-  };
 
   const stemLine = firstLine(q.stem || '(문제 지문 없음)');
 
@@ -3397,44 +3411,14 @@ function QuestionInspectionItem({ question, subject, exam, open, onToggle, activ
       </div>
       {open && (
         <div className="item-body">
-          <div className="qi-tabs">
-            <div className={"qi-tab " + (activeTab === 'edit' ? 'active' : '')} onClick={() => setActiveTab('edit')}>편집</div>
-            <div className={"qi-tab " + (activeTab === 'preview' ? 'active' : '')} onClick={() => setActiveTab('preview')}>미리보기</div>
-          </div>
-
-          {activeTab === 'edit' ? (
-            <QuestionBlock
-              q={q}
-              editing={editing}
-              setEditing={setEditing}
-              onSaved={() => { setEditing(false); onChanged(); pushToast('문항이 수정되었습니다'); }}
-              pushToast={pushToast}
-              showTabs={false}
-            />
-          ) : (
-            <div className="q-box">
-              <div className="q-stem">{q.stem}</div>
-              <ul className="choices-list">
-                {choices.map((c, i) => {
-                  const text = typeof c === 'string' ? c : (c.text || '');
-                  return (
-                    <li key={i} className={"choice-item " + (i === correctIdx ? 'correct' : '')}>
-                      <span className="choice-id">{'①②③④⑤'[i]}</span> {text}
-                      {i === correctIdx && <span style={{marginLeft:'auto', fontSize:10}}>정답</span>}
-                    </li>
-                  );
-                })}
-              </ul>
-              {q.explanation && <div className="exp-box">{q.explanation}</div>}
-              <div className="qi-actions">
-                <button className="btn btn-sm btn-gemini" onClick={copyGeminiPrompt}>🤖 Gemini에 보내기</button>
-                <button className="btn btn-sm" onClick={() => { downloadMd(subject, q, exam); pushToast('.md 다운로드 생성됨'); }}>💾 .md 다운로드</button>
-                <button className={"btn btn-sm " + (status === 'unchecked' ? 'btn-success' : '')} onClick={toggleCheck}>
-                  {status === 'unchecked' ? '✓ 검수 완료' : '검수 해제'}
-                </button>
-              </div>
-            </div>
-          )}
+          <QuestionBlock
+            q={q}
+            subject={subject}
+            exam={exam}
+            onSaved={() => { onChanged(); pushToast('문항이 수정되었습니다'); }}
+            onChanged={onChanged}
+            pushToast={pushToast}
+          />
         </div>
       )}
     </div>
@@ -5811,5 +5795,5 @@ export {
   Overview, Analytics, Reports, QuestionInspector, ConceptInspector, Announcements, Subjects,
   Exams, ExamDates, AppVersion, Subscriptions, Admins, AuditLog, Settings,
   CommandPalette, ShortcutsModal, NotifPanel,
-  actionLabel,
+  QuestionBlock, ReportItem, buildGeminiPrompt, actionLabel,
 }

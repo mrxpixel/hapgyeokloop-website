@@ -33,6 +33,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "eslint": "^9.36.0",
     "globals": "^16.4.0",
+    "react-test-renderer": "^18.3.1",
     "vite": "^5.4.0"
   }
 }
