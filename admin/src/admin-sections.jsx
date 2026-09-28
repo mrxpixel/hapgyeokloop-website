@@ -1315,7 +1315,7 @@ function ChoiceColumnInputs({ choice, index, columnCount, renderedCount, onChang
  * per choice. With headers it splits each choice into one input per column, so
  * the separator never has to be typed by hand.
  */
-function ChoiceListEditor({
+export function ChoiceListEditor({
   choices,
   correct,
   headers,
@@ -1324,6 +1324,7 @@ function ChoiceListEditor({
   onChangeColumn,
   onAddHeaders,
   onRemoveHeaders,
+  onResizeHeaders,
   onSyncColumns,
 }) {
   // Clamped because a throw here would take the whole admin screen down, and
@@ -1347,7 +1348,21 @@ function ChoiceListEditor({
       <div className="choice-editor-toolbar">
         {headers ? (
           <>
-            <span className="choice-editor-state">선택지 헤더 {columnCount}열</span>
+            <span className="choice-editor-state">헤더 {columnCount}칸</span>
+            <button
+              type="button"
+              className="btn btn-xs"
+              aria-label="선택지 헤더 한 칸 줄이기"
+              disabled={columnCount <= 1}
+              onClick={() => onResizeHeaders(Math.max(1, columnCount - 1))}
+            >−</button>
+            <button
+              type="button"
+              className="btn btn-xs"
+              aria-label="선택지 헤더 한 칸 늘리기"
+              disabled={columnCount >= MAX_CHOICE_COLUMNS}
+              onClick={() => onResizeHeaders(Math.min(MAX_CHOICE_COLUMNS, columnCount + 1))}
+            >+</button>
             <button type="button" className="btn btn-xs" onClick={onRemoveHeaders}>헤더 제거</button>
           </>
         ) : (
@@ -1713,8 +1728,8 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
     commitStemBlocks(updateStemBlock(stemBlocks, blockIndex, { headers }));
   };
 
-  const resizeStemChoiceHeaders = (blockIndex, nextCount) => {
-    const block = stemBlocks[blockIndex];
+  const resizeStemChoiceHeaders = (blockIndex, nextCount, sourceBlocks = stemBlocks) => {
+    const block = sourceBlocks[blockIndex];
     if (block?.kind !== 'choiceHeaders'
       || !Number.isInteger(nextCount)
       || nextCount < 1
@@ -1738,7 +1753,7 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
       if (!confirmed) return;
     }
 
-    commitStemBlocks(updateStemBlock(stemBlocks, blockIndex, {
+    commitStemBlocks(updateStemBlock(sourceBlocks, blockIndex, {
       headers: resizeChoiceHeaders(headers, nextCount),
     }));
     // Header width and choice column count must move together: the app renders
@@ -1751,6 +1766,13 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
   const editableStemBlocks = () => (
     stemEditorMode === 'blocks' ? stemBlocks : stemEditorBlocks(stem)
   );
+
+  const resizeChoiceHeadersFromToolbar = nextCount => {
+    const blocks = editableStemBlocks();
+    const blockIndex = blocks.findIndex(block => block.kind === 'choiceHeaders');
+    if (blockIndex < 0) return;
+    resizeStemChoiceHeaders(blockIndex, nextCount, blocks);
+  };
 
   // Named apart from the imported block helpers: a handler sharing their name
   // shadows the import and silently recurses into itself.
@@ -2139,6 +2161,7 @@ function QuestionBlock({ q, editing, setEditing, onSaved, onChanged, pushToast, 
           onChangeColumn={updateChoiceColumn}
           onAddHeaders={addChoiceHeaders}
           onRemoveHeaders={removeChoiceHeaders}
+          onResizeHeaders={resizeChoiceHeadersFromToolbar}
           onSyncColumns={syncChoiceColumns}
         />
         <div className="field-label">해설</div>
