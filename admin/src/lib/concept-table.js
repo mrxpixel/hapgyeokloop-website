@@ -40,8 +40,22 @@ export function sanitizeConceptTableCell(value) {
     .replace(/[|\r\n]/g, '');
 }
 
+// 칸 안의 글자 그대로 `\n`(역슬래시+n)은 앱에서 '좁으면 여기서 줄바꿈'을 뜻한다.
+// 대각선 머리글 구분자(`\`)와 헷갈리지 않도록 역슬래시 뒤에 n이 오면 구분자가 아니다.
+const DIAGONAL_SEPARATOR = /\\(?!n)/g;
+export const TABLE_CELL_LINE_BREAK_TOKEN = '\\n';
+
+// 라벨 입력 중에는 끝의 `\` 하나를 남겨 둔다(그래야 `\n` 을 칠 수 있다).
+// 저장할 때는 conceptTableCellToken 이 남은 `\` 를 지운다.
+const DIAGONAL_SEPARATOR_WHILE_TYPING = /\\(?!n|$)/g;
+
 export function sanitizeConceptTableDiagonalLabel(value) {
-  return sanitizeConceptTableCell(value).replace(/\\/g, '');
+  return sanitizeConceptTableCell(value).replace(DIAGONAL_SEPARATOR_WHILE_TYPING, '');
+}
+
+/** 미리보기용: 칸 글자를 `\n` 토큰 기준으로 줄 단위로 나눈다. */
+export function splitTableCellLines(value) {
+  return String(value ?? '').split(TABLE_CELL_LINE_BREAK_TOKEN);
 }
 
 export function createConceptTableCell(value = '') {
@@ -93,9 +107,9 @@ export function normalizeConceptTableRows(rows) {
 }
 
 function parseDiagonalCell(value) {
-  const slashMatches = value.match(/\\/g);
-  if (slashMatches?.length !== 1) return null;
-  const slashIndex = value.indexOf('\\');
+  const separators = [...value.matchAll(DIAGONAL_SEPARATOR)];
+  if (separators.length !== 1) return null;
+  const slashIndex = separators[0].index;
   const before = value.slice(0, slashIndex);
   const after = value.slice(slashIndex + 1);
   const beforeSlash = before.match(/[\t ]*$/)?.[0] || '';
@@ -145,7 +159,11 @@ export function conceptTableCellToken(cell, rowIndex, columnIndex) {
   }
   if (rowIndex === 0 && columnIndex === 0 && normalized.diagonal) {
     const diagonal = normalized.diagonal;
-    return `${diagonal.rowLabel}${diagonal.beforeSlash}\\${diagonal.afterSlash}${diagonal.columnLabel}`;
+    const rowLabel = diagonal.rowLabel.replace(DIAGONAL_SEPARATOR, '');
+    const columnLabel = diagonal.columnLabel.replace(DIAGONAL_SEPARATOR, '');
+    // 열 라벨이 n 으로 시작하면 `\n`(줄바꿈 표시)으로 읽히므로 구분자 뒤에 공백을 둔다.
+    const afterSlash = diagonal.afterSlash || (columnLabel.startsWith('n') ? ' ' : '');
+    return `${rowLabel}${diagonal.beforeSlash}\\${afterSlash}${columnLabel}`;
   }
   return sanitizeConceptTableCell(normalized.value);
 }

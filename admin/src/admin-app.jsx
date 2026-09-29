@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client'
 const { useState: useStateApp, useEffect: useEffectApp, useCallback: useCallbackApp, useRef: useRefApp } = React
 import { sb, rpc, Icon, ErrorBoundary, EmptyState, AuthGate } from './admin-lib.jsx'
 import {
-  Overview, Analytics, Reports, QuestionInspector, ConceptInspector, Announcements, Subjects,
+  Overview, Analytics, Reports, QuestionInspector, ExplanationDrafts, ConceptInspector, Announcements, Subjects,
   Exams, ExamDates, AppVersion, Subscriptions, Admins, AuditLog, Settings,
   CommandPalette, ShortcutsModal, NotifPanel,
 } from './admin-sections.jsx'
@@ -17,6 +17,7 @@ const SECTIONS = [
   { group: '운영', items: [
     { key: 'reports',       label: '신고 관리',      icon: 'flag' },
     { key: 'question-inspector', label: '문제 전수조사', icon: 'edit' },
+    { key: 'explanation-drafts', label: '해설 변경안', icon: 'edit' },
     { key: 'concept-inspector', label: '개념노트 편집', icon: 'book' },
     { key: 'announcements', label: '공지 · 업데이트', icon: 'megaphone' },
     { key: 'subscriptions', label: '구독 관리',      icon: 'users' },
@@ -39,6 +40,7 @@ const SECTION_TITLES = {
   'analytics':    ['분석', 'DAU · 리텐션 · 학습 세션'],
   'reports':      ['신고 관리', '유저가 제출한 문제 신고'],
   'question-inspector': ['문제 전수조사', '과목·회차별 문항 검수 및 Gemini 프롬프트 생성'],
+  'explanation-drafts': ['해설 변경안', '원본·초안·방향성 비교 및 내보내기'],
   'concept-inspector': ['개념노트 편집', '과목·단원별 개념 검수 및 기출 대조'],
   'announcements':['공지 · 업데이트', '앱에 발행되는 공지 관리'],
   'subscriptions':['구독 관리', '유저 검색 · 시험별 구독 부여/연장/해지'],
@@ -147,6 +149,7 @@ function Shell({ session, admin }) {
       case 'analytics':     return <Analytics/>;
       case 'reports':       return <Reports pushToast={pushToast}/>;
       case 'question-inspector': return <QuestionInspector pushToast={pushToast}/>;
+      case 'explanation-drafts': return <ExplanationDrafts pushToast={pushToast}/>;
       case 'concept-inspector': return <ConceptInspector pushToast={pushToast} setSection={setSection}/>;
       case 'announcements': return <Announcements pushToast={pushToast}/>;
       case 'subscriptions': return admin.role === 'super_admin' ? <Subscriptions pushToast={pushToast}/> : <NotAllowed/>;

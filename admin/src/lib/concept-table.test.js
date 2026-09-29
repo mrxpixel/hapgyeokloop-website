@@ -13,7 +13,9 @@ import {
   listConceptTableBlocks,
   parseConceptTableRows,
   sanitizeConceptTableCell,
+  sanitizeConceptTableDiagonalLabel,
   serializeConceptTable,
+  splitTableCellLines,
 } from './concept-table.js';
 
 const twoTableStem = `(주)감평은 20x1년 1월 1일에 공장건물을 신축하여 … 자본화할 차입원가는?
@@ -204,4 +206,41 @@ test('preserves diagonal labels when merging and unmerging the header', () => {
   const merged = mergeConceptTableSelection(rows, fullRange(rows));
   assert.deepEqual(merged[0][0].diagonal, rows[0][0].diagonal);
   assert.equal(serializeConceptTable(unmergeConceptTableSelection(merged, fullRange(merged))), serializeConceptTable(rows));
+});
+
+test('a literal \n token is a line-break hint, not a diagonal separator (matches the app)', () => {
+  const [[notDiagonal]] = parseConceptTableRows('조건부\\n줄바꿈|열\n값|값');
+  assert.equal(notDiagonal.diagonal, null);
+  assert.equal(notDiagonal.value, '조건부\\n줄바꿈');
+
+  const [[diagonal]] = parseConceptTableRows('구분 \\ 연도\\n(단위)|2025\n항목|1');
+  assert.equal(diagonal.diagonal.rowLabel, '구분');
+  assert.equal(diagonal.diagonal.columnLabel, '연도\\n(단위)');
+
+  const markup = serializeConceptTable(parseConceptTableRows('구분 \\ 연도\\n(단위)|값\n항목|92,800\\n(평가기초자료)'));
+  assert.equal(markup, '[TABLE]구분 \\ 연도\\n(단위)|값\n항목|92,800\\n(평가기초자료)[/TABLE]');
+});
+
+test('splits a cell into preview lines at literal \n tokens', () => {
+  assert.deepEqual(splitTableCellLines('92,800\\n(평가기초자료)'), ['92,800', '(평가기초자료)']);
+  assert.deepEqual(splitTableCellLines('한 줄'), ['한 줄']);
+});
+
+test('a diagonal label can be typed with a \n token and a stray backslash is dropped on save', () => {
+  assert.equal(sanitizeConceptTableDiagonalLabel('연도\\'), '연도\\');
+  assert.equal(sanitizeConceptTableDiagonalLabel('연도\\n(단위)'), '연도\\n(단위)');
+  assert.equal(sanitizeConceptTableDiagonalLabel('연\\도'), '연도');
+
+  const rows = parseConceptTableRows('구분 \\ 연도|값\n항목|1');
+  rows[0][0].diagonal.columnLabel = '연도\\';
+  assert.equal(serializeConceptTable(rows), '[TABLE]구분 \\ 연도|값\n항목|1[/TABLE]');
+});
+
+test('a diagonal column label starting with n survives a round trip', () => {
+  const rows = parseConceptTableRows('구분\\기간|값\n항목|1');
+  rows[0][0].diagonal.columnLabel = 'n기';
+  const markup = serializeConceptTable(rows);
+  assert.equal(markup, '[TABLE]구분\\ n기|값\n항목|1[/TABLE]');
+  const [[reparsed]] = parseConceptTableRows(markup.slice(7, -8));
+  assert.equal(reparsed.diagonal.columnLabel, 'n기');
 });

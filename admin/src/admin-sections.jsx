@@ -4,6 +4,11 @@ const { useState, useEffect, useMemo, useRef } = React
 import { marked } from 'marked'
 import { sb, rpc, Icon, useAsync, relativeTime, fmtNum, Loader, ErrorBox, EmptyState } from './admin-lib.jsx'
 import MarkdownEditor from './components/MarkdownEditor.jsx'
+import { ExplanationDiff, ExplanationDrafts } from './components/ExplanationDrafts.jsx'
+import {
+  EXPLANATION_DRAFT_RPC_NAMES,
+  buildExplanationDraftRpcParams,
+} from './lib/explanation-drafts.js'
 import { parseStemGivens, HANGUL_CONSONANTS, CIRCLED_HANGUL_KEYS, GEOMETRIC_MARKER_KEYS } from './lib/stem-givens-parse.js'
 import {
   CONCEPT_TABLE_MERGE_LEFT,
@@ -22,6 +27,7 @@ import {
   sanitizeConceptTableDiagonalLabel,
   serializeConceptTable,
   listConceptTableBlocks,
+  splitTableCellLines,
 } from './lib/concept-table.js'
 import {
   choiceHeadersTruncation,
@@ -187,6 +193,7 @@ function actionLabel(action) {
     remove_subject: '시험 삭제:',
     update_app_version: '앱 버전 설정:',
     update_question: '문항 수정:',
+    apply_explanation_draft: '해설 변경안 반영:',
   };
   return map[action] || action;
 }
@@ -495,7 +502,7 @@ function shortSubject(id) {
   return SUBJECT_SHORT[suffix] || id;
 }
 
-function ReportItem({ r, subject, open, onToggle, selected, onSelect, onChanged, pushToast }) {
+function ReportItem({ r, subject, open, onToggle, selected, onSelect, onChanged, pushToast, draftRpc = rpc }) {
   const [resolving, setResolving] = useState(false);
   const [replyText, setReplyText] = useState('');
   const reportQuestion = r.question || {
@@ -598,6 +605,7 @@ function ReportItem({ r, subject, open, onToggle, selected, onSelect, onChanged,
                   onSaved={() => { onChanged(); pushToast('문항이 수정되었습니다'); }}
                   onChanged={onChanged}
                   pushToast={pushToast}
+                  draftRpc={draftRpc}
                 />
               }
             </div>
@@ -1008,6 +1016,17 @@ function AutoHeightTextarea({ value, onChange, className = '', ...props }) {
   );
 }
 
+// 칸 안 `\n` 토큰을 줄바꿈으로 보여 준다(앱은 좁은 화면에서 이 자리에서 줄을 바꾼다).
+function TableCellLines({ value }) {
+  const lines = splitTableCellLines(value);
+  return lines.map((line, index) => (
+    <React.Fragment key={index}>
+      {index > 0 && <br />}
+      {line}
+    </React.Fragment>
+  ));
+}
+
 function StemTablePreview({ rows }) {
   const normalizedRows = normalizeConceptTableRows(rows);
   const headerRows = conceptTableHeaderRows(normalizedRows);
@@ -1040,10 +1059,10 @@ function StemTablePreview({ rows }) {
                   <Cell key={column} rowSpan={rowSpan} colSpan={columnSpan}>
                     {cell.diagonal ? (
                       <div className="stem-table-diagonal-preview">
-                        <span className="column-label">{cell.diagonal.columnLabel || '\u00a0'}</span>
-                        <span className="row-label">{cell.diagonal.rowLabel || '\u00a0'}</span>
+                        <span className="column-label">{cell.diagonal.columnLabel ? <TableCellLines value={cell.diagonal.columnLabel} /> : '\u00a0'}</span>
+                        <span className="row-label">{cell.diagonal.rowLabel ? <TableCellLines value={cell.diagonal.rowLabel} /> : '\u00a0'}</span>
                       </div>
-                    ) : (cell.value || '\u00a0')}
+                    ) : (cell.value ? <TableCellLines value={cell.value} /> : '\u00a0')}
                   </Cell>
                 );
               })}
@@ -1447,7 +1466,7 @@ export function ChoiceListEditor({
   );
 }
 
-function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast }) {
+function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast, draftRpc = rpc }) {
   const initialStem = String(q.stem ?? '');
   const [editing, setEditing] = useState(false);
   const [previewQuestion, setPreviewQuestion] = useState(q);
@@ -1478,6 +1497,20 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast }) {
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [checkStatus, setCheckStatus] = useState(() => inspectionCheckStatus(q));
+  const [explanationDraftRecord, setExplanationDraftRecord] = useState(null);
+  const [explanationDraftText, setExplanationDraftText] = useState(q.explanation || '');
+  const [explanationDirectionNote, setExplanationDirectionNote] = useState('');
+  const [savedExplanationDraftText, setSavedExplanationDraftText] = useState(q.explanation || '');
+  const [savedExplanationDirectionNote, setSavedExplanationDirectionNote] = useState('');
+  const [explanationDraftOpen, setExplanationDraftOpen] = useState(false);
+  const [explanationDraftReview, setExplanationDraftReview] = useState(false);
+  const [explanationDraftLoading, setExplanationDraftLoading] = useState(true);
+  const [explanationDraftLoadError, setExplanationDraftLoadError] = useState(null);
+  const [explanationDraftAction, setExplanationDraftAction] = useState(null);
+  const [explanationDraftMessage, setExplanationDraftMessage] = useState(null);
+  const [explanationDraftConflict, setExplanationDraftConflict] = useState(false);
+  const [explanationDraftConfirm, setExplanationDraftConfirm] = useState(null);
+  const [explanationDraftReload, setExplanationDraftReload] = useState(0);
   // Inspection RPC returns stem_givens (so it's defined here); the Reports path does not
   // (q built from report fields → undefined). Only enable the givens editor + v2 RPC when loaded.
   // 신고 화면이 쓰는 admin_get_reports 는 image_url 을 안 내려준다. 값이 없는 채로 저장하면
@@ -1529,6 +1562,34 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast }) {
   useEffect(() => {
     setCheckStatus(inspectionCheckStatus(q));
   }, [q.id, q.check_status, q.admin_checked_at, q.updated_at]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setExplanationDraftLoading(true);
+    setExplanationDraftLoadError(null);
+    draftRpc(
+      EXPLANATION_DRAFT_RPC_NAMES.get,
+      buildExplanationDraftRpcParams('get', { questionId: q.id }),
+    ).then(result => {
+      if (cancelled) return;
+      const row = Array.isArray(result) ? (result[0] || null) : (result || null);
+      const nextDraft = row?.draft_explanation ?? q.explanation ?? '';
+      const nextDirection = row?.direction_note ?? '';
+      setExplanationDraftRecord(row);
+      setExplanationDraftText(nextDraft);
+      setExplanationDirectionNote(nextDirection);
+      setSavedExplanationDraftText(nextDraft);
+      setSavedExplanationDirectionNote(nextDirection);
+      setExplanationDraftMessage(null);
+      setExplanationDraftConflict(false);
+      setExplanationDraftConfirm(null);
+    }).catch(error => {
+      if (!cancelled) setExplanationDraftLoadError(error);
+    }).finally(() => {
+      if (!cancelled) setExplanationDraftLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [q.id, explanationDraftReload, draftRpc]);
 
   useEffect(() => {
     stemCursorOffsetRef.current = Math.min(stemCursorOffsetRef.current, stem.length);
@@ -1996,6 +2057,212 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast }) {
     finally { setChecking(false); }
   };
 
+  const explanationDraftDirty = explanationDraftText !== savedExplanationDraftText
+    || explanationDirectionNote !== savedExplanationDirectionNote;
+
+  const restoreExplanationDraftForm = () => {
+    const nextDraft = explanationDraftRecord?.draft_explanation ?? previewQuestion.explanation ?? '';
+    const nextDirection = explanationDraftRecord?.direction_note ?? '';
+    setExplanationDraftText(nextDraft);
+    setExplanationDirectionNote(nextDirection);
+    setSavedExplanationDraftText(nextDraft);
+    setSavedExplanationDirectionNote(nextDirection);
+  };
+
+  const finishClosingExplanationDraft = () => {
+    restoreExplanationDraftForm();
+    setExplanationDraftOpen(false);
+    setExplanationDraftReview(false);
+    setExplanationDraftMessage(null);
+    setExplanationDraftConflict(false);
+    setExplanationDraftConfirm(null);
+  };
+
+  const requestCloseExplanationDraft = () => {
+    if (explanationDraftDirty) {
+      setExplanationDraftConfirm('close');
+      return;
+    }
+    finishClosingExplanationDraft();
+  };
+
+  const toggleExplanationDraft = () => {
+    if (explanationDraftOpen) {
+      requestCloseExplanationDraft();
+      return;
+    }
+    if (!explanationDraftRecord) {
+      const currentExplanation = previewQuestion.explanation || '';
+      setExplanationDraftText(currentExplanation);
+      setExplanationDirectionNote('');
+      setSavedExplanationDraftText(currentExplanation);
+      setSavedExplanationDirectionNote('');
+    }
+    setExplanationDraftReview(false);
+    setExplanationDraftMessage(null);
+    setExplanationDraftConflict(false);
+    setExplanationDraftConfirm(null);
+    setExplanationDraftOpen(true);
+  };
+
+  const ensureExplanationDraftGeneration = async expectedDraft => {
+    const result = await draftRpc(
+      EXPLANATION_DRAFT_RPC_NAMES.get,
+      buildExplanationDraftRpcParams('get', { questionId: q.id }),
+    );
+    const currentDraft = Array.isArray(result) ? (result[0] || null) : (result || null);
+    const sameGeneration = expectedDraft
+      ? currentDraft?.id === expectedDraft.id
+        && (currentDraft.updated_at || null) === (expectedDraft.updated_at || null)
+      : currentDraft === null;
+    if (!sameGeneration) {
+      throw new Error('변경안이 다른 곳에서 바뀌었습니다. 카드를 다시 열어 최신 초안을 확인해 주세요.');
+    }
+  };
+
+  const persistExplanationDraft = async () => {
+    if (explanationDraftAction) return null;
+    setExplanationDraftAction('saving');
+    setExplanationDraftMessage(null);
+    setExplanationDraftConflict(false);
+    try {
+      await ensureExplanationDraftGeneration(explanationDraftRecord);
+      const result = await draftRpc(
+        EXPLANATION_DRAFT_RPC_NAMES.save,
+        buildExplanationDraftRpcParams('save', {
+          questionId: q.id,
+          draft: explanationDraftText,
+          directionNote: explanationDirectionNote,
+        }),
+      );
+      const row = Array.isArray(result) ? result[0] : result;
+      if (!row) throw new Error('저장된 변경안을 불러오지 못했습니다.');
+      setExplanationDraftRecord(row);
+      setExplanationDraftText(row.draft_explanation ?? '');
+      setExplanationDirectionNote(row.direction_note ?? '');
+      setSavedExplanationDraftText(row.draft_explanation ?? '');
+      setSavedExplanationDirectionNote(row.direction_note ?? '');
+      setExplanationDraftMessage({ kind: 'success', text: '초안이 저장되었습니다.' });
+      return row;
+    } catch (error) {
+      setExplanationDraftMessage({ kind: 'danger', text: error?.message || '초안을 저장하지 못했습니다.' });
+      return null;
+    } finally {
+      setExplanationDraftAction(null);
+    }
+  };
+
+  const reviewExplanationDraft = async () => {
+    const row = (!explanationDraftRecord || explanationDraftDirty)
+      ? await persistExplanationDraft()
+      : explanationDraftRecord;
+    if (!row) return;
+    setExplanationDraftRecord(row);
+    setExplanationDraftReview(true);
+    setExplanationDraftMessage(null);
+    setExplanationDraftConflict(false);
+    setExplanationDraftConfirm(null);
+  };
+
+  const applyExplanationDraft = async () => {
+    if (!explanationDraftRecord || explanationDraftAction) return;
+    setExplanationDraftAction('applying');
+    setExplanationDraftMessage(null);
+    setExplanationDraftConflict(false);
+    try {
+      await ensureExplanationDraftGeneration(explanationDraftRecord);
+      const result = await draftRpc(
+        EXPLANATION_DRAFT_RPC_NAMES.apply,
+        buildExplanationDraftRpcParams('apply', { questionId: q.id }),
+      );
+      const row = Array.isArray(result) ? result[0] : result;
+      const appliedExplanation = row?.draft_explanation ?? explanationDraftText;
+      const nextCheckStatus = checkStatus === 'checked' ? 'stale' : checkStatus;
+      setPreviewQuestion(current => ({
+        ...current,
+        explanation: appliedExplanation,
+        check_status: nextCheckStatus,
+        updated_at: row?.applied_at || current.updated_at,
+      }));
+      setExplanation(appliedExplanation);
+      setCheckStatus(nextCheckStatus);
+      setExplanationDraftRecord(null);
+      setExplanationDraftText(appliedExplanation);
+      setExplanationDirectionNote('');
+      setSavedExplanationDraftText(appliedExplanation);
+      setSavedExplanationDirectionNote('');
+      setExplanationDraftOpen(false);
+      setExplanationDraftReview(false);
+      setExplanationDraftConfirm(null);
+      pushToast?.('해설 변경안이 반영되었습니다.');
+      onChanged?.();
+    } catch (error) {
+      const message = error?.message || '변경안을 반영하지 못했습니다.';
+      const conflict = message.includes('해설이 변경안 생성 이후 바뀌었습니다');
+      setExplanationDraftConflict(conflict);
+      setExplanationDraftMessage({ kind: 'danger', text: message });
+    } finally {
+      setExplanationDraftAction(null);
+    }
+  };
+
+  const rebaseExplanationDraft = async () => {
+    if (!explanationDraftRecord || explanationDraftAction) return;
+    setExplanationDraftAction('rebasing');
+    setExplanationDraftMessage(null);
+    try {
+      await ensureExplanationDraftGeneration(explanationDraftRecord);
+      const result = await draftRpc(
+        EXPLANATION_DRAFT_RPC_NAMES.rebase,
+        buildExplanationDraftRpcParams('rebase', { questionId: q.id }),
+      );
+      const row = Array.isArray(result) ? result[0] : result;
+      if (!row) throw new Error('다시 비교할 변경안을 불러오지 못했습니다.');
+      setExplanationDraftRecord(row);
+      setExplanationDraftText(row.draft_explanation ?? '');
+      setExplanationDirectionNote(row.direction_note ?? '');
+      setSavedExplanationDraftText(row.draft_explanation ?? '');
+      setSavedExplanationDirectionNote(row.direction_note ?? '');
+      setPreviewQuestion(current => ({ ...current, explanation: row.base_explanation ?? '' }));
+      setExplanation(row.base_explanation ?? '');
+      setCheckStatus(current => current === 'checked' ? 'stale' : current);
+      setExplanationDraftConflict(false);
+      setExplanationDraftMessage({ kind: 'success', text: '현재 해설을 새 원본으로 가져왔습니다.' });
+      setExplanationDraftReview(true);
+    } catch (error) {
+      setExplanationDraftMessage({ kind: 'danger', text: error?.message || '현재 해설을 가져오지 못했습니다.' });
+    } finally {
+      setExplanationDraftAction(null);
+    }
+  };
+
+  const deleteExplanationDraft = async () => {
+    if (!explanationDraftRecord || explanationDraftAction) return;
+    setExplanationDraftAction('deleting');
+    setExplanationDraftMessage(null);
+    try {
+      await ensureExplanationDraftGeneration(explanationDraftRecord);
+      await draftRpc(
+        EXPLANATION_DRAFT_RPC_NAMES.delete,
+        buildExplanationDraftRpcParams('delete', { questionId: q.id }),
+      );
+      setExplanationDraftRecord(null);
+      setExplanationDraftText(previewQuestion.explanation || '');
+      setExplanationDirectionNote('');
+      setSavedExplanationDraftText(previewQuestion.explanation || '');
+      setSavedExplanationDirectionNote('');
+      setExplanationDraftOpen(false);
+      setExplanationDraftReview(false);
+      setExplanationDraftConfirm(null);
+      pushToast?.('해설 초안이 삭제되었습니다.');
+    } catch (error) {
+      setExplanationDraftMessage({ kind: 'danger', text: error?.message || '초안을 삭제하지 못했습니다.' });
+      setExplanationDraftConfirm(null);
+    } finally {
+      setExplanationDraftAction(null);
+    }
+  };
+
   const statusMeta = inspectionStatusMeta(checkStatus);
   const hasGeminiTemplate = Boolean(subject?.gemini_prompt_template?.trim());
   const previewChoices = questionChoices(previewQuestion);
@@ -2024,6 +2291,14 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast }) {
         downloadMd(subject, previewQuestion, exam);
         pushToast?.('.md 다운로드 생성됨');
       }}>💾 .md 다운로드</button>
+      <button
+        type="button"
+        className={"btn btn-sm " + (explanationDraftRecord ? 'explanation-draft-present' : '')}
+        onClick={toggleExplanationDraft}
+        disabled={explanationDraftLoading}
+      >
+        📝 변경안{explanationDraftRecord && <span className="explanation-draft-button-state">초안 있음</span>}
+      </button>
       <button className={"btn btn-sm " + (checkStatus === 'unchecked' ? 'btn-success' : '')} onClick={toggleCheck} disabled={checking}>
         {checking ? '처리 중...' : checkStatus === 'unchecked' ? '✓ 검수 완료' : '검수 해제'}
       </button>
@@ -2279,6 +2554,163 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast }) {
         })}
       </ul>
       {previewQuestion.explanation && <div className="exp-box">{previewQuestion.explanation}</div>}
+      {explanationDraftOpen && (
+        <div className="explanation-draft-panel">
+          <div className="explanation-draft-panel-head">
+            <div>
+              <div className="explanation-draft-panel-title">
+                {explanationDraftReview ? '해설 변경안 비교' : '해설 변경안'}
+              </div>
+              <div className="explanation-draft-panel-sub">
+                라이브 해설은 ‘이대로 반영’을 누르기 전까지 바뀌지 않습니다.
+              </div>
+            </div>
+            {explanationDraftRecord && <span className="badge badge-info">초안 있음</span>}
+          </div>
+
+          {explanationDraftLoadError && (
+            <div className="explanation-draft-notice danger">
+              <span>{explanationDraftLoadError.message || '변경안을 불러오지 못했습니다.'}</span>
+              <button
+                type="button"
+                className="btn btn-xs"
+                onClick={() => setExplanationDraftReload(value => value + 1)}
+              >다시 시도</button>
+            </div>
+          )}
+
+          {explanationDraftMessage && (
+            <div className={"explanation-draft-notice " + explanationDraftMessage.kind}>
+              <span>{explanationDraftMessage.text}</span>
+              {explanationDraftConflict && (
+                <button
+                  type="button"
+                  className="btn btn-xs"
+                  onClick={rebaseExplanationDraft}
+                  disabled={Boolean(explanationDraftAction)}
+                >현재 해설 기준으로 다시 비교</button>
+              )}
+            </div>
+          )}
+
+          {!explanationDraftLoadError && explanationDraftReview && explanationDraftRecord ? (
+            <>
+              <div className="explanation-draft-direction-preview">
+                <div className="field-label">방향성</div>
+                <div>{explanationDirectionNote || '(작성된 방향성 없음)'}</div>
+              </div>
+              <ExplanationDiff
+                baseExplanation={explanationDraftRecord.base_explanation}
+                draftExplanation={explanationDraftText}
+              />
+              <div className="explanation-draft-actions">
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => {
+                    setExplanationDraftReview(false);
+                    setExplanationDraftMessage(null);
+                    setExplanationDraftConflict(false);
+                  }}
+                  disabled={Boolean(explanationDraftAction)}
+                >취소</button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={applyExplanationDraft}
+                  disabled={Boolean(explanationDraftAction)}
+                >{explanationDraftAction === 'applying' ? '반영 중...' : '이대로 반영'}</button>
+              </div>
+            </>
+          ) : !explanationDraftLoadError && (
+            <>
+              <label className="explanation-draft-field">
+                <span className="field-label">해설 초안</span>
+                <textarea
+                  className="explanation-draft-textarea"
+                  value={explanationDraftText}
+                  onChange={event => {
+                    setExplanationDraftText(event.target.value);
+                    setExplanationDraftMessage(null);
+                    setExplanationDraftConfirm(null);
+                  }}
+                  placeholder="반영할 해설을 작성하세요."
+                />
+              </label>
+              <label className="explanation-draft-field">
+                <span className="field-label">방향성</span>
+                <textarea
+                  className="explanation-direction-textarea"
+                  value={explanationDirectionNote}
+                  onChange={event => {
+                    setExplanationDirectionNote(event.target.value);
+                    setExplanationDraftMessage(null);
+                    setExplanationDraftConfirm(null);
+                  }}
+                  placeholder="정착물 정의 한 줄 + 표로만 정리, ㄱ~ㅂ 하나씩 설명 금지"
+                />
+              </label>
+
+              <div className={"explanation-draft-save-state " + (explanationDraftDirty ? 'dirty' : '')}>
+                {explanationDraftAction === 'saving'
+                  ? '저장 중...'
+                  : explanationDraftDirty
+                    ? '저장되지 않은 변경이 있습니다.'
+                    : explanationDraftRecord
+                      ? `저장됨${explanationDraftRecord.updated_at ? ` · ${relativeTime(explanationDraftRecord.updated_at)}` : ''}`
+                      : '아직 DB에 저장되지 않았습니다.'}
+              </div>
+
+              {explanationDraftConfirm === 'close' && (
+                <div className="explanation-draft-inline-confirm">
+                  <span>저장하지 않은 변경을 버리고 닫을까요?</span>
+                  <div>
+                    <button type="button" className="btn btn-xs" onClick={() => setExplanationDraftConfirm(null)}>계속 작성</button>
+                    <button type="button" className="btn btn-xs btn-danger" onClick={finishClosingExplanationDraft}>변경 버리기</button>
+                  </div>
+                </div>
+              )}
+
+              {explanationDraftConfirm === 'delete' && (
+                <div className="explanation-draft-inline-confirm danger">
+                  <span>저장된 초안을 삭제할까요? 이 작업은 되돌릴 수 없습니다.</span>
+                  <div>
+                    <button type="button" className="btn btn-xs" onClick={() => setExplanationDraftConfirm(null)}>취소</button>
+                    <button type="button" className="btn btn-xs btn-danger" onClick={deleteExplanationDraft}>초안 삭제</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="explanation-draft-actions">
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={persistExplanationDraft}
+                  disabled={Boolean(explanationDraftAction) || !explanationDraftDirty && Boolean(explanationDraftRecord)}
+                >{explanationDraftAction === 'saving' ? '저장 중...' : '초안 저장'}</button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={reviewExplanationDraft}
+                  disabled={Boolean(explanationDraftAction)}
+                >반영…</button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-danger"
+                  onClick={() => setExplanationDraftConfirm('delete')}
+                  disabled={Boolean(explanationDraftAction) || !explanationDraftRecord}
+                >초안 삭제</button>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={requestCloseExplanationDraft}
+                  disabled={Boolean(explanationDraftAction)}
+                >닫기</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
     </>
   );
@@ -5585,6 +6017,7 @@ function AuditLog() {
     { key: 'revoke_entitlement', label: '구독 해지' },
     { key: 'approve_user', label: '관리자 승인' },
     { key: 'update_question', label: '문항 수정' },
+    { key: 'apply_explanation_draft', label: '해설 변경안 반영' },
   ];
   return (
     <>
@@ -5667,6 +6100,7 @@ function CommandPalette({ onClose, setSection }) {
       { label: '분석', icon:'chart', action: () => setSection('analytics') },
       { label: '신고 관리', icon:'flag', action: () => setSection('reports') },
       { label: '문제 전수조사', icon:'edit', action: () => setSection('question-inspector') },
+      { label: '해설 변경안', icon:'edit', action: () => setSection('explanation-drafts') },
       { label: '개념노트 편집', icon:'book', action: () => setSection('concept-inspector') },
       { label: '공지 · 업데이트', icon:'megaphone', action: () => setSection('announcements') },
       { label: '구독 관리', icon:'users', action: () => setSection('subscriptions') },
@@ -5792,7 +6226,7 @@ function NotifPanel({ onClose, onBadgeChange }) {
 }
 
 export {
-  Overview, Analytics, Reports, QuestionInspector, ConceptInspector, Announcements, Subjects,
+  Overview, Analytics, Reports, QuestionInspector, ExplanationDrafts, ConceptInspector, Announcements, Subjects,
   Exams, ExamDates, AppVersion, Subscriptions, Admins, AuditLog, Settings,
   CommandPalette, ShortcutsModal, NotifPanel,
   QuestionBlock, ReportItem, buildGeminiPrompt, actionLabel,

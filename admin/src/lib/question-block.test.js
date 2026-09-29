@@ -50,6 +50,8 @@ const subject = {
   gemini_prompt_template: '{round}회 {number}번\n{stem}\n{choices}\n정답: {correct}\n해설: {explanation}',
 };
 
+const emptyDraftRpc = async () => [];
+
 test('QuestionBlock common preview actions', async t => {
   const server = await createServer({
     appType: 'custom',
@@ -68,6 +70,7 @@ test('QuestionBlock common preview actions', async t => {
         onSaved() {},
         onChanged() {},
         pushToast() {},
+        draftRpc: emptyDraftRpc,
       }));
     });
 
@@ -129,6 +132,7 @@ test('QuestionBlock common preview actions', async t => {
           onSaved() {},
           onChanged() {},
           pushToast() {},
+          draftRpc: emptyDraftRpc,
         }));
       });
       await act(async () => {
@@ -158,12 +162,235 @@ test('QuestionBlock common preview actions', async t => {
         onSaved() {},
         onChanged() {},
         pushToast() {},
+        draftRpc: emptyDraftRpc,
       }));
     });
 
     const geminiButton = buttonWithText(renderer.root, 'Gemini에 보내기');
     assert.equal(geminiButton.props.disabled, true);
     assert.equal(geminiButton.props.title, '과목에 Gemini 템플릿 없음');
+    await act(async () => renderer.unmount());
+  });
+
+  await t.test('loads, compares, and applies a saved explanation draft', async () => {
+    const savedDraft = {
+      id: 'draft-1',
+      question_id: question.id,
+      base_explanation: question.explanation,
+      draft_explanation: '저장된 초안',
+      direction_note: '표로 정리',
+      status: 'draft',
+      updated_at: '2026-09-29T00:00:00Z',
+    };
+    const draftRpc = mock.fn(async (name, params) => {
+      if (name === 'admin_get_explanation_draft') return [savedDraft];
+      if (name === 'admin_save_explanation_draft') {
+        return [{
+          ...savedDraft,
+          draft_explanation: params.p_draft,
+          direction_note: params.p_direction_note,
+        }];
+      }
+      if (name === 'admin_apply_explanation_draft') {
+        return [{
+          ...savedDraft,
+          draft_explanation: '수정한 초안',
+          direction_note: '정의부터 정리',
+          status: 'applied',
+          applied_at: '2026-09-29T01:00:00Z',
+        }];
+      }
+      throw new Error(`unexpected RPC: ${name}`);
+    });
+    const onChanged = mock.fn();
+    let renderer;
+
+    await act(async () => {
+      renderer = TestRenderer.create(React.createElement(QuestionBlock, {
+        q: question,
+        subject,
+        onSaved() {},
+        onChanged,
+        pushToast() {},
+        draftRpc,
+      }));
+    });
+
+    assert.ok(textContent(buttonWithText(renderer.root, '변경안')).includes('초안 있음'));
+    await act(async () => buttonWithText(renderer.root, '변경안').props.onClick());
+
+    const draftTextarea = renderer.root.findByProps({ className: 'explanation-draft-textarea' });
+    const directionTextarea = renderer.root.findByProps({ className: 'explanation-direction-textarea' });
+    assert.equal(draftTextarea.props.value, savedDraft.draft_explanation);
+    assert.equal(directionTextarea.props.value, savedDraft.direction_note);
+
+    await act(async () => {
+      draftTextarea.props.onChange({ target: { value: '수정한 초안' } });
+      directionTextarea.props.onChange({ target: { value: '정의부터 정리' } });
+    });
+    await act(async () => {
+      await buttonWithText(renderer.root, '반영…').props.onClick();
+    });
+
+    assert.ok(buttonWithText(renderer.root, '이대로 반영'));
+    const saveCall = draftRpc.mock.calls.find(call => call.arguments[0] === 'admin_save_explanation_draft');
+    assert.ok(saveCall);
+    assert.deepEqual(saveCall.arguments[1], {
+      p_question_id: question.id,
+      p_draft: '수정한 초안',
+      p_direction_note: '정의부터 정리',
+    });
+
+    await act(async () => {
+      await buttonWithText(renderer.root, '이대로 반영').props.onClick();
+    });
+
+    assert.equal(textContent(renderer.root.findByProps({ className: 'exp-box' })), '수정한 초안');
+    assert.equal(onChanged.mock.callCount(), 1);
+    assert.equal(buttonsWithText(renderer.root, '초안 있음').length, 0);
+    await act(async () => renderer.unmount());
+  });
+
+  await t.test('asks inside the panel before discarding unsaved edits', async () => {
+    let renderer;
+    await act(async () => {
+      renderer = TestRenderer.create(React.createElement(QuestionBlock, {
+        q: question,
+        subject,
+        onSaved() {},
+        onChanged() {},
+        pushToast() {},
+        draftRpc: emptyDraftRpc,
+      }));
+    });
+
+    await act(async () => buttonWithText(renderer.root, '변경안').props.onClick());
+    const draftTextarea = renderer.root.findByProps({ className: 'explanation-draft-textarea' });
+    await act(async () => draftTextarea.props.onChange({ target: { value: '저장하지 않을 초안' } }));
+    await act(async () => buttonWithText(renderer.root, '닫기').props.onClick());
+
+    assert.ok(buttonWithText(renderer.root, '변경 버리기'));
+    assert.ok(renderer.root.findByProps({ className: 'explanation-draft-panel' }));
+    await act(async () => buttonWithText(renderer.root, '변경 버리기').props.onClick());
+    assert.equal(renderer.root.findAllByProps({ className: 'explanation-draft-panel' }).length, 0);
+    await act(async () => renderer.unmount());
+  });
+
+  await t.test('offers an inline rebase when the live explanation changed', async () => {
+    const savedDraft = {
+      id: 'draft-conflict',
+      question_id: question.id,
+      base_explanation: question.explanation,
+      draft_explanation: '충돌 뒤에도 유지할 초안',
+      direction_note: '근거를 짧게',
+      status: 'draft',
+      updated_at: '2026-09-29T00:00:00Z',
+    };
+    const draftRpc = mock.fn(async (name) => {
+      if (name === 'admin_get_explanation_draft') return [savedDraft];
+      if (name === 'admin_apply_explanation_draft') {
+        throw new Error('해설이 변경안 생성 이후 바뀌었습니다');
+      }
+      if (name === 'admin_rebase_explanation_draft') {
+        return [{ ...savedDraft, base_explanation: '다른 운영자가 고친 현재 해설' }];
+      }
+      throw new Error(`unexpected RPC: ${name}`);
+    });
+    const onChanged = mock.fn();
+    let renderer;
+
+    await act(async () => {
+      renderer = TestRenderer.create(React.createElement(QuestionBlock, {
+        q: question,
+        subject,
+        onSaved() {},
+        onChanged,
+        pushToast() {},
+        draftRpc,
+      }));
+    });
+    await act(async () => buttonWithText(renderer.root, '변경안').props.onClick());
+    await act(async () => buttonWithText(renderer.root, '반영…').props.onClick());
+    await act(async () => {
+      await buttonWithText(renderer.root, '이대로 반영').props.onClick();
+    });
+
+    const rebaseButton = buttonWithText(renderer.root, '현재 해설 기준으로 다시 비교');
+    await act(async () => {
+      await rebaseButton.props.onClick();
+    });
+
+    const rebasedDiffText = renderer.root
+      .findAll(node => node.props.className === 'explanation-diff-text')
+      .map(textContent)
+      .join('');
+    assert.ok(rebasedDiffText.includes('다른 운영자가 고친 현재 해설'), rebasedDiffText);
+    assert.equal(textContent(renderer.root.findByProps({ className: 'exp-box' })), '다른 운영자가 고친 현재 해설');
+    assert.equal(onChanged.mock.callCount(), 0);
+    assert.deepEqual(
+      draftRpc.mock.calls.map(call => call.arguments[0]),
+      [
+        'admin_get_explanation_draft',
+        'admin_get_explanation_draft',
+        'admin_apply_explanation_draft',
+        'admin_get_explanation_draft',
+        'admin_rebase_explanation_draft',
+      ],
+    );
+    await act(async () => renderer.unmount());
+  });
+
+  await t.test('does not apply a draft generation replaced after the card opened', async () => {
+    const firstDraft = {
+      id: 'draft-old',
+      question_id: question.id,
+      base_explanation: question.explanation,
+      draft_explanation: '처음 본 초안',
+      direction_note: '',
+      status: 'draft',
+      updated_at: '2026-09-29T00:00:00Z',
+    };
+    const replacementDraft = {
+      ...firstDraft,
+      id: 'draft-new',
+      draft_explanation: '다른 운영자가 새로 만든 초안',
+      updated_at: '2026-09-29T02:00:00Z',
+    };
+    let getCount = 0;
+    const draftRpc = mock.fn(async (name) => {
+      if (name === 'admin_get_explanation_draft') {
+        getCount += 1;
+        return [getCount === 1 ? firstDraft : replacementDraft];
+      }
+      throw new Error(`unexpected RPC: ${name}`);
+    });
+    const onChanged = mock.fn();
+    let renderer;
+
+    await act(async () => {
+      renderer = TestRenderer.create(React.createElement(QuestionBlock, {
+        q: question,
+        subject,
+        onSaved() {},
+        onChanged,
+        pushToast() {},
+        draftRpc,
+      }));
+    });
+    await act(async () => buttonWithText(renderer.root, '변경안').props.onClick());
+    await act(async () => buttonWithText(renderer.root, '반영…').props.onClick());
+    await act(async () => {
+      await buttonWithText(renderer.root, '이대로 반영').props.onClick();
+    });
+
+    const notice = renderer.root.findByProps({ className: 'explanation-draft-notice danger' });
+    assert.ok(textContent(notice).includes('변경안이 다른 곳에서 바뀌었습니다'));
+    assert.deepEqual(
+      draftRpc.mock.calls.map(call => call.arguments[0]),
+      ['admin_get_explanation_draft', 'admin_get_explanation_draft'],
+    );
+    assert.equal(onChanged.mock.callCount(), 0);
+    assert.ok(buttonWithText(renderer.root, '이대로 반영'));
     await act(async () => renderer.unmount());
   });
 
@@ -193,6 +420,7 @@ test('QuestionBlock common preview actions', async t => {
         onSelect() {},
         onChanged() {},
         pushToast() {},
+        draftRpc: emptyDraftRpc,
       }));
     });
 
