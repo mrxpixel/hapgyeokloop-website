@@ -4,11 +4,13 @@ import {
   choiceHeadersTruncation,
   deleteStemBlock,
   insertStemBlock,
+  listStemTableBlocks,
   MAX_CHOICE_HEADER_COLUMNS,
   moveStemBlock,
   parseStemBlocks,
   resizeChoiceHeaders,
   serializeStemBlocks,
+  serializeStemTable,
   updateStemBlock,
   validateStemBlocksForSave,
 } from './stem-blocks.js';
@@ -97,6 +99,7 @@ test('round-trips all four real stem fixtures character-for-character', async t 
 
   const question44Table = parseStemBlocks(accounting28Question44)
     .find(block => block.kind === 'table');
+  assert.equal(question44Table.hasHeader, true);
   assert.equal(question44Table.rows[1][0].merge, 'up');
 
   const question88Table = parseStemBlocks(realEstate29Question88)
@@ -119,6 +122,95 @@ test('block to source to block keeps the original parsed block structure', () =>
 
   assert.deepEqual(reparsed, blocks);
   assert.equal(serializeStemBlocks(reparsed), mixedBlockStem);
+});
+
+test('parses noheader tables and keeps the opener when rebuilding edited rows', () => {
+  const source = '[TABLE noheader]첫 항목|첫 값\n둘째 항목|둘째 값[/TABLE]';
+  const [table] = parseStemBlocks(source);
+
+  assert.equal(table.kind, 'table');
+  assert.equal(table.hasHeader, false);
+  assert.equal(table.rows[0][0].value, '첫 항목');
+  assert.equal(table.raw, source);
+  assert.equal(serializeStemBlocks([table]), source);
+
+  const editedRows = table.rows.map(row => row.map(cell => ({ ...cell })));
+  editedRows[0][1].value = '수정한 첫 값';
+  const edited = updateStemBlock([table], 0, { rows: editedRows });
+
+  assert.equal(edited[0].hasHeader, false);
+  assert.equal(
+    serializeStemBlocks(edited),
+    source.replace('첫 값', '수정한 첫 값'),
+  );
+  assert.equal(serializeStemBlocks([table]), source);
+});
+
+test('preserves merged cells and literal \\n tokens in noheader tables', () => {
+  const source = '[TABLE noheader]병합\\n첫 줄|<|값\n^|<|둘째\\n줄[/TABLE]';
+  const [table] = parseStemBlocks(source);
+
+  assert.equal(table.hasHeader, false);
+  assert.equal(table.rows[0][0].value, String.raw`병합\n첫 줄`);
+  assert.equal(table.rows[0][1].merge, 'left');
+  assert.equal(table.rows[1][0].merge, 'up');
+  assert.equal(table.rows[1][1].merge, 'left');
+  assert.equal(table.rows[1][2].value, String.raw`둘째\n줄`);
+  assert.equal(serializeStemBlocks([table]), source);
+  assert.equal(serializeStemBlocks([{ ...table, raw: null }]), source);
+});
+
+test('splits both table forms and intervening text at exact boundaries', () => {
+  const headerTable = '[TABLE]머리글|값\n항목|1[/TABLE]';
+  const noheaderTable = '[TABLE noheader]첫 항목|2\n둘째 항목|3[/TABLE]';
+  const source = `앞 본문\n${headerTable}\n중간 본문\n${noheaderTable}\n뒤 본문`;
+  const blocks = parseStemBlocks(source);
+
+  assert.deepEqual(blocks.map(block => block.kind), [
+    'text', 'table', 'text', 'table', 'text',
+  ]);
+  assert.deepEqual(blocks.map(block => block.raw), [
+    '앞 본문\n', headerTable, '\n중간 본문\n', noheaderTable, '\n뒤 본문',
+  ]);
+  assert.deepEqual(blocks.filter(block => block.kind === 'table').map(block => block.hasHeader), [
+    true, false,
+  ]);
+  assert.equal(serializeStemBlocks(blocks), source);
+});
+
+test('lists exact replacement ranges for both forms while skipping unknown and nested tables', () => {
+  const unknown = '[TABLE foo]A|B[/TABLE]';
+  const nested = '[TABLE noheader]outer[TABLE]inner[/TABLE][/TABLE]';
+  const headerTable = '[TABLE]머리글|값\n항목|1[/TABLE]';
+  const noheaderTable = '[TABLE noheader]첫 항목|2\n둘째 항목|3[/TABLE]';
+  const source = `${unknown}\r\n${headerTable}\n${nested}\n중간 본문\n${noheaderTable}\n뒤 본문`;
+  const tables = listStemTableBlocks(source);
+
+  assert.equal(tables.length, 2);
+  assert.deepEqual(tables.map(table => table.index), [0, 1]);
+  assert.deepEqual(tables.map(table => table.hasHeader), [true, false]);
+  for (const [index, full] of [headerTable, noheaderTable].entries()) {
+    assert.equal(tables[index].start, source.indexOf(full));
+    assert.equal(tables[index].end, source.indexOf(full) + full.length);
+    assert.equal(tables[index].full, full);
+    assert.equal(tables[index].content, full.slice(full.indexOf(']') + 1, -'[/TABLE]'.length));
+    assert.equal(source.slice(tables[index].start, tables[index].end), full);
+    assert.deepEqual(tables[index].rows, parseStemBlocks(full)[0].rows);
+  }
+  assert.deepEqual(listStemTableBlocks(''), []);
+});
+
+test('serializes new tables with a header by default and supports toggling the flag', () => {
+  const [table] = parseStemBlocks('[TABLE]첫 항목|첫 값[/TABLE]');
+
+  assert.equal(serializeStemTable(table.rows), '[TABLE]첫 항목|첫 값[/TABLE]');
+  assert.equal(serializeStemBlocks([{ kind: 'table', rows: table.rows }]), '[TABLE]첫 항목|첫 값[/TABLE]');
+  assert.equal(serializeStemTable(table.rows, false), '[TABLE noheader]첫 항목|첫 값[/TABLE]');
+
+  const noheader = updateStemBlock([table], 0, { hasHeader: false });
+  assert.equal(serializeStemBlocks(noheader), '[TABLE noheader]첫 항목|첫 값[/TABLE]');
+  const header = updateStemBlock(noheader, 0, { hasHeader: true });
+  assert.equal(serializeStemBlocks(header), '[TABLE]첫 항목|첫 값[/TABLE]');
 });
 
 test('serializes only the table whose raw value was explicitly invalidated', () => {
@@ -149,8 +241,15 @@ test('serializes only the table whose raw value was explicitly invalidated', () 
 test('keeps unclosed, nested, and differently-cased markers as text', () => {
   const malformed = [
     '[TABLE]A|B',
+    '[TABLE noheader]A|B',
     '[TABLE]outer[TABLE]inner[/TABLE][/TABLE]',
+    '[TABLE noheader]outer[TABLE noheader]inner[/TABLE][/TABLE]',
+    '[TABLE]outer[TABLE noheader]inner[/TABLE][/TABLE]',
+    '[TABLE noheader]outer[TABLE]inner[/TABLE][/TABLE]',
     '[TABLE]outer[CHOICE_HEADERS]A|B[/CHOICE_HEADERS][/TABLE]',
+    '[TABLE noheader]outer[CHOICE_HEADERS]A|B[/CHOICE_HEADERS][/TABLE]',
+    '[CHOICE_HEADERS][TABLE][/CHOICE_HEADERS][TABLE][/TABLE]',
+    '[CHOICE_HEADERS][TABLE noheader][/CHOICE_HEADERS][TABLE][/TABLE]',
     '[CHOICE_HEADERS]A|B',
     '[CHOICE_HEADERS]outer[CHOICE_HEADERS]inner[/CHOICE_HEADERS][/CHOICE_HEADERS]',
     '[SVG]outer[SVG]inner[/SVG][/SVG]',
@@ -223,11 +322,31 @@ test('handles empty, plain, marker-only, SVG, and unknown-marker boundaries', ()
 });
 
 test('preserves CRLF, blank rows, and table-envelope whitespace while raw is valid', () => {
-  const source = '앞  \r\n\r\n[TABLE]\r\n A | B \r\n\r\n C|D\r\n[/TABLE]\r\n 뒤 ';
-  const blocks = parseStemBlocks(source);
+  for (const opener of ['[TABLE]', '[TABLE noheader]']) {
+    const source = `앞  \r\n\r\n${opener}\r\n A | B \r\n\r\n C|D\r\n[/TABLE]\r\n 뒤 `;
+    const blocks = parseStemBlocks(source);
 
-  assert.deepEqual(blocks.map(block => block.kind), ['text', 'table', 'text']);
-  assert.equal(serializeStemBlocks(blocks), source);
+    assert.deepEqual(blocks.map(block => block.kind), ['text', 'table', 'text']);
+    assert.equal(serializeStemBlocks(blocks), source);
+  }
+});
+
+test('keeps unknown table variants as text', () => {
+  for (const source of [
+    '[TABLE foo]A|B[/TABLE]',
+    '[TABLE NOHEADER]A|B[/TABLE]',
+    '[TABLE noheader extra]A|B[/TABLE]',
+    '[TABLE  noheader]A|B[/TABLE]',
+    '[TABLE noheader ]A|B[/TABLE]',
+    '[TABLE noheader]A|B[/TABLE noheader]',
+    '[CHOICE_HEADERS noheader]A|B[/CHOICE_HEADERS]',
+    '[SVG noheader]<svg/>[/SVG]',
+  ]) {
+    assert.deepEqual(parseStemBlocks(source), [{
+      kind: 'text', raw: source, text: source,
+    }]);
+    assert.equal(serializeStemBlocks(parseStemBlocks(source)), source);
+  }
 });
 
 test('rebuilds dirty text, choice-header, and figure payloads', () => {

@@ -26,18 +26,19 @@ import {
   sanitizeConceptTableCell,
   sanitizeConceptTableDiagonalLabel,
   serializeConceptTable,
-  listConceptTableBlocks,
   splitTableCellLines,
 } from './lib/concept-table.js'
 import {
   choiceHeadersTruncation,
   deleteStemBlock,
   insertStemBlock,
+  listStemTableBlocks,
   MAX_CHOICE_HEADER_COLUMNS,
   moveStemBlock,
   parseStemBlocks,
   resizeChoiceHeaders,
   serializeStemBlocks,
+  serializeStemTable,
   updateStemBlock,
   validateStemBlocksForSave,
 } from './lib/stem-blocks.js'
@@ -933,7 +934,7 @@ function inspectionStatusMeta(status) {
 }
 
 let stemEditorBlockSequence = 0;
-const STEM_BLOCK_MARKER_INPUT_PATTERN = /\[\/?(?:TABLE|CHOICE_HEADERS|SVG)\]/;
+const STEM_BLOCK_MARKER_INPUT_PATTERN = /\[(?:TABLE noheader|\/?(?:TABLE|CHOICE_HEADERS|SVG))\]/;
 
 function stemEditorBlocks(source) {
   return parseStemBlocks(source).map(block => ({
@@ -1027,7 +1028,7 @@ function TableCellLines({ value }) {
   ));
 }
 
-function StemTablePreview({ rows }) {
+function StemTablePreview({ rows, hasHeader = true }) {
   const normalizedRows = normalizeConceptTableRows(rows);
   const headerRows = conceptTableHeaderRows(normalizedRows);
   const cellsByRow = normalizedRows.map(() => []);
@@ -1054,7 +1055,7 @@ function StemTablePreview({ rows }) {
           {cellsByRow.map((cells, rowIndex) => (
             <tr key={rowIndex}>
               {cells.map(({ cell, column, rowSpan, columnSpan }) => {
-                const Cell = headerRows[rowIndex] ? 'th' : 'td';
+                const Cell = hasHeader && headerRows[rowIndex] ? 'th' : 'td';
                 return (
                   <Cell key={column} rowSpan={rowSpan} colSpan={columnSpan}>
                     {cell.diagonal ? (
@@ -1137,7 +1138,7 @@ function StemBlockEditor({
                   placeholder="지문 텍스트"
                 />
               )}
-              {block.kind === 'table' && <StemTablePreview rows={block.rows}/>}
+              {block.kind === 'table' && <StemTablePreview rows={block.rows} hasHeader={block.hasHeader}/>}
               {block.kind === 'choiceHeaders' && (
                 <div className="stem-choice-headers" aria-label="선택지 헤더">
                   <div className="stem-choice-headers-toolbar">
@@ -1479,7 +1480,7 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast, draftR
   const stemCursorOffsetRef = useRef(initialStem.length);
   const stemCursorKnownRef = useRef(false);
   const [stemTableDialog, setStemTableDialog] = useState(null);
-  const stemTableBlocks = useMemo(() => listConceptTableBlocks(stem), [stem]);
+  const stemTableBlocks = useMemo(() => listStemTableBlocks(stem), [stem]);
   const [choices, setChoices] = useState(() => {
     const cs = Array.isArray(q.choices) ? q.choices : (q.choices?.options || []);
     return cs.map((c, i) => typeof c === 'string' ? { text: c } : c);
@@ -1527,7 +1528,7 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast, draftR
   const [legacyImportHidden, setLegacyImportHidden] = useState(false);
   const legacyGivens = useMemo(() => {
     if (!hasGivensField || previewQuestion.stem_givens !== null) return [];
-    const stemWithoutTables = stem.replace(/\[TABLE\][\s\S]*?\[\/TABLE\]/g, '');
+    const stemWithoutTables = stem.replace(/\[TABLE(?: noheader)?\][\s\S]*?\[\/TABLE\]/g, '');
     return parseStemGivens(stemWithoutTables);
   }, [hasGivensField, previewQuestion.stem_givens, stem]);
   const showLegacyImport = hasGivensField && previewQuestion.stem_givens === null && !legacyImportHidden && legacyGivens.length > 0;
@@ -1663,9 +1664,10 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast, draftR
       end: block.end,
       insertAt: block.start,
       originalBlock: block.full,
-      canonicalBlockAtOpen: serializeConceptTable(parseConceptTableRows(block.content)),
+      canonicalBlockAtOpen: serializeStemTable(block.rows, block.hasHeader),
       sourceAtOpen: source,
-      rows: parseConceptTableRows(block.content),
+      rows: block.rows,
+      hasHeader: block.hasHeader,
     } : {
       editorMode: 'source',
       start: null,
@@ -1673,6 +1675,7 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast, draftR
       insertAt: cursorOffset,
       sourceAtOpen: source,
       rows: createEmptyConceptTable(),
+      hasHeader: true,
     });
   };
 
@@ -1684,8 +1687,9 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast, draftR
       blockIndex,
       insertIndex: null,
       sourceAtOpen: serializeStemBlocks(stemBlocks),
-      canonicalBlockAtOpen: serializeConceptTable(block.rows),
+      canonicalBlockAtOpen: serializeStemTable(block.rows, block.hasHeader),
       rows: block.rows,
+      hasHeader: block.hasHeader,
     });
   };
 
@@ -1696,6 +1700,7 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast, draftR
       insertIndex,
       sourceAtOpen: serializeStemBlocks(stemBlocks),
       rows: createEmptyConceptTable(),
+      hasHeader: true,
     });
   };
 
@@ -1706,7 +1711,7 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast, draftR
     if (returnToSource) focusStemAt(returnOffset);
   };
 
-  const applyStemTable = rows => {
+  const applyStemTable = (rows, hasHeader) => {
     if (!stemTableDialog) return;
     const containsStemBlockMarker = rows.some(row => row.some(cell => (
       STEM_BLOCK_MARKER_INPUT_PATTERN.test(String(cell?.value ?? ''))
@@ -1725,7 +1730,7 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast, draftR
         return;
       }
 
-      const nextTableBlock = serializeConceptTable(rows);
+      const nextTableBlock = serializeStemTable(rows, hasHeader);
       if (stemTableDialog.blockIndex != null
         && nextTableBlock === stemTableDialog.canonicalBlockAtOpen) {
         setStemTableDialog(null);
@@ -1736,16 +1741,16 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast, draftR
         ? insertStemBlock(
           stemBlocks,
           stemTableDialog.insertIndex,
-          newStemEditorBlock({ kind: 'table', rows }),
+          newStemEditorBlock({ kind: 'table', rows, hasHeader }),
         )
-        : updateStemBlock(stemBlocks, stemTableDialog.blockIndex, { rows });
+        : updateStemBlock(stemBlocks, stemTableDialog.blockIndex, { rows, hasHeader });
       commitStemBlocks(nextBlocks);
       setStemTableDialog(null);
       return;
     }
 
     const source = String(stem || '');
-    const tableBlock = serializeConceptTable(rows);
+    const tableBlock = serializeStemTable(rows, hasHeader);
     let nextStem;
     let nextCursor;
 
@@ -2506,6 +2511,8 @@ function QuestionBlock({ q, subject, exam, onSaved, onChanged, pushToast, draftR
       {stemTableDialog && (
         <ConceptTableEditorModal
           rows={stemTableDialog.rows}
+          hasHeader={stemTableDialog.hasHeader}
+          allowHeaderToggle
           editing={stemTableDialog.editorMode === 'blocks'
             ? stemTableDialog.blockIndex != null
             : stemTableDialog.start != null}
@@ -4886,8 +4893,16 @@ function conceptTableHeaderRows(rows) {
   return result;
 }
 
-function ConceptTableEditorModal({ rows: initialRows, editing, onCancel, onApply }) {
+function ConceptTableEditorModal({
+  rows: initialRows,
+  hasHeader: initialHasHeader = true,
+  allowHeaderToggle = false,
+  editing,
+  onCancel,
+  onApply,
+}) {
   const [rows, setRows] = useState(() => normalizeConceptTableRows(initialRows));
+  const [hasHeader, setHasHeader] = useState(initialHasHeader);
   const [activeCell, setActiveCell] = useState({ row: 0, column: 0 });
   const firstCellRef = useRef(null);
   const onCancelRef = useRef(onCancel);
@@ -5042,17 +5057,27 @@ function ConceptTableEditorModal({ rows: initialRows, editing, onCancel, onApply
         onKeyDown={event => {
           if (event.key === 'Enter' && event.target?.tagName === 'INPUT') event.preventDefault();
         }}
-        onSubmit={event => { event.preventDefault(); onApply(rows); }}
+        onSubmit={event => {
+          event.preventDefault();
+          if (allowHeaderToggle) onApply(rows, hasHeader);
+          else onApply(rows);
+        }}
       >
         <div className="concept-table-modal-head">
           <div>
             <div className="panel-title" id="concept-table-title">{editing ? '표 편집' : '표 추가'}</div>
-            <div className="panel-sub">첫 행은 머리글입니다. 드래그 또는 Shift+방향키로 병합할 범위를 선택하세요.</div>
+            <div className="panel-sub">{hasHeader ? '첫 행은 머리글입니다. ' : ''}드래그 또는 Shift+방향키로 병합할 범위를 선택하세요.</div>
           </div>
           <button type="button" onClick={onCancel} aria-label="닫기"><Icon name="x" size={16}/></button>
         </div>
         <div className="concept-table-modal-body">
           <div className="concept-table-tools">
+            {allowHeaderToggle && (
+              <label style={{display:'flex', alignItems:'center', gap:6}}>
+                <input type="checkbox" checked={hasHeader} onChange={event => setHasHeader(event.target.checked)}/>
+                첫 줄 머리글
+              </label>
+            )}
             <button type="button" className="btn btn-xs" onClick={addRow}>행 추가</button>
             <button type="button" className="btn btn-xs" onClick={addColumn}>열 추가</button>
             <button type="button" className="btn btn-xs" onClick={removeRow} disabled={rows.length <= 1 || hasVerticalMerges} title={hasVerticalMerges ? '위 병합을 먼저 해제하세요.' : ''}>행 삭제</button>
@@ -5067,7 +5092,7 @@ function ConceptTableEditorModal({ rows: initialRows, editing, onCancel, onApply
               className={'btn btn-xs ' + (rows[0]?.[0]?.diagonal ? 'btn-primary' : '')}
               aria-pressed={Boolean(rows[0]?.[0]?.diagonal)}
               onClick={toggleDiagonal}
-              title="좌상단 머리글 전용"
+              title={hasHeader ? '좌상단 머리글 전용' : '좌상단 셀 전용'}
             >대각선 분할</button>
             <div className="concept-table-merge-help">
               <span role="status">{selection.length}칸 선택 · {selection.length > 1 && !canMerge
@@ -5093,7 +5118,7 @@ function ConceptTableEditorModal({ rows: initialRows, editing, onCancel, onApply
                   <div
                     key={`${rowIndex}-${column}`}
                     className={'concept-table-grid-cell '
-                      + (headerRows[rowIndex] ? 'header-cell ' : '')
+                      + (hasHeader && headerRows[rowIndex] ? 'header-cell ' : '')
                       + (selected ? 'active-cell ' : '')
                       + (mergedUp ? 'merged-up ' : '')
                       + (columnSpan > 1 ? 'merged-left ' : '')}
@@ -5170,7 +5195,7 @@ function ConceptTableEditorModal({ rows: initialRows, editing, onCancel, onApply
                         onChange={event => updateCell(rowIndex, column, event.target.value)}
                         onFocus={() => selectCell({ row: rowIndex, column })}
                         aria-label={label}
-                        placeholder={headerRows[rowIndex] ? '머리글' : '내용'}
+                        placeholder={hasHeader && headerRows[rowIndex] ? '머리글' : '내용'}
                       />
                     )}
                   </div>

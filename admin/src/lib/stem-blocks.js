@@ -1,16 +1,16 @@
 import {
-  listConceptTableBlocks,
   parseConceptTableRows,
   serializeConceptTable,
 } from './concept-table.js';
 
-const MARKER_PATTERN = /\[(\/)?(TABLE|CHOICE_HEADERS|SVG)\]/g;
+const MARKER_PATTERN = /\[TABLE noheader\]|\[(\/)?(TABLE|CHOICE_HEADERS|SVG)\]/g;
 export const MAX_CHOICE_HEADER_COLUMNS = 100;
 
 function markerTokens(source) {
   return [...source.matchAll(MARKER_PATTERN)].map(match => ({
-    type: match[2],
+    type: match[2] ?? 'TABLE',
     closing: Boolean(match[1]),
+    hasHeader: match[0] !== '[TABLE noheader]',
     start: match.index,
     end: match.index + match[0].length,
   }));
@@ -33,15 +33,43 @@ function matchingCloseIndexes(tokens) {
   return matches;
 }
 
+function topLevelTableEnds(tokens) {
+  const ends = new Map();
+  let depth = 0;
+  let start = 0;
+  let nested = false;
+
+  // Table regions must also be balanced independently of other marker types.
+  // Otherwise a table opener hidden in a malformed outer region could expose
+  // a nested table as a separate editable block.
+  for (const token of tokens) {
+    if (token.type !== 'TABLE') continue;
+    if (!token.closing) {
+      if (depth === 0) {
+        start = token.start;
+        nested = false;
+      } else {
+        nested = true;
+      }
+      depth += 1;
+    } else if (depth > 0) {
+      depth -= 1;
+      if (depth === 0 && !nested) ends.set(start, token.end);
+    }
+  }
+  return ends;
+}
+
 function textBlock(raw) {
   return { kind: 'text', raw, text: raw };
 }
 
-function tableBlock(table) {
+function tableBlock(source, opener, closer) {
   return {
     kind: 'table',
-    raw: table.full,
-    rows: parseConceptTableRows(table.content),
+    raw: source.slice(opener.start, closer.end),
+    rows: parseConceptTableRows(source.slice(opener.end, closer.start)),
+    hasHeader: opener.hasHeader,
   };
 }
 
@@ -110,10 +138,8 @@ export function parseStemBlocks(stem) {
   const tokens = markerTokens(source);
   if (tokens.length === 0) return [textBlock(source)];
   const closeIndexes = matchingCloseIndexes(tokens);
+  const tableEnds = topLevelTableEnds(tokens);
 
-  const tablesByStart = new Map(
-    listConceptTableBlocks(source).map(table => [table.start, table]),
-  );
   const blocks = [];
   let sourceCursor = 0;
   let tokenIndex = 0;
@@ -160,9 +186,12 @@ export function parseStemBlocks(stem) {
     }
 
     if (opener.type === 'TABLE') {
-      const table = tablesByStart.get(opener.start);
-      if (table && table.end === closer.end) {
-        appendStructuredBlock(table.start, table.end, tableBlock(table));
+      if (tableEnds.get(opener.start) === closer.end) {
+        appendStructuredBlock(
+          opener.start,
+          closer.end,
+          tableBlock(source, opener, closer),
+        );
       }
     } else if (opener.type === 'CHOICE_HEADERS') {
       appendStructuredBlock(
@@ -188,12 +217,40 @@ export function parseStemBlocks(stem) {
   return blocks;
 }
 
+/** Lists editable stem tables with their exact source replacement ranges. */
+export function listStemTableBlocks(stem) {
+  const tables = [];
+  let start = 0;
+  for (const block of parseStemBlocks(stem)) {
+    const end = start + block.raw.length;
+    if (block.kind === 'table') {
+      const opener = block.hasHeader ? '[TABLE]' : '[TABLE noheader]';
+      tables.push({
+        ...block,
+        index: tables.length,
+        start,
+        end,
+        full: block.raw,
+        content: block.raw.slice(opener.length, -'[/TABLE]'.length),
+      });
+    }
+    start = end;
+  }
+  return tables;
+}
+
+/** Serializes a stem table without changing the concept-note table format. */
+export function serializeStemTable(rows, hasHeader = true) {
+  const table = serializeConceptTable(rows);
+  return hasHeader === false ? table.replace(/^\[TABLE\]/, '[TABLE noheader]') : table;
+}
+
 function serializePayload(block, index) {
   switch (block?.kind) {
     case 'text':
       return String(block.text ?? '');
     case 'table':
-      return serializeConceptTable(block.rows);
+      return serializeStemTable(block.rows, block.hasHeader);
     case 'choiceHeaders': {
       const headers = Array.isArray(block.headers) ? block.headers : [];
       const serializedHeaders = headers.map(header => (

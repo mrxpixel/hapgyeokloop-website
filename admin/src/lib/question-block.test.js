@@ -111,6 +111,167 @@ test('QuestionBlock common preview actions', async t => {
     await act(async () => renderer.unmount());
   });
 
+  await t.test('previews and edits stem table header settings without network access', async t => {
+    const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: {
+        addEventListener() {},
+        removeEventListener() {},
+        requestAnimationFrame(callback) { callback(); },
+      },
+    });
+    const fetch = mock.method(globalThis, 'fetch', async () => {
+      throw new Error('Stem table editor tests must not make network requests');
+    });
+    t.after(() => {
+      fetch.mock.restore();
+      if (windowDescriptor) Object.defineProperty(globalThis, 'window', windowDescriptor);
+      else delete globalThis.window;
+    });
+
+    const renderEditor = async (stem, subtest, pushToast = () => {}) => {
+      let renderer;
+      await act(async () => {
+        renderer = TestRenderer.create(React.createElement(QuestionBlock, {
+          q: { ...question, stem, stem_givens: null },
+          subject,
+          onSaved() {},
+          onChanged() {},
+          pushToast,
+          draftRpc: emptyDraftRpc,
+        }));
+      });
+      subtest.after(() => act(async () => renderer.unmount()));
+      await act(async () => buttonWithText(renderer.root, '편집').props.onClick());
+      return renderer;
+    };
+    const headerCheckbox = root => {
+      const label = root.findAllByType('label')
+        .find(node => textContent(node).includes('첫 줄 머리글'));
+      assert.ok(label, 'stem table modal should offer a header checkbox');
+      return label.findByProps({ type: 'checkbox' });
+    };
+    const applyTable = async root => {
+      await act(async () => {
+        root.findByProps({ role: 'dialog' }).props.onSubmit({ preventDefault() {} });
+      });
+    };
+    const openBlockTable = async root => {
+      const tableCard = root.findByProps({ className: 'stem-block-card stem-block-table' });
+      await act(async () => buttonWithText(tableCard, '편집').props.onClick());
+    };
+    const sourceValue = async root => {
+      await act(async () => buttonWithText(root, '원문 편집').props.onClick());
+      return root.findByProps({ 'aria-label': '문항 지문 원문' }).props.value;
+    };
+
+    await t.test('keeps merged noheader cells as body cells after editing and toggles only the flag', async t => {
+      const renderer = await renderEditor(
+        '앞말\n[TABLE noheader]\n병합|<|끝\\n줄\n^|^|뒷칸\n[/TABLE]\n뒷말',
+        t,
+      );
+      let preview = renderer.root.findByProps({ className: 'stem-table-preview' });
+      assert.equal(preview.findAllByType('th').length, 0);
+      assert.equal(preview.findAllByType('td').length, 3);
+      const mergedCell = preview.findAllByType('td').find(cell => cell.props.rowSpan === 2);
+      assert.equal(mergedCell.props.colSpan, 2);
+      assert.equal(preview.findAllByType('br').length, 1);
+
+      await openBlockTable(renderer.root);
+      assert.equal(headerCheckbox(renderer.root).props.checked, false);
+      await act(async () => {
+        renderer.root.findByProps({ 'aria-label': '2행 3열' }).props.onChange({ target: { value: '수정' } });
+      });
+      await applyTable(renderer.root);
+      preview = renderer.root.findByProps({ className: 'stem-table-preview' });
+      assert.equal(preview.findAllByType('th').length, 0);
+      const noheaderStem = '앞말\n[TABLE noheader]병합|<|끝\\n줄\n^|^|수정[/TABLE]\n뒷말';
+      assert.equal(await sourceValue(renderer.root), noheaderStem);
+
+      await act(async () => buttonWithText(renderer.root, '블록 편집').props.onClick());
+      await openBlockTable(renderer.root);
+      await act(async () => headerCheckbox(renderer.root).props.onChange({ target: { checked: true } }));
+      await applyTable(renderer.root);
+      assert.ok(renderer.root.findByProps({ className: 'stem-table-preview' }).findAllByType('th').length > 0);
+      assert.equal(await sourceValue(renderer.root), noheaderStem.replace('[TABLE noheader]', '[TABLE]'));
+
+      await act(async () => buttonWithText(renderer.root, '블록 편집').props.onClick());
+      await openBlockTable(renderer.root);
+      assert.equal(headerCheckbox(renderer.root).props.checked, true);
+      await act(async () => headerCheckbox(renderer.root).props.onChange({ target: { checked: false } }));
+      await applyTable(renderer.root);
+      assert.equal(await sourceValue(renderer.root), noheaderStem);
+    });
+
+    await t.test('defaults new stem tables to a header in block and source editors', async t => {
+      const renderer = await renderEditor('지문', t);
+      await act(async () => buttonWithText(renderer.root, '+ 표').props.onClick());
+      assert.equal(headerCheckbox(renderer.root).props.checked, true);
+      await act(async () => {
+        renderer.root.findByProps({ 'aria-label': '1행 1열' }).props.onChange({ target: { value: '머리글' } });
+      });
+      await applyTable(renderer.root);
+      assert.ok((await sourceValue(renderer.root)).includes('[TABLE]머리글|'));
+      await act(async () => buttonWithText(renderer.root, '+ 새 표').props.onClick());
+      assert.equal(headerCheckbox(renderer.root).props.checked, true);
+    });
+
+    await t.test('finds both source table forms, preserves raw bytes on unchanged Apply, and writes flag changes', async t => {
+      const stem = '앞\r\n[TABLE]\r\n 머리 | 둘 \r\n 값 | 셋 \r\n[/TABLE]\n사이\n'
+        + '[TABLE noheader]\r\n 몸통 | 둘 \r\n ^ | 셋 \r\n[/TABLE]\n뒤';
+      const renderer = await renderEditor(stem, t);
+      assert.equal(await sourceValue(renderer.root), stem);
+      assert.equal(buttonsWithText(renderer.root, '표 1 편집').length, 1);
+      assert.equal(buttonsWithText(renderer.root, '표 2 편집').length, 1);
+
+      await act(async () => buttonWithText(renderer.root, '표 1 편집').props.onClick());
+      assert.equal(headerCheckbox(renderer.root).props.checked, true);
+      await applyTable(renderer.root);
+      assert.equal(await sourceValue(renderer.root), stem);
+
+      await act(async () => buttonWithText(renderer.root, '표 2 편집').props.onClick());
+      assert.equal(headerCheckbox(renderer.root).props.checked, false);
+      await applyTable(renderer.root);
+      assert.equal(await sourceValue(renderer.root), stem);
+
+      await act(async () => buttonWithText(renderer.root, '표 2 편집').props.onClick());
+      await act(async () => headerCheckbox(renderer.root).props.onChange({ target: { checked: true } }));
+      await applyTable(renderer.root);
+      const headerStem = stem.replace(
+        '[TABLE noheader]\r\n 몸통 | 둘 \r\n ^ | 셋 \r\n[/TABLE]',
+        '[TABLE] 몸통 | 둘 \n^| 셋 [/TABLE]',
+      );
+      assert.equal(await sourceValue(renderer.root), headerStem);
+
+      await act(async () => buttonWithText(renderer.root, '표 2 편집').props.onClick());
+      assert.equal(headerCheckbox(renderer.root).props.checked, true);
+      await act(async () => headerCheckbox(renderer.root).props.onChange({ target: { checked: false } }));
+      await applyTable(renderer.root);
+      assert.equal(await sourceValue(renderer.root), headerStem.replace('[TABLE] 몸통', '[TABLE noheader] 몸통'));
+    });
+
+    await t.test('rejects noheader markers in text blocks and excludes table rows from legacy givens', async t => {
+      const pushToast = mock.fn();
+      const stem = '문제\n[TABLE noheader]\nㄱ. 첫 항목\nㄴ. 둘째 항목\n[/TABLE]';
+      const renderer = await renderEditor(stem, t, pushToast);
+      assert.equal(buttonsWithText(renderer.root, '이대로 가져오기').length, 0);
+      const textBlock = renderer.root.findByProps({ 'aria-label': '텍스트 블록 1' });
+      await act(async () => {
+        textBlock.props.onChange({
+          currentTarget: { style: {}, scrollHeight: 40 },
+          target: { value: '문제\n[TABLE noheader]' },
+        });
+      });
+      assert.equal(textBlock.props.value, '문제\n');
+      assert.equal(pushToast.mock.callCount(), 1);
+      assert.match(pushToast.mock.calls[0].arguments[0], /지문 블록 마커/);
+      assert.equal(await sourceValue(renderer.root), stem);
+    });
+
+    assert.equal(fetch.mock.callCount(), 0);
+  });
+
   await t.test('copies the generated Gemini prompt to the clipboard', async () => {
     const writeText = mock.fn(async () => {});
     const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
