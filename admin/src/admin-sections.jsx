@@ -32,6 +32,7 @@ import {
 import {
   insertSvgBlock,
   isMalformedSvgBlock,
+  removeDefinitionBlock,
   locateSvgBlock,
   removeSvgBlock,
   replaceSvgBlock,
@@ -4604,12 +4605,42 @@ function ConceptDefinitionEditor({ value, onChange }) {
 
   const handleDefinitionChange = nextValue => {
     if (!conceptTablePlaceholdersIntact(editorModel, nextValue)) {
-      setEditorNotice('표·그림은 자리표시자를 수정하지 말고 Table 버튼이나 그림 목록으로 편집하세요.');
+      setEditorNotice('표·그림은 자리표시자를 수정하지 말고 아래 표·그림 목록으로 편집하세요.');
       setEditorRevision(revision => revision + 1);
       return;
     }
     setEditorNotice(null);
     onChange(restoreConceptTablePlaceholders(editorModel, nextValue));
+  };
+
+  const tableDialogFor = (block, source) => ({
+    start: block.start,
+    end: block.end,
+    insertAt: block.start,
+    originalBlock: block.full,
+    sourceAtOpen: source,
+    rows: parseConceptTableRows(block.content),
+    hasHeader: block.hasHeader,
+  });
+
+  // 표 목록의 [표 추가]: 커서가 표 안에 있어도 그 표 뒤에 새 표를 넣는다.
+  const openNewTableDialog = () => {
+    const source = String(value || '');
+    const cursorOffset = conceptDefinitionCursorOffset(wrapperRef.current, editorModel, cursorOffsetRef.current);
+    const inside = findConceptTableBlock(source, cursorOffset);
+    const insertAt = inside ? inside.end : cursorOffset;
+    cursorOffsetRef.current = insertAt;
+    setTableDialog({ start: null, end: null, insertAt, sourceAtOpen: source, rows: createEmptyConceptTable(), hasHeader: true });
+  };
+
+  const deleteTable = block => {
+    const source = String(value || '');
+    const current = tableBlockMatches(source).find(match => match.full === block.full);
+    if (!current) {
+      setEditorNotice('정의 내용이 바뀌었습니다. 다시 시도하세요.');
+      return;
+    }
+    commitSvgChange(removeDefinitionBlock(source, current.start, current.end));
   };
 
   const openTableDialog = () => {
@@ -4624,12 +4655,14 @@ function ConceptDefinitionEditor({ value, onChange }) {
       originalBlock: block.full,
       sourceAtOpen: source,
       rows: parseConceptTableRows(block.content),
+      hasHeader: block.hasHeader,
     } : {
       start: null,
       end: null,
       insertAt: cursorOffset,
       sourceAtOpen: source,
       rows: createEmptyConceptTable(),
+      hasHeader: true,
     });
   };
 
@@ -4664,9 +4697,9 @@ function ConceptDefinitionEditor({ value, onChange }) {
     });
   };
 
-  const applyTable = rows => {
+  const applyTable = (rows, hasHeader = true) => {
     const source = String(value || '');
-    const block = serializeConceptTable(rows);
+    const block = serializeStemTable(rows, hasHeader);
     let nextValue;
     let nextCursor;
     if (tableDialog.start == null && source !== tableDialog.sourceAtOpen) {
@@ -4765,6 +4798,12 @@ function ConceptDefinitionEditor({ value, onChange }) {
         <MarkdownEditor key={editorRevision} value={editorModel.editorValue} onChange={handleDefinitionChange} placeholder="정의를 입력하세요. 표는 도구 모음의 Table 버튼으로 편집할 수 있습니다."/>
       </div>
       {editorNotice && <div className="concept-field-error">{editorNotice}</div>}
+      <ConceptTableList
+        value={value}
+        onAdd={openNewTableDialog}
+        onEdit={block => setTableDialog(tableDialogFor(block, String(value || '')))}
+        onDelete={deleteTable}
+      />
       <ConceptSvgFigureList value={value} onAdd={() => openSvgDialog(null)} onEdit={openSvgDialog} onDelete={deleteSvg}/>
       {svgDialog && (
         <ConceptSvgEditorModal
@@ -4777,6 +4816,8 @@ function ConceptDefinitionEditor({ value, onChange }) {
       {tableDialog && (
         <ConceptTableEditorModal
           rows={tableDialog.rows}
+          hasHeader={tableDialog.hasHeader}
+          allowHeaderToggle
           editing={tableDialog.start != null}
           onCancel={closeTableDialog}
           onApply={applyTable}
@@ -4794,6 +4835,47 @@ function ConceptSvgImage({ svg, theme = 'light', className = 'concept-svg-figure
   return (
     <div className={className} style={{ background }}>
       <img src={svgPreviewDataUri(svg, { theme })} alt="" onError={() => setFailed(true)}/>
+    </div>
+  );
+}
+
+function conceptTableSummary(block) {
+  const rows = parseConceptTableRows(block.content);
+  const firstRow = (rows[0] || []).map(cell => (cell.merge ? '' : String(cell.value || '').replace(/\\n/g, ' '))).filter(Boolean);
+  return { firstRow: firstRow.join(' | ') || '(빈 칸)', size: `${rows.length}행 × ${rows[0]?.length || 0}열` };
+}
+
+function ConceptTableList({ value, onAdd, onEdit, onDelete }) {
+  // 편집기 자리표시 〈표 N〉 과 같은 순서·번호
+  const tables = conceptDefinitionBlockMatches(String(value || '')).filter(block => block.kind === 'table');
+  return (
+    <div className="concept-svg-list">
+      <div className="concept-svg-list-head">
+        <span className="field-label" style={{margin:0}}>표 {tables.length ? `${tables.length}개` : '없음'}</span>
+        <button type="button" className="btn btn-sm" onClick={onAdd}>표 추가</button>
+      </div>
+      {tables.length > 0 && (
+        <div className="concept-table-list">
+          {tables.map((table, index) => {
+            const summary = conceptTableSummary(table);
+            return (
+              <div className="concept-table-list-item" key={`${table.start}-${index}`}>
+                <span className="concept-table-list-no">표 {index + 1}</span>
+                <span className="concept-table-list-text" title={summary.firstRow}>{summary.firstRow}</span>
+                <span className="concept-table-list-meta">{summary.size}{table.hasHeader ? '' : ' · 머리글 없음'}</span>
+                <span style={{display:'flex', gap:6}}>
+                  <button type="button" className="btn btn-sm" onClick={() => onEdit(table)}>편집</button>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => { if (window.confirm(`표 ${index + 1}을 정의에서 삭제할까요? 저장해야 반영됩니다.`)) onDelete(table); }}
+                  >삭제</button>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -5012,10 +5094,10 @@ function safeMarkdownBlockEnd(value, cursorOffset) {
 
 function tableBlockMatches(value) {
   const matches = [];
-  const pattern = /\[TABLE\]([\s\S]*?)\[\/TABLE\]/g;
+  const pattern = /\[TABLE( noheader)?\]([\s\S]*?)\[\/TABLE\]/g;
   let match;
   while ((match = pattern.exec(String(value || ''))) !== null) {
-    matches.push({ full: match[0], content: match[1], start: match.index, end: match.index + match[0].length });
+    matches.push({ full: match[0], content: match[2], hasHeader: !match[1], start: match.index, end: match.index + match[0].length });
   }
   return matches;
 }
@@ -5041,7 +5123,7 @@ function createConceptDefinitionEditorModel(value) {
     kindCounts[block.kind] += 1;
     const label = block.kind === 'svg'
       ? `그림 ${kindCounts.svg} · 아래 그림 목록에서 편집`
-      : `표 ${kindCounts.table} · Table 버튼으로 편집`;
+      : `표 ${kindCounts.table} · 아래 표 목록에서 편집`;
     const token = `${invisibleKey}〈${label}〉${invisibleKey}`;
     const editorStart = editorValue.length;
     editorValue += token;

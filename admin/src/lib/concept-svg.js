@@ -146,8 +146,8 @@ export function replaceSvgBlock(source, start, end, svg) {
   return { value: text.slice(0, start) + block + text.slice(end), cursor: start + block.length };
 }
 
-// 그림 앞뒤 구분(빈 줄·줄바꿈·공백)을 원래대로 하나만 남긴다.
-export function removeSvgBlock(source, start, end) {
+// 블록(그림·표) 앞뒤 구분(빈 줄·줄바꿈·공백)을 원래대로 하나만 남긴다.
+export function removeDefinitionBlock(source, start, end) {
   const text = String(source || '');
   const rawBefore = text.slice(0, start);
   const rawAfter = text.slice(end);
@@ -160,6 +160,8 @@ export function removeSvgBlock(source, start, end) {
   const value = before && after ? `${before}${separator}${after}` : before + after;
   return { value, cursor: before.length };
 }
+
+export const removeSvgBlock = removeDefinitionBlock;
 
 // 그림 내용 안에 [SVG]·[TABLE] 표시가 들어 있으면 닫는 표시가 빠져 여러 블록을 삼킨 것
 export function isMalformedSvgBlock(block) {

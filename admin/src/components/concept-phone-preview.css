@@ -2,7 +2,7 @@
 
 /* 앱 개념카드 색(concept_detail_screen.dart · notebook_palette.dart · app_tokens.dart) */
 .cpp-phone {
-  --cpp-paper: #FAF6EC; --cpp-line: #E8DFC8; --cpp-ink: #2B2721; --cpp-ink-2: #555048;
+  --cpp-paper: #FAF6EC; --cpp-line: #E8DFC8; --cpp-paper-line: rgba(232, 223, 200, .35); --cpp-ink: #2B2721; --cpp-ink-2: #555048;
   --cpp-green: #2F6E5B; --cpp-blue: #00897B; --cpp-highlight: #FFF4A3;
   --cpp-calc: #F0E6D2; --cpp-number-ink: #FFFDF8;
   --cpp-table-line: #E8E8EC; --cpp-table-head: rgba(242, 244, 246, .5);
@@ -14,14 +14,15 @@
   overflow: hidden;
   color: var(--cpp-ink);
   background-color: var(--cpp-paper);
-  background-image: repeating-linear-gradient(to bottom, transparent 0 29px, var(--cpp-line) 29px 30px);
+  /* 앱: 줄은 스크롤과 무관하게 고정, 35% 흐리게(dimLines) */
+  background-image: repeating-linear-gradient(to bottom, transparent 0 29px, var(--cpp-paper-line) 29px 30px);
   font-family: 'Pretendard Variable', Pretendard, -apple-system, system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.65;
   box-shadow: var(--shadow-lg);
 }
 .cpp-dark {
-  --cpp-paper: #2A2521; --cpp-line: #3D362F; --cpp-ink: #E8DFC8; --cpp-ink-2: #C9C3B8;
+  --cpp-paper: #2A2521; --cpp-line: #3D362F; --cpp-paper-line: rgba(61, 54, 47, .35); --cpp-ink: #E8DFC8; --cpp-ink-2: #C9C3B8;
   --cpp-green: #1F5A4B; --cpp-blue: #006D5E; --cpp-highlight: rgba(74, 67, 38, .8);
   --cpp-calc: #3A342D; --cpp-number-ink: #1A2028;
   --cpp-table-line: #3D362F; --cpp-table-head: #2E3833;
