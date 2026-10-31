@@ -4398,6 +4398,9 @@ function ConceptInspectionItem({ concept, unit, subject, exam, open, onToggle, a
                       subject={subject}
                       exam={exam}
                       setSection={setSection}
+                      conceptId={concept.id}
+                      pushToast={pushToast}
+                      onUnlinked={() => { linkedQuestions.refetch(); onChanged(); }}
                     />
                   ))}
                 </div>
@@ -5645,8 +5648,24 @@ function jsonPreviewText(value) {
   catch (error) { return String(value); }
 }
 
-function ConceptQuestionAccordion({ question, subject, exam, setSection }) {
+function ConceptQuestionAccordion({ question, subject, exam, setSection, conceptId, onUnlinked, pushToast }) {
   const [expanded, setExpanded] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
+
+  // 개념과 관련 없는 기출의 연결만 끊는다. 앱 개념노트 노출은 서버가 매번 다시 계산한다.
+  const unlink = async (event) => {
+    event.stopPropagation();
+    const label = `${question.year_session}회 ${question.question_number}번`;
+    if (!window.confirm(`${label} 문항과 이 개념의 연결을 해제할까요?\n이 문항을 틀린 사용자의 개념노트에 이 카드가 더 이상 뜨지 않습니다. (바로 반영, 감사 로그에 기록)`)) return;
+    setUnlinking(true);
+    try {
+      const removed = await rpc('admin_unlink_concept_question', { p_concept_id: conceptId, p_question_id: question.question_id });
+      pushToast?.(removed ? `${label} 연결을 해제했습니다` : `${label}은 이미 연결이 없습니다`);
+      onUnlinked?.();
+    } catch (error) {
+      pushToast?.(error.message, 'info');
+    } finally { setUnlinking(false); }
+  };
   const choices = questionChoices(question);
   const correctIndex = 'ABCDE'.indexOf(question.correct_answer || '');
 
@@ -5666,6 +5685,7 @@ function ConceptQuestionAccordion({ question, subject, exam, setSection }) {
         {question.is_primary && <span className="badge badge-violet">주개념</span>}
         <span style={{flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'var(--fg-muted)'}}>{firstLine(question.stem)}</span>
         <button className="btn btn-xs" onClick={openInQuestionInspector}>문제 전수조사에서 열기</button>
+        {conceptId && <button className="btn btn-xs" onClick={unlink} disabled={unlinking}>{unlinking ? '해제 중...' : '연결 해제'}</button>}
         <span style={{color:'var(--fg-faint)', transform:expanded ? 'rotate(90deg)' : 'none', transition:'transform .15s'}}>›</span>
       </div>
       {expanded && (
