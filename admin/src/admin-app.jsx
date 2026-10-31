@@ -147,7 +147,7 @@ function Shell({ session, admin }) {
     switch (section) {
       case 'overview':      return <Overview goto={setSection}/>;
       case 'analytics':     return <Analytics/>;
-      case 'reports':       return <Reports pushToast={pushToast}/>;
+      case 'reports':       return <Reports pushToast={pushToast} setSection={setSection}/>;
       case 'question-inspector': return <QuestionInspector pushToast={pushToast}/>;
       case 'explanation-drafts': return <ExplanationDrafts pushToast={pushToast}/>;
       case 'concept-inspector': return <ConceptInspector pushToast={pushToast} setSection={setSection}/>;

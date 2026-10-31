@@ -6,6 +6,7 @@ import { sb, rpc, Icon, useAsync, relativeTime, fmtNum, Loader, ErrorBox, EmptyS
 import MarkdownEditor from './components/MarkdownEditor.jsx'
 import { ExplanationDiff, ExplanationDrafts } from './components/ExplanationDrafts.jsx'
 import ConceptPhonePreview from './components/ConceptPhonePreview.jsx'
+import { conceptInspectorJump, conceptReportLabel, isConceptReport } from './lib/report-target.js'
 import {
   EXPLANATION_DRAFT_RPC_NAMES,
   buildExplanationDraftRpcParams,
@@ -374,7 +375,7 @@ function Analytics() {
 }
 
 /* ─── Reports ─── */
-function Reports({ pushToast }) {
+function Reports({ pushToast, setSection }) {
   const [filter, setFilter] = useState('pending'); // status filter or 'mine' / 'all'
   const [subjectCode, setSubjectCode] = useState(null);
   const [search, setSearch] = useState('');
@@ -395,7 +396,7 @@ function Reports({ pushToast }) {
     else if (filter !== 'all') rs = rs.filter(r => r.status === filter);
     if (search) {
       const s = search.toLowerCase();
-      rs = rs.filter(r => ((r.reason || '') + (r.subject_display_name || '') + (r.assigned_name || '') + (r.detail || '')).toLowerCase().includes(s));
+      rs = rs.filter(r => ((r.reason || '') + (r.subject_display_name || '') + (r.concept_title || '') + (r.concept_subject_name || '') + (r.assigned_name || '') + (r.detail || '')).toLowerCase().includes(s));
     }
     return rs;
   }, [reports.data, filter, search]);
@@ -495,7 +496,7 @@ function Reports({ pushToast }) {
               <ReportItem key={r.report_id} r={r} open={openId === r.report_id} onToggle={() => setOpenId(openId === r.report_id ? null : r.report_id)}
                 selected={selected.has(r.report_id)} onSelect={() => toggleSelect(r.report_id)}
                 subject={inspectionSubjectById.get(r.subject_id)}
-                onChanged={() => { reports.refetch(); }} pushToast={pushToast}/>
+                onChanged={() => { reports.refetch(); }} pushToast={pushToast} setSection={setSection}/>
             ))}
           </div>
         </div>
@@ -516,7 +517,7 @@ function shortSubject(id) {
   return SUBJECT_SHORT[suffix] || id;
 }
 
-function ReportItem({ r, subject, open, onToggle, selected, onSelect, onChanged, pushToast, draftRpc = rpc }) {
+function ReportItem({ r, subject, open, onToggle, selected, onSelect, onChanged, pushToast, setSection, draftRpc = rpc }) {
   const [resolving, setResolving] = useState(false);
   const [replyText, setReplyText] = useState('');
   const reportQuestion = r.question || {
@@ -578,6 +579,13 @@ function ReportItem({ r, subject, open, onToggle, selected, onSelect, onChanged,
   const reopen = async () => {
     try { await rpc('admin_reopen_report', { report_id: r.report_id }); pushToast('재오픈됨'); onChanged(); } catch (e) { pushToast(e.message, 'info'); }
   };
+  const conceptReport = isConceptReport(r);
+  const conceptJump = conceptInspectorJump(r);
+  const openInConceptInspector = () => {
+    if (!conceptJump) return;
+    Object.entries(conceptJump).forEach(([key, value]) => localStorage.setItem(key, value));
+    setSection?.('concept-inspector');
+  };
 
   return (
     <div className={"item " + (open ? 'open cur' : '') + (selected ? ' selected' : '')}>
@@ -589,7 +597,11 @@ function ReportItem({ r, subject, open, onToggle, selected, onSelect, onChanged,
         <div className="item-meta">
           <div className="item-title">{r.reason || '신고'}</div>
           <div className="item-sub">
-            <span style={{color:'var(--accent)'}}>{shortSubject(r.subject_id)}</span> · {r.year_session || q.year_session || '—'} · #{r.question_number || q.question_number || '—'} · {r.user_id ? (r.user_id + '').slice(0,8) : '익명'}
+            {conceptReport ? <>
+              <span style={{color:'var(--accent)'}}>{r.concept_subject_name || '—'}</span> · {conceptReportLabel(r)}
+            </> : <>
+              <span style={{color:'var(--accent)'}}>{shortSubject(r.subject_id)}</span> · {r.year_session || q.year_session || '—'} · #{r.question_number || q.question_number || '—'}
+            </>} · {r.user_id ? (r.user_id + '').slice(0,8) : '익명'}
           </div>
         </div>
         <div className="item-right">
@@ -606,6 +618,19 @@ function ReportItem({ r, subject, open, onToggle, selected, onSelect, onChanged,
             <div className="det-label">상세 사유</div>
             <div className="det-text">{r.detail || r.message || '(상세 없음)'}</div>
           </div>
+          {conceptReport && (
+            <div className="det-section">
+              <div className="det-label">신고된 개념카드</div>
+              <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+                <div className="det-text" style={{flex:1, minWidth:0}}>
+                  {r.concept_title
+                    ? <>{r.concept_subject_name ? `${r.concept_subject_name} · ` : ''}{r.concept_title}</>
+                    : <>카드를 찾을 수 없습니다 (삭제됐을 수 있음) · <code>{r.target_id}</code></>}
+                </div>
+                {conceptJump && <button className="btn btn-xs" onClick={openInConceptInspector}>개념노트 편집에서 열기</button>}
+              </div>
+            </div>
+          )}
           {q.stem && (
             <div className="det-section">
               <div className="det-label">문제 원문 <span className="new-tag">인라인 편집</span></div>
@@ -3953,6 +3978,8 @@ function ConceptInspector({ pushToast, setSection }) {
   const [unitId, setUnitId] = useState(localStorage.getItem('ci.unitId') || null);
   const [openId, setOpenId] = useState(null);
   const [activeTabPerCard, setActiveTabPerCard] = useState({});
+  // 신고 관리 "개념노트 편집에서 열기"가 남긴 카드. 그 단원 카드가 불러와지면 한 번 펼친다.
+  const pendingOpenId = useRef(localStorage.getItem('ci.openId'));
 
   const sortedExams = useMemo(() => [...(exams.data || [])], [exams.data]);
   const currentExam = useMemo(() => {
@@ -4039,6 +4066,14 @@ function ConceptInspector({ pushToast, setSection }) {
     setOpenId(null);
     setActiveTabPerCard({});
   }, [selectedSubjectId, selectedUnitId]);
+
+  useEffect(() => {
+    const target = pendingOpenId.current;
+    if (!target || !(concepts.data || []).some(concept => concept.id === target)) return;
+    pendingOpenId.current = null;
+    localStorage.removeItem('ci.openId');
+    setOpenId(target);
+  }, [concepts.data]);
 
   const handleExamSelect = (code) => {
     if (code === examCode) return;
