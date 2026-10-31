@@ -5,6 +5,7 @@ import { marked } from 'marked'
 import { sb, rpc, Icon, useAsync, relativeTime, fmtNum, Loader, ErrorBox, EmptyState } from './admin-lib.jsx'
 import MarkdownEditor from './components/MarkdownEditor.jsx'
 import { ExplanationDiff, ExplanationDrafts } from './components/ExplanationDrafts.jsx'
+import ConceptPhonePreview from './components/ConceptPhonePreview.jsx'
 import {
   EXPLANATION_DRAFT_RPC_NAMES,
   buildExplanationDraftRpcParams,
@@ -28,6 +29,17 @@ import {
   serializeConceptTable,
   splitTableCellLines,
 } from './lib/concept-table.js'
+import {
+  insertSvgBlock,
+  isMalformedSvgBlock,
+  locateSvgBlock,
+  removeSvgBlock,
+  replaceSvgBlock,
+  svgBlockMatches,
+  svgIssues,
+  svgPreviewDataUri,
+  APP_SVG_THEMES,
+} from './lib/concept-svg.js'
 import {
   choiceHeadersTruncation,
   deleteStemBlock,
@@ -4318,6 +4330,7 @@ function ConceptInspectionItem({ concept, unit, subject, exam, open, onToggle, a
           </div>
 
           {activeTab === 'edit' ? (
+            <div className="concept-edit-layout">
             <div className="q-box">
               <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:12}}>
                 <div>
@@ -4364,6 +4377,10 @@ function ConceptInspectionItem({ concept, unit, subject, exam, open, onToggle, a
                   {keyPointsJson.error && <div className="concept-field-error">{keyPointsJson.error}</div>}
                 </div>
               </details>
+            </div>
+            <aside className="concept-edit-preview" aria-label="앱 화면 미리보기">
+              <ConceptPhonePreviewPanel concept={previewConcept} compact/>
+            </aside>
             </div>
           ) : activeTab === 'preview' ? (
             <ConceptPreview concept={previewConcept}/>
@@ -4557,6 +4574,7 @@ function ConceptDefinitionEditor({ value, onChange }) {
   const cursorOffsetRef = useRef(String(value || '').length);
   const pointerOpenedRef = useRef(false);
   const [tableDialog, setTableDialog] = useState(null);
+  const [svgDialog, setSvgDialog] = useState(null);
   const [editorRevision, setEditorRevision] = useState(0);
   const [editorNotice, setEditorNotice] = useState(null);
   const editorModel = useMemo(() => createConceptDefinitionEditorModel(value), [value]);
@@ -4586,7 +4604,7 @@ function ConceptDefinitionEditor({ value, onChange }) {
 
   const handleDefinitionChange = nextValue => {
     if (!conceptTablePlaceholdersIntact(editorModel, nextValue)) {
-      setEditorNotice('표는 자리표시자를 수정하지 말고 Table 버튼으로 편집하세요.');
+      setEditorNotice('표·그림은 자리표시자를 수정하지 말고 Table 버튼이나 그림 목록으로 편집하세요.');
       setEditorRevision(revision => revision + 1);
       return;
     }
@@ -4685,6 +4703,54 @@ function ConceptDefinitionEditor({ value, onChange }) {
     closeTableDialog();
   };
 
+  const openSvgDialog = block => {
+    const source = String(value || '');
+    if (block) {
+      setSvgDialog({ start: block.start, end: block.end, originalBlock: block.full, sourceAtOpen: source, svg: block.content });
+      return;
+    }
+    const insertAt = conceptDefinitionCursorOffset(wrapperRef.current, editorModel, cursorOffsetRef.current);
+    cursorOffsetRef.current = insertAt;
+    setSvgDialog({ start: null, end: null, insertAt, sourceAtOpen: source, svg: '' });
+  };
+
+  const commitSvgChange = result => {
+    cursorOffsetRef.current = result.cursor;
+    setEditorNotice(null);
+    onChange(result.value);
+    setEditorRevision(revision => revision + 1);
+  };
+
+  const applySvg = svg => {
+    const source = String(value || '');
+    if (svgDialog.start == null) {
+      if (source !== svgDialog.sourceAtOpen) {
+        setEditorNotice('정의 내용이 바뀌었습니다. 그림을 다시 추가하세요.');
+      } else {
+        commitSvgChange(insertSvgBlock(source, svgDialog.insertAt, svg));
+      }
+      setSvgDialog(null);
+      return;
+    }
+    const range = locateSvgBlock(source, svgDialog);
+    if (!range) {
+      setEditorNotice('정의 내용이 바뀌었습니다. 그림을 다시 열어 편집하세요.');
+    } else {
+      commitSvgChange(replaceSvgBlock(source, range.start, range.end, svg));
+    }
+    setSvgDialog(null);
+  };
+
+  const deleteSvg = block => {
+    const source = String(value || '');
+    const range = locateSvgBlock(source, { start: block.start, end: block.end, originalBlock: block.full });
+    if (!range) {
+      setEditorNotice('정의 내용이 바뀌었습니다. 다시 시도하세요.');
+      return;
+    }
+    commitSvgChange(removeSvgBlock(source, range.start, range.end));
+  };
+
   return (
     <>
       <div
@@ -4699,6 +4765,15 @@ function ConceptDefinitionEditor({ value, onChange }) {
         <MarkdownEditor key={editorRevision} value={editorModel.editorValue} onChange={handleDefinitionChange} placeholder="정의를 입력하세요. 표는 도구 모음의 Table 버튼으로 편집할 수 있습니다."/>
       </div>
       {editorNotice && <div className="concept-field-error">{editorNotice}</div>}
+      <ConceptSvgFigureList value={value} onAdd={() => openSvgDialog(null)} onEdit={openSvgDialog} onDelete={deleteSvg}/>
+      {svgDialog && (
+        <ConceptSvgEditorModal
+          initialSvg={svgDialog.svg}
+          editing={svgDialog.start != null}
+          onCancel={() => setSvgDialog(null)}
+          onApply={applySvg}
+        />
+      )}
       {tableDialog && (
         <ConceptTableEditorModal
           rows={tableDialog.rows}
@@ -4711,6 +4786,147 @@ function ConceptDefinitionEditor({ value, onChange }) {
   );
 }
 
+function ConceptSvgImage({ svg, theme = 'light', className = 'concept-svg-figure' }) {
+  const { background } = APP_SVG_THEMES[theme] || APP_SVG_THEMES.light;
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setFailed(false); }, [svg, theme]);
+  if (failed) return <div className={className + ' concept-svg-broken'}>그림을 그릴 수 없습니다. SVG 원문을 확인하세요.</div>;
+  return (
+    <div className={className} style={{ background }}>
+      <img src={svgPreviewDataUri(svg, { theme })} alt="" onError={() => setFailed(true)}/>
+    </div>
+  );
+}
+
+function ConceptSvgFigureList({ value, onAdd, onEdit, onDelete }) {
+  // 편집기 자리표시자와 같은 목록(표와 겹치는 블록 제외)
+  const figures = conceptDefinitionBlockMatches(String(value || '')).filter(block => block.kind === 'svg');
+  return (
+    <div className="concept-svg-list">
+      <div className="concept-svg-list-head">
+        <span className="field-label" style={{margin:0}}>그림 {figures.length ? `${figures.length}개` : '없음'}</span>
+        <button type="button" className="btn btn-sm" onClick={onAdd}>그림 추가</button>
+      </div>
+      {figures.length > 0 && (
+        <div className="concept-svg-list-grid">
+          {figures.map((figure, index) => (
+            <div className="concept-svg-list-item" key={`${figure.start}-${index}`}>
+              <ConceptSvgImage svg={figure.content}/>
+              <div className="concept-svg-list-foot">
+                <span>그림 {index + 1}</span>
+                <span style={{display:'flex', gap:6}}>
+                  <button type="button" className="btn btn-sm" onClick={() => onEdit(figure)}>편집</button>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    disabled={isMalformedSvgBlock(figure)}
+                    title={isMalformedSvgBlock(figure) ? '[/SVG] 표시가 빠져 다른 내용까지 묶여 있습니다. 마크다운 원문에서 고치세요.' : undefined}
+                    onClick={() => { if (window.confirm(`그림 ${index + 1}을 정의에서 삭제할까요? 저장해야 반영됩니다.`)) onDelete(figure); }}
+                  >삭제</button>
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function svgParseError(svg) {
+  if (typeof DOMParser === 'undefined') return null;
+  const doc = new DOMParser().parseFromString(String(svg || ''), 'image/svg+xml');
+  const error = doc.querySelector('parsererror');
+  if (!error) return null;
+  return (error.textContent || 'SVG 문법 오류').split('\n').find(line => line.trim()) || 'SVG 문법 오류';
+}
+
+function ConceptSvgEditorModal({ initialSvg, editing, onCancel, onApply }) {
+  const [svg, setSvg] = useState(initialSvg || '');
+  const [fileError, setFileError] = useState(null);
+  const issues = useMemo(() => {
+    const found = svgIssues(svg);
+    if (!found.some(issue => issue.level === 'error')) {
+      const parseError = svgParseError(svg);
+      if (parseError) found.unshift({ level: 'error', message: `문법 오류: ${parseError}` });
+    }
+    return found;
+  }, [svg]);
+  const blocked = issues.some(issue => issue.level === 'error');
+
+  const loadFile = event => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFileError(null);
+      setSvg(String(reader.result || '').replace(/^\s*<\?xml[^>]*>\s*/i, '').trim());
+    };
+    reader.onerror = () => setFileError('파일을 읽지 못했습니다.');
+    reader.readAsText(file);
+  };
+
+  return (
+    <div className="palette-backdrop concept-table-backdrop" onMouseDown={onCancel}>
+      <form
+        className="concept-table-modal concept-svg-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="concept-svg-title"
+        onMouseDown={event => event.stopPropagation()}
+        onSubmit={event => {
+          event.preventDefault();
+          if (!blocked) onApply(svg.trim());
+        }}
+      >
+        <div className="concept-table-modal-head">
+          <div>
+            <div className="panel-title" id="concept-svg-title">{editing ? '그림 편집' : '그림 추가'}</div>
+            <div className="panel-sub">SVG 원문을 고치면 오른쪽에 앱과 같은 색으로 바로 보입니다. 저장 버튼을 눌러야 DB에 반영됩니다.</div>
+          </div>
+          <label className="btn btn-sm">
+            SVG 파일 불러오기
+            <input type="file" accept=".svg,image/svg+xml" onChange={loadFile} hidden/>
+          </label>
+        </div>
+        <div className="concept-table-modal-body concept-svg-modal-body">
+          <textarea
+            className="concept-svg-source"
+            value={svg}
+            onChange={event => setSvg(event.target.value)}
+            spellCheck={false}
+            aria-label="SVG 원문"
+            placeholder={'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 520">…</svg>'}
+          />
+          <div className="concept-svg-previews">
+            <div>
+              <div className="field-label">앱 라이트</div>
+              {svg.trim() && !blocked ? <ConceptSvgImage svg={svg} theme="light"/> : <div className="concept-svg-figure concept-svg-broken">미리보기 없음</div>}
+            </div>
+            <div>
+              <div className="field-label">앱 다크</div>
+              {svg.trim() && !blocked ? <ConceptSvgImage svg={svg} theme="dark"/> : <div className="concept-svg-figure concept-svg-broken">미리보기 없음</div>}
+            </div>
+          </div>
+        </div>
+        {(issues.length > 0 || fileError) && (
+          <div className="concept-svg-issues">
+            {fileError && <div className="concept-field-error">{fileError}</div>}
+            {issues.map((issue, index) => (
+              <div key={index} className={issue.level === 'error' ? 'concept-field-error' : 'concept-svg-warning'}>{issue.message}</div>
+            ))}
+          </div>
+        )}
+        <div className="concept-table-modal-foot">
+          <button type="button" className="btn btn-sm" onClick={onCancel}>취소</button>
+          <button type="submit" className="btn btn-sm btn-primary" disabled={blocked}>적용</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function conceptDefinitionCursorOffset(root, editorModel, fallback) {
   const source = editorModel.source;
   const editorValue = editorModel.editorValue;
@@ -4720,7 +4936,7 @@ function conceptDefinitionCursorOffset(root, editorModel, fallback) {
   const rawTextarea = root.querySelector('.md-raw-textarea');
   if (rawTextarea && document.activeElement === rawTextarea) {
     const editorOffset = rawTextarea.selectionStart ?? editorValue.length;
-    const selectedTable = editorModel.tableMappings.find(mapping => (
+    const selectedTable = editorModel.blockMappings.find(mapping => (
       editorOffset >= mapping.editorStart && editorOffset < mapping.editorEnd
     ));
     if (selectedTable) return selectedTable.sourceStart;
@@ -4748,7 +4964,7 @@ function conceptDefinitionCursorOffset(root, editorModel, fallback) {
     const renderedOffset = range.toString().length;
     const renderedText = renderedBlock.textContent || '';
 
-    for (const mapping of editorModel.tableMappings) {
+    for (const mapping of editorModel.blockMappings) {
       const tokenOffset = renderedText.indexOf(mapping.token);
       if (tokenOffset !== -1 && renderedOffset >= tokenOffset && renderedOffset <= tokenOffset + mapping.token.length) {
         return mapping.sourceStart;
@@ -4804,24 +5020,38 @@ function tableBlockMatches(value) {
   return matches;
 }
 
+function conceptDefinitionBlockMatches(source) {
+  const blocks = [
+    ...tableBlockMatches(source).map(block => ({ ...block, kind: 'table' })),
+    ...svgBlockMatches(source).map(block => ({ ...block, kind: 'svg' })),
+  ].sort((a, b) => a.start - b.start);
+  return blocks.filter((block, index) => index === 0 || block.start >= blocks[index - 1].end);
+}
+
 function createConceptDefinitionEditorModel(value) {
   const source = String(value || '');
-  const blocks = tableBlockMatches(source);
-  const tableMappings = [];
+  const blocks = conceptDefinitionBlockMatches(source);
+  const blockMappings = [];
+  const kindCounts = { table: 0, svg: 0 };
   let editorValue = '';
   let sourceOffset = 0;
   blocks.forEach((block, index) => {
     editorValue += source.slice(sourceOffset, block.start);
     const invisibleKey = '\u2060'.repeat(index + 1);
-    const token = `${invisibleKey}〈표 ${index + 1} · Table 버튼으로 편집〉${invisibleKey}`;
+    kindCounts[block.kind] += 1;
+    const label = block.kind === 'svg'
+      ? `그림 ${kindCounts.svg} · 아래 그림 목록에서 편집`
+      : `표 ${kindCounts.table} · Table 버튼으로 편집`;
+    const token = `${invisibleKey}〈${label}〉${invisibleKey}`;
     const editorStart = editorValue.length;
     editorValue += token;
     const beforeBlock = source.slice(0, block.start);
     const afterBlock = source.slice(block.end);
     const isolatedBefore = !beforeBlock.trim() || /\n[ \t]*\n[ \t]*$/.test(beforeBlock);
     const isolatedAfter = !afterBlock.trim() || /^[ \t]*\n[ \t]*\n/.test(afterBlock);
-    tableMappings.push({
+    blockMappings.push({
       token,
+      kind: block.kind,
       full: block.full,
       standalone: isolatedBefore && isolatedAfter,
       sourceStart: block.start,
@@ -4832,12 +5062,12 @@ function createConceptDefinitionEditorModel(value) {
     sourceOffset = block.end;
   });
   editorValue += source.slice(sourceOffset);
-  return { source, editorValue, tableMappings };
+  return { source, editorValue, blockMappings };
 }
 
 function conceptTablePlaceholdersIntact(editorModel, nextValue) {
   const text = String(nextValue || '');
-  return editorModel.tableMappings.every(mapping => {
+  return editorModel.blockMappings.every(mapping => {
     const occurrences = text.split(mapping.token).length - 1;
     if (occurrences !== 1) return false;
     if (!mapping.standalone) return true;
@@ -4847,8 +5077,8 @@ function conceptTablePlaceholdersIntact(editorModel, nextValue) {
 
 function restoreConceptTablePlaceholders(editorModel, nextValue) {
   let restored = String(nextValue || '');
-  editorModel.tableMappings.forEach(mapping => {
-    restored = restored.replace(mapping.token, mapping.full);
+  editorModel.blockMappings.forEach(mapping => {
+    restored = restored.replace(mapping.token, () => mapping.full);
   });
   return restored;
 }
@@ -4856,7 +5086,7 @@ function restoreConceptTablePlaceholders(editorModel, nextValue) {
 function conceptEditorOffsetToSource(editorModel, editorOffset) {
   const safeOffset = Math.max(0, Math.min(editorOffset, editorModel.editorValue.length));
   let lengthDelta = 0;
-  for (const mapping of editorModel.tableMappings) {
+  for (const mapping of editorModel.blockMappings) {
     if (safeOffset < mapping.editorStart) return safeOffset + lengthDelta;
     if (safeOffset < mapping.editorEnd) return mapping.sourceStart;
     if (safeOffset === mapping.editorEnd) return mapping.sourceEnd;
@@ -5228,28 +5458,40 @@ function parseJsonDraft(text, fieldName) {
 
 function ConceptPreview({ concept }) {
   return (
-    <div className="q-box">
-      <div style={{fontFamily:'var(--font-serif)', fontSize:24, fontWeight:700, lineHeight:1.35}}>{concept.title || '(제목 없는 개념)'}</div>
-      {concept.summary && <div style={{marginTop:10, color:'var(--fg-muted)', fontSize:14, lineHeight:1.7, whiteSpace:'pre-wrap'}}>{concept.summary}</div>}
+    <div className="concept-preview-layout">
+      <ConceptPhonePreviewPanel concept={concept}/>
+      <ConceptDataPreview concept={concept}/>
+    </div>
+  );
+}
 
-      <div className="det-section">
-        <div className="det-label">핵심 개념</div>
-        <ConceptDefinitionPreview value={concept.definition}/>
+function ConceptPhonePreviewPanel({ concept, compact = false }) {
+  const [phoneTheme, setPhoneTheme] = useState('light');
+  return (
+      <div className={'concept-phone-column' + (compact ? ' compact' : '')}>
+        <div className="concept-svg-theme-toggle" role="group" aria-label="앱 화면 테마">
+          <span>앱 화면(폰 폭)</span>
+          {[['light', '라이트'], ['dark', '다크']].map(([theme, label]) => (
+            <button key={theme} type="button" className={'btn btn-sm' + (phoneTheme === theme ? ' btn-primary' : '')} aria-pressed={phoneTheme === theme} onClick={() => setPhoneTheme(theme)}>{label}</button>
+          ))}
+        </div>
+        <ConceptPhonePreview concept={concept} theme={phoneTheme}/>
+        <div className="concept-phone-note">앱 규칙대로 그린 근사 화면입니다. 글꼴·간격은 실제 폰과 조금 다를 수 있습니다. 「취약」 표시처럼 사용자마다 다른 부분은 빠져 있습니다.</div>
       </div>
+  );
+}
 
-      {concept.exam_point && (
-        <div className="det-section">
-          <div className="det-label">구별</div>
-          <ConceptExamPointPreview value={concept.exam_point}/>
-        </div>
-      )}
-
-      {concept.real_life_example && (
-        <div className="det-section">
-          <div className="det-label">실생활 예시</div>
-          <div style={{padding:'14px 16px', background:'var(--warning-soft)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', color:'var(--fg-muted)', lineHeight:1.75, whiteSpace:'pre-wrap'}}>{concept.real_life_example}</div>
-        </div>
-      )}
+function ConceptDataPreview({ concept }) {
+  return (
+    <div className="q-box">
+      <div className="det-label">앱 화면 밖 데이터</div>
+      <div style={{fontFamily:'var(--font-serif)', fontSize:20, fontWeight:700, lineHeight:1.35}}>{concept.title || '(제목 없는 개념)'}</div>
+      <div className="det-section">
+        <div className="det-label">요약</div>
+        {concept.summary
+          ? <div style={{color:'var(--fg-muted)', fontSize:14, lineHeight:1.7, whiteSpace:'pre-wrap'}}>{concept.summary}</div>
+          : <div style={{fontSize:12, color:'var(--fg-faint)'}}>요약이 없습니다.</div>}
+      </div>
 
       {concept.key_points != null && (
         <div className="det-section">
@@ -5264,52 +5506,6 @@ function ConceptPreview({ concept }) {
           <ConceptRelatedLawsPreview value={concept.related_laws}/>
         </div>
       )}
-    </div>
-  );
-}
-
-function ConceptDefinitionPreview({ value }) {
-  const segments = parseConceptDefinition(value || '');
-  if (!segments.length) return <div style={{fontSize:12, color:'var(--fg-faint)'}}>등록된 정의가 없습니다.</div>;
-  return (
-    <div style={{display:'flex', flexDirection:'column', gap:12}}>
-      {segments.map((segment, index) => segment.type === 'table' ? (
-        <div key={index} style={{overflowX:'auto', border:'1px solid var(--border)', borderRadius:'var(--r-sm)'}}>
-          <table style={{width:'100%', borderCollapse:'collapse', fontSize:13}}>
-            <tbody>
-              {segment.rows.map((row, rowIndex) => (
-                <tr key={rowIndex} style={rowIndex === 0 ? {background:'var(--surface-2)'} : null}>
-                  {row.map((cell, cellIndex) => {
-                    const Cell = rowIndex === 0 ? 'th' : 'td';
-                    return <Cell key={cellIndex} style={{borderRight:'1px solid var(--border)', borderBottom:'1px solid var(--border)', padding:'9px 11px', textAlign:'center', whiteSpace:'pre-wrap'}}>{cell}</Cell>;
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div key={index} className="det-text" style={{lineHeight:1.8}} dangerouslySetInnerHTML={{__html:marked.parse(segment.text)}}/>
-      ))}
-    </div>
-  );
-}
-
-function ConceptExamPointPreview({ value }) {
-  const lines = String(value || '').split(/\r?\n/);
-  return (
-    <div className="concept-exam-point-preview">
-      {lines.map((line, index) => {
-        const trimmed = line.trim();
-        const boldMatch = trimmed.match(/^\*\*(.+)\*\*$/);
-        const marker = line.trimStart().charAt(0);
-        const className = marker === '○' ? 'correct' : marker === '×' ? 'incorrect' : '';
-        return (
-          <div key={index} className={className}>
-            {boldMatch ? <strong>{boldMatch[1]}</strong> : (line || '\u00a0')}
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -5333,25 +5529,6 @@ function ConceptRelatedLawsPreview({ value }) {
       ))}
     </div>
   );
-}
-
-function parseConceptDefinition(value) {
-  const text = String(value || '');
-  const pattern = /\[TABLE\]([\s\S]*?)\[\/TABLE\]/g;
-  const segments = [];
-  let lastEnd = 0;
-  let match;
-  while ((match = pattern.exec(text)) !== null) {
-    const before = text.slice(lastEnd, match.index).trim();
-    if (before) segments.push({ type: 'text', text: before });
-    const tableBody = match[1].replace(/^\r?\n/, '').replace(/\r?\n$/, '');
-    const rows = tableBody.split(/\r?\n/).map(row => row.split('|').map(cell => cell.trim()));
-    if (rows.length) segments.push({ type: 'table', rows });
-    lastEnd = match.index + match[0].length;
-  }
-  const after = text.slice(lastEnd).trim();
-  if (after) segments.push({ type: 'text', text: after });
-  return segments;
 }
 
 function ConceptJsonPreview({ value }) {

@@ -1,0 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gaegu:wght@700&display=swap');
+
+/* 앱 개념카드 색(concept_detail_screen.dart · notebook_palette.dart · app_tokens.dart) */
+.cpp-phone {
+  --cpp-paper: #FAF6EC; --cpp-line: #E8DFC8; --cpp-ink: #2B2721; --cpp-ink-2: #555048;
+  --cpp-green: #2F6E5B; --cpp-blue: #00897B; --cpp-highlight: #FFF4A3;
+  --cpp-calc: #F0E6D2; --cpp-number-ink: #FFFDF8;
+  --cpp-table-line: #E8E8EC; --cpp-table-head: rgba(242, 244, 246, .5);
+  --cpp-postit: #FFF4A3; --cpp-postit-ink: #3B3528;
+  --cpp-correct: #2F6E5B; --cpp-incorrect: #C0453D;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  overflow: hidden;
+  color: var(--cpp-ink);
+  background-color: var(--cpp-paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 29px, var(--cpp-line) 29px 30px);
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  box-shadow: var(--shadow-lg);
+}
+.cpp-dark {
+  --cpp-paper: #2A2521; --cpp-line: #3D362F; --cpp-ink: #E8DFC8; --cpp-ink-2: #C9C3B8;
+  --cpp-green: #1F5A4B; --cpp-blue: #006D5E; --cpp-highlight: rgba(74, 67, 38, .8);
+  --cpp-calc: #3A342D; --cpp-number-ink: #1A2028;
+  --cpp-table-line: #3D362F; --cpp-table-head: #2E3833;
+  --cpp-postit: #3A3320; --cpp-postit-ink: #EDE6CE;
+  --cpp-correct: #8FE0CE; --cpp-incorrect: #FF8A80;
+}
+.cpp-appbar { height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 16px; font-size: 17px; font-weight: 700; border-bottom: 1px solid var(--cpp-line); }
+.cpp-back { font-size: 26px; font-weight: 400; line-height: 1; opacity: .86; }
+.cpp-scroll { max-height: 760px; overflow-y: auto; overscroll-behavior: contain; }
+.cpp-card { padding: 54px 44px 96px 20px; }
+.cpp-title { font-family: 'Black Han Sans', 'Pretendard Variable', sans-serif; font-size: 28px; line-height: 1.18; margin-bottom: 48px; word-break: keep-all; }
+.cpp-section-label { display: inline-block; padding: 5px 12px; border-radius: 999px; background: var(--cpp-green); color: #fff; font-family: Gaegu, 'Pretendard Variable', sans-serif; font-weight: 700; font-size: 16px; letter-spacing: .3px; line-height: 1.2; margin-bottom: 10px; }
+.cpp-section-label.cpp-blue { background: var(--cpp-blue); }
+.cpp-body { display: flex; flex-direction: column; }
+.cpp-text { white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; }
+.cpp-mark { background: var(--cpp-highlight); color: inherit; font-weight: 800; padding: 0; }
+.cpp-subheading { padding-bottom: 10px; }
+.cpp-subheading span { padding: 0 4px; font-size: 18px; font-weight: 700; background: linear-gradient(to top, transparent calc(18px * .325), var(--cpp-highlight) calc(18px * .325), var(--cpp-highlight) calc(18px * .775), transparent calc(18px * .775)); }
+.cpp-tex .katex { font-size: 1em; }
+.cpp-tex-error { white-space: nowrap; }
+.cpp-latex-line { margin-bottom: 10px; overflow: hidden; }
+.cpp-latex-line-inner { display: inline-flex; align-items: baseline; white-space: nowrap; transform-origin: left top; }
+.cpp-calc-row { display: flex; align-items: flex-start; gap: 8px; }
+.cpp-calc-number { flex: none; width: 22px; height: 22px; margin-top: 12px; border-radius: 50%; background: var(--cpp-ink); color: var(--cpp-number-ink); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; }
+.cpp-dark .cpp-calc-number { background: var(--cpp-ink-2); }
+.cpp-calc-box { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 8px; background: var(--cpp-calc); }
+.cpp-calc-line { position: relative; }
+.cpp-calc-scaled { display: block; overflow: hidden; }
+.cpp-calc-scaled > span { display: inline-block; transform-origin: left top; white-space: nowrap; }
+.cpp-calc-overflow { overflow-x: auto; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
+.cpp-calc-description { margin-top: 6px; margin-bottom: 0; font-size: 15px; color: var(--cpp-ink-2); white-space: pre-wrap; word-break: keep-all; }
+.cpp-measure { position: absolute; left: -10000px; top: 0; visibility: hidden; white-space: nowrap; font-family: 'Pretendard Variable', Pretendard, sans-serif; font-size: 16px; line-height: 1.65; }
+.cpp-measure .katex { font-size: 1em; }
+.cpp-table-wrap { margin: 4px 0 12px; border: 1px solid var(--cpp-table-line); border-radius: 8px; overflow: hidden; }
+.cpp-table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.4; }
+.cpp-table th, .cpp-table td { padding: 8px 10px; text-align: center; border: 1px solid var(--cpp-table-line); word-break: keep-all; }
+.cpp-table tr:first-child > * { border-top: 0; }
+.cpp-table tr > *:first-child { border-left: 0; }
+.cpp-table tr > *:last-child { border-right: 0; }
+.cpp-table tr:last-child > * { border-bottom: 0; }
+.cpp-table th { background: var(--cpp-table-head); font-weight: 700; }
+.cpp-svg { padding: 8px 0; }
+.cpp-svg img { display: block; width: 100%; height: auto; }
+.cpp-exam-row { display: flex; gap: 6px; padding-left: 12px; word-break: keep-all; }
+.cpp-correct, .cpp-incorrect { font-weight: 700; flex: none; }
+.cpp-correct { color: var(--cpp-correct); }
+.cpp-incorrect { color: var(--cpp-incorrect); }
+.cpp-postit { padding: 16px 18px; border-radius: 8px; background: var(--cpp-postit); color: var(--cpp-postit-ink); font-family: Gaegu, 'Pretendard Variable', sans-serif; font-size: 16px; line-height: 1.7; white-space: pre-wrap; transform: rotate(-.3deg); }
+.cpp-laws { margin-top: 24px; padding-top: 18px; border-top: 1px dashed var(--cpp-line); }
+.cpp-laws-title { font-family: Gaegu, 'Pretendard Variable', sans-serif; font-size: 17px; font-weight: 700; color: var(--cpp-postit-ink); margin-bottom: 10px; }
+.cpp-law-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cpp-law-chip { padding: 4px 12px; border-radius: 999px; border: 1px solid var(--cpp-green); color: var(--cpp-green); font-size: 14px; }
+.cpp-dark .cpp-law-chip { border-color: #8FE0CE; color: #8FE0CE; }
+/* 앱처럼 수식 안 한글은 본문 글꼴로 */
+.cpp-phone .katex .hangul_fallback, .cpp-measure .katex .hangul_fallback { font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif; }
+/* 앱 인라인 수식은 본문의 1.15배(kInlineMathScale) */
+.cpp-inline-math .katex { font-size: 1.15em; }
