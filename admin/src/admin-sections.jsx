@@ -7,6 +7,7 @@ import MarkdownEditor from './components/MarkdownEditor.jsx'
 import { ExplanationDiff, ExplanationDrafts } from './components/ExplanationDrafts.jsx'
 import ConceptPhonePreview from './components/ConceptPhonePreview.jsx'
 import { conceptInspectorJump, conceptReportLabel, isConceptReport } from './lib/report-target.js'
+import { ANNOUNCEMENT_EXAMS, announcementExamLabel, announcementExamParam } from './lib/announcement-exam.js'
 import {
   EXPLANATION_DRAFT_RPC_NAMES,
   buildExplanationDraftRpcParams,
@@ -2767,17 +2768,19 @@ function Announcements({ pushToast }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [tag, setTag] = useState('notice');
+  // 대상 시험. null = 공통(모든 시험). 시험별 공지는 그 시험을 보는 사용자에게만 간다.
+  const [examId, setExamId] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const publish = async (pub) => {
     if (!title.trim()) { pushToast('제목을 입력하세요', 'info'); return; }
     setBusy(true);
     try {
-      const annId = await rpc('admin_create_announcement', { p_title: title, p_body: body, p_type: tag, p_expires_at: null });
+      const annId = await rpc('admin_create_announcement', { p_title: title, p_body: body, p_type: tag, p_expires_at: null, p_exam_id: announcementExamParam(examId) });
       if (pub && annId) {
         try { await rpc('admin_toggle_announcement_publish', { p_id: annId, p_publish: true }); } catch (e) {}
       }
-      setTitle(''); setBody(''); setTag('notice');
+      setTitle(''); setBody(''); setTag('notice'); setExamId(null);
       pushToast(pub ? '공지 발행됨' : '초안 저장됨');
       list.refetch();
     } catch (e) { pushToast(e.message, 'info'); }
@@ -2822,6 +2825,14 @@ function Announcements({ pushToast }) {
                   <button type="button" className={tag === 'update' ? 'on' : ''} onClick={() => setTag('update')}>업데이트</button>
                 </div>
               </div>
+              <div className="pub-row">
+                <span className="pl">대상</span>
+                <div className="seg">
+                  {ANNOUNCEMENT_EXAMS.map(e => (
+                    <button key={e.id || 'common'} type="button" className={examId === e.id ? 'on' : ''} onClick={() => setExamId(e.id)}>{e.label}</button>
+                  ))}
+                </div>
+              </div>
               <div style={{display:'flex', flexDirection:'column', gap:8, marginTop:14}}>
                 <button className="btn" onClick={() => publish(false)} disabled={busy}>초안 저장</button>
                 <button className="btn btn-primary" onClick={() => publish(true)} disabled={busy}><Icon name="send" size={12}/> 발행</button>
@@ -2841,6 +2852,7 @@ function Announcements({ pushToast }) {
                 <div key={a.id} className="ruled-row">
                   <div className="ln-body" style={{display:'flex', alignItems:'center', gap:12}}>
                     <span className={"badge " + (a.type === 'update' ? 'badge-info' : 'badge-accent')}>{a.type === 'update' ? '업데이트' : '공지'}</span>
+                    <span className="badge badge-neutral" title="대상 시험">{announcementExamLabel(a.exam_id)}</span>
                     {a.is_published ? <span className="badge badge-success">발행됨</span> : <span className="badge badge-neutral">초안</span>}
                     <span style={{fontWeight:600, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{a.title}</span>
                     <span className="item-time">{relativeTime(a.created_at)}</span>
